@@ -1,0 +1,138 @@
+.slider {
+  width: 100%;
+  height: 360px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.slide {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: var(--container-max-width);
+  padding: 0 24px;
+  position: relative;
+  z-index: 2;
+}
+
+.left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.giftBox {
+  width: 200px;
+  height: 200px;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elev);
+  position: relative;
+  
+  &::before {
+    content: '🎁';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px;
+  }
+}
+
+.right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.title {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.symbol {
+  font-size: 120px;
+  font-weight: 700;
+  opacity: 0.9;
+  line-height: 1;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 32px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s, background 0.3s;
+  z-index: 3;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.slider:hover .arrow {
+  opacity: 1;
+}
+
+.arrowLeft {
+  left: 20px;
+}
+
+.arrowRight {
+  right: 20px;
+}
+
+.dots {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 3;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background 0.3s;
+
+  &.active {
+    background: white;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.8);
+  }
+}
+

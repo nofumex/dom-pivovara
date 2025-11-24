@@ -1,0 +1,307 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl is optional - only needed for connection pooling
+  // If not provided, DATABASE_URL will be used
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum OrderStatus {
+  NEW
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryType {
+  PICKUP
+  COURIER
+  TRANSPORT
+}
+
+enum ProductVisibility {
+  VISIBLE
+  HIDDEN
+  DRAFT
+}
+
+enum StockStatus {
+  MANY
+  ENOUGH
+  FEW
+  NONE
+}
+
+enum ProductBadge {
+  HIT
+  NEW
+  SALE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  company   String?
+  role      UserRole  @default(CUSTOMER)
+  isBlocked Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  addresses Address[]
+  orders    Order[]
+  reviews   Review[]
+  sessions  Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Address {
+  id      String  @id @default(cuid())
+  userId  String
+  name    String
+  street  String
+  city    String
+  region  String
+  zipCode String
+  phone   String?
+  isMain  Boolean @default(false)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders  Order[]
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+  image       String?
+  parentId    String?
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  seoTitle    String?
+  seoDesc     String?    @db.Text
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Product {
+  id          String            @id @default(cuid())
+  sku         String            @unique
+  title       String
+  slug        String            @unique
+  description String?           @db.Text
+  content     String?           @db.Text
+  price       Decimal           @db.Decimal(10, 2)
+  oldPrice    Decimal?          @db.Decimal(10, 2)
+  currency    String            @default("RUB")
+  stock       Int               @default(0)
+  stockStatus StockStatus       @default(ENOUGH)
+  minOrder    Int               @default(1)
+  weight      Decimal?          @db.Decimal(8, 3)
+  dimensions  String?
+  material    String?
+  tags        String[]
+  badges      ProductBadge[]
+  images      String[]
+  rating      Decimal?          @default(0) @db.Decimal(3, 2)
+  ratingCount Int               @default(0)
+  isActive    Boolean           @default(true)
+  isFeatured  Boolean           @default(false)
+  isInStock   Boolean           @default(true)
+  visibility  ProductVisibility @default(VISIBLE)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  seoTitle    String?
+  seoDesc     String?           @db.Text
+  metaTitle   String?
+  metaDesc    String?           @db.Text
+  categoryId  String
+  categoryObj Category          @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  variants    ProductVariant[]
+  reviews     Review[]
+}
+
+model ProductVariant {
+  id        String      @id @default(cuid())
+  productId String
+  size      String?
+  color     String?
+  material  String?
+  price     Decimal     @db.Decimal(10, 2)
+  stock     Int         @default(0)
+  sku       String      @unique
+  imageUrl  String?
+  isActive  Boolean     @default(true)
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+}
+
+model Order {
+  id           String       @id @default(cuid())
+  orderNumber  String       @unique
+  userId       String
+  status       OrderStatus  @default(NEW)
+  total        Decimal      @db.Decimal(10, 2)
+  subtotal     Decimal      @db.Decimal(10, 2)
+  delivery     Decimal      @default(0) @db.Decimal(8, 2)
+  discount     Decimal      @default(0) @db.Decimal(8, 2)
+  firstName    String
+  lastName     String
+  company      String?
+  phone        String
+  email        String
+  notes        String?      @db.Text
+  deliveryType DeliveryType @default(PICKUP)
+  addressId    String?
+  trackNumber  String?
+  promoCode    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  items        OrderItem[]
+  logs         OrderLog[]
+  address      Address?     @relation(fields: [addressId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+}
+
+model OrderItem {
+  id            String          @id @default(cuid())
+  orderId       String
+  productId     String
+  variantId     String?
+  quantity      Int
+  price         Decimal         @db.Decimal(10, 2)
+  total         Decimal         @db.Decimal(10, 2)
+  selectedColor String?
+  selectedSize  String?
+  order         Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product         @relation(fields: [productId], references: [id])
+  variant       ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+model OrderLog {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  comment   String?     @db.Text
+  createdAt DateTime    @default(now())
+  createdBy String?
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int      @db.SmallInt
+  title     String?
+  content   String   @db.Text
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([productId, userId])
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  company   String?
+  message   String?    @db.Text
+  source    String?
+  status    LeadStatus @default(NEW)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Setting {
+  id    String      @id @default(cuid())
+  key   String      @unique
+  value String      @db.Text
+  type  SettingType @default(STRING)
+}
+
+model HeroImage {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  title     String?
+  text      String?  @db.Text
+  buttonText String?
+  buttonUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String   @db.Text
+  seoTitle  String?
+  seoDesc   String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  oldData    Json?
+  newData    Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+}

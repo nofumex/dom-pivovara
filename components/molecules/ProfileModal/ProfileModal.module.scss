@@ -1,0 +1,27 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.switchButton {
+  background: none;
+  border: none;
+  color: var(--color-link);
+  font-size: var(--font-small-size);
+  cursor: pointer;
+  text-align: center;
+  padding: 8px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+

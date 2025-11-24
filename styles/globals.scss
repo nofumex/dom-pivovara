@@ -1,0 +1,90 @@
+@import './variables.scss';
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  font-size: var(--font-base-size);
+  line-height: var(--font-base-line-height);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: var(--font-h1-size);
+  line-height: var(--font-h1-line-height);
+  font-weight: var(--font-h1-weight);
+}
+
+h2 {
+  font-size: var(--font-h2-size);
+  line-height: var(--font-h2-line-height);
+  font-weight: var(--font-h2-weight);
+}
+
+h3 {
+  font-size: var(--font-h3-size);
+  line-height: var(--font-h3-line-height);
+  font-weight: var(--font-h3-weight);
+}
+
+button {
+  font-family: inherit;
+  font-size: var(--font-button-size);
+  line-height: var(--font-button-line-height);
+  font-weight: var(--font-button-weight);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: var(--font-base-size);
+}
+
+.container {
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+// Focus styles
+*:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+// Scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+

@@ -1,0 +1,15 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--color-white);
+  padding: 32px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  max-width: 600px;
+}
+
+.actions {
+  margin-top: 8px;
+}
+

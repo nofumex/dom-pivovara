@@ -1,0 +1,18 @@
+.title {
+  font-size: var(--font-h1-size);
+  font-weight: var(--font-h1-weight);
+  margin-bottom: 24px;
+  color: var(--color-text);
+}
+
+.content {
+  max-width: 800px;
+  font-size: var(--font-base-size);
+  line-height: var(--font-base-line-height);
+  color: var(--color-text);
+
+  p {
+    margin-bottom: 16px;
+  }
+}
+

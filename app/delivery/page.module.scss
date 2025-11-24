@@ -1,0 +1,34 @@
+.title {
+  font-size: var(--font-h1-size);
+  font-weight: var(--font-h1-weight);
+  margin-bottom: 32px;
+  color: var(--color-text);
+}
+
+.content {
+  max-width: 800px;
+  font-size: var(--font-base-size);
+  line-height: var(--font-base-line-height);
+  color: var(--color-text);
+
+  section {
+    margin-bottom: 32px;
+
+    h2 {
+      font-size: var(--font-h2-size);
+      font-weight: var(--font-h2-weight);
+      margin-bottom: 16px;
+      color: var(--color-text);
+    }
+
+    ul {
+      list-style: disc;
+      padding-left: 24px;
+
+      li {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}
+
