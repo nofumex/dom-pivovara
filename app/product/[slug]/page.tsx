@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { ProductDetails } from '@/components/organisms/ProductDetails/ProductDetails'
-import { ProductTabs } from '@/components/organisms/ProductDetailsTabs/ProductDetailsTabs'
+import { ProductDetailsTabs } from '@/components/organisms/ProductDetailsTabs/ProductDetailsTabs'
 
 export default async function ProductPage({
   params,
@@ -39,14 +39,39 @@ export default async function ProductPage({
     },
   })
 
-  const productWithBadges = product ? {
-    ...product,
-    badges: product.tags || [],
-    stockStatus: product.isInStock ? (product.stock > 10 ? 'MANY' : product.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE',
-  } : null
-
-  if (!product || !productWithBadges) {
+  if (!product) {
     notFound()
+  }
+
+  // Сериализуем данные для передачи в клиентские компоненты
+  const productWithBadges = {
+    id: product.id,
+    title: product.title,
+    slug: product.slug,
+    price: Number(product.price),
+    oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
+    rating: product.rating ? Number(product.rating) : 0,
+    badges: product.badges || [],
+    images: product.images || [],
+    stock: product.stock || 0,
+    stockStatus: product.isInStock ? (product.stock > 10 ? 'MANY' : product.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE',
+    reviews: product.reviews.map((review) => ({
+      id: review.id,
+      rating: review.rating,
+      title: review.title,
+      content: review.content,
+      createdAt: review.createdAt.toISOString(),
+      user: {
+        firstName: review.user.firstName,
+        lastName: review.user.lastName,
+      },
+    })),
+    description: product.description || '',
+    content: product.content || '',
+    sku: product.sku,
+    weight: product.weight ? Number(product.weight) : undefined,
+    dimensions: product.dimensions || undefined,
+    material: product.material || undefined,
   }
 
   const breadcrumbs = [
@@ -62,7 +87,7 @@ export default async function ProductPage({
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
         <ProductDetails product={productWithBadges} />
-        <ProductTabs product={productWithBadges} />
+        <ProductDetailsTabs product={productWithBadges} />
       </div>
     </main>
   )

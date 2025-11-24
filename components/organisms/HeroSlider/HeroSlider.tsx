@@ -1,98 +1,66 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/atoms/Button/Button'
+import { useState } from 'react'
+import Link from 'next/link'
 import styles from './HeroSlider.module.scss'
 
 const slides = [
   {
     id: 1,
-    title: 'Скидки',
-    buttonText: 'Узнать больше о скидках',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  {
-    id: 2,
-    title: 'Новинки',
-    buttonText: 'Смотреть новинки',
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-  },
-  {
-    id: 3,
-    title: 'Акции',
-    buttonText: 'Все акции',
-    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    title: 'Акция',
+    subtitle: 'Хмель',
+    price: 'от 99 руб.',
+    description: 'Акция! Снижение цены на популярные сорта хмеля',
+    buttonText1: 'Подробнее об акции',
+    buttonText2: 'Каталог',
   },
 ]
 
 export function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0)
-  const [isHovered, setIsHovered] = useState(false)
-
-  useEffect(() => {
-    if (isHovered) return
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [isHovered])
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index)
   }
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length)
-  }
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
-  }
-
   return (
-    <div
-      className={styles.slider}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div
-        className={styles.slide}
-        style={{ background: slides[currentSlide].gradient }}
-      >
+    <div className={styles.slider}>
+      <div className={styles.slide}>
+        <div className={styles.background}>
+          <div className={styles.sky}></div>
+          <div className={styles.ground}></div>
+        </div>
         <div className={styles.content}>
           <div className={styles.left}>
-            <div className={styles.giftBox}></div>
+            <div className={styles.textContent}>
+              <div className={styles.title}>{slides[currentSlide].title}</div>
+              <div className={styles.subtitle}>{slides[currentSlide].subtitle}</div>
+              <div className={styles.price}>{slides[currentSlide].price}</div>
+              <div className={styles.description}>{slides[currentSlide].description}</div>
+              <div className={styles.buttons}>
+                <Link href="/sales">
+                  <button className={styles.buttonPrimary}>
+                    {slides[currentSlide].buttonText1}
+                  </button>
+                </Link>
+                <Link href="/catalog">
+                  <button className={styles.buttonSecondary}>
+                    {slides[currentSlide].buttonText2}
+                  </button>
+                </Link>
+              </div>
+            </div>
           </div>
           <div className={styles.right}>
-            <h2 className={styles.title}>{slides[currentSlide].title}</h2>
-            <div className={styles.symbol}>π%</div>
-            <Button
-              variant="primary"
-              onClick={() => {
-                // Navigate to sales page
-              }}
-            >
-              {slides[currentSlide].buttonText}
-            </Button>
+            <div className={styles.hopsImage}>
+              <div className={styles.hopCone}></div>
+              <div className={styles.hopCone}></div>
+              <div className={styles.hopCone}></div>
+              <div className={styles.hopLeaf}></div>
+              <div className={styles.hopLeaf}></div>
+            </div>
           </div>
         </div>
-
-        <button
-          className={`${styles.arrow} ${styles.arrowLeft}`}
-          onClick={prevSlide}
-          aria-label="Предыдущий слайд"
-        >
-          ←
-        </button>
-        <button
-          className={`${styles.arrow} ${styles.arrowRight}`}
-          onClick={nextSlide}
-          aria-label="Следующий слайд"
-        >
-          →
-        </button>
 
         <div className={styles.dots}>
           {slides.map((_, index) => (

@@ -10,7 +10,6 @@ export function Footer() {
 
   return (
     <>
-  return (
     <footer className={styles.footer}>
       <div className={styles.partners}>
         <div className="container">

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/atoms/Badge/Badge'
 import { Button } from '@/components/atoms/Button/Button'
 import { RatingStars } from '@/components/atoms/RatingStars/RatingStars'
 import { StockLabel } from '@/components/atoms/StockLabel/StockLabel'
@@ -12,6 +11,7 @@ import { useFavoritesStore } from '@/store/favorites-store'
 import { useComparisonStore } from '@/store/comparison-store'
 import { CheaperModal } from '@/components/molecules/CheaperModal/CheaperModal'
 import { QuickBuyModal } from '@/components/molecules/QuickBuyModal/QuickBuyModal'
+import { CartIcon } from '@/components/atoms/Icons/CartIcon'
 import styles from './ProductDetails.module.scss'
 
 interface ProductDetailsProps {
@@ -39,6 +39,8 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const addToComparison = useComparisonStore((state) => state.add)
   const isFavorite = useFavoritesStore((state) => state.has(product.id))
 
+  const stockStatus = ((product.stockStatus || 'ENOUGH').toLowerCase()) as 'many' | 'enough' | 'few' | 'none'
+  
   const handleAddToCart = () => {
     addItem({
       productId: product.id,
@@ -67,8 +69,6 @@ export function ProductDetails({ product }: ProductDetailsProps) {
       alert('Нельзя добавить более 4 товаров для сравнения')
     }
   }
-
-  const stockStatus = ((product.stockStatus || 'ENOUGH').toLowerCase()) as 'many' | 'enough' | 'few' | 'none'
   const averageRating = product.reviews && product.reviews.length > 0
     ? product.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / product.reviews.length
     : 0
@@ -77,22 +77,40 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     <div className={styles.details}>
       <div className={styles.images}>
         <div className={styles.mainImage}>
-          <div
-            className={styles.image}
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            }}
-          />
+          {product.images && product.images.length > 0 && product.images[selectedImage] ? (
+            <div
+              className={styles.image}
+              style={{
+                backgroundImage: `url(${product.images[selectedImage]})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+          ) : (
+            <div
+              className={styles.image}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              }}
+            />
+          )}
         </div>
         {Array.isArray(product.images) && product.images.length > 1 && (
           <div className={styles.thumbnails}>
-            {product.images.map((_: any, index: number) => (
+            {product.images.map((image: string, index: number) => (
               <button
                 key={index}
                 className={`${styles.thumbnail} ${selectedImage === index ? styles.active : ''}`}
                 onClick={() => setSelectedImage(index)}
               >
-                <div className={styles.thumbImage} />
+                <div
+                  className={styles.thumbImage}
+                  style={{
+                    backgroundImage: image ? `url(${image})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
+                />
               </button>
             ))}
           </div>
@@ -154,7 +172,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             onClick={handleAddToCart}
             disabled={stockStatus === 'none'}
           >
-            🛒 В корзину
+            <CartIcon /> В корзину
           </Button>
           <Button
             variant="outline"

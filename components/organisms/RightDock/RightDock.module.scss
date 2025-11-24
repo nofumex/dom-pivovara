@@ -1,6 +1,6 @@
 .dock {
   position: fixed;
-  right: 24px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -16,7 +16,6 @@
   background: #3A4148;
   border: none;
   color: white;
-  font-size: 22px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -26,6 +25,11 @@
 
   &:hover {
     background: #48525B;
+  }
+  
+  svg {
+    width: 22px;
+    height: 22px;
   }
 }
 

@@ -29,7 +29,7 @@ export function ProductTabs() {
         if (activeTab === 'new') tag = 'NEW'
         if (activeTab === 'sale') tag = 'SALE'
         
-        const response = await fetch(`/api/products?tags=${tag}&limit=8`)
+        const response = await fetch(`/api/products?badges=${tag}&limit=8`)
         const data = await response.json()
         if (data.success) {
           const productsWithBadges = (data.data || []).map((p: any) => ({

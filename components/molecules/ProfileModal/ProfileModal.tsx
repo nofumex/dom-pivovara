@@ -56,6 +56,21 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isLogin ? 'Вход' : 'Регистрация'}>
+      {isLogin && (
+        <div style={{ 
+          marginBottom: '16px', 
+          padding: '12px', 
+          background: '#FFF5EB', 
+          borderRadius: '8px',
+          fontSize: '14px'
+        }}>
+          <strong>Тестовые аккаунты:</strong>
+          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+            <li>Пользователь: <code>user@test.ru</code> / <code>user123</code></li>
+            <li>Админ: <code>admin@test.ru</code> / <code>admin123</code></li>
+          </ul>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className={styles.form}>
         <Input
           type="email"

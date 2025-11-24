@@ -1,0 +1,12 @@
+.pageWrapper {
+  min-height: calc(100vh - 200px);
+  width: calc(100% - 280px);
+  max-width: calc(100% - 280px);
+  box-sizing: border-box;
+  margin-left: 280px;
+  padding: 0;
+  overflow-x: hidden;
+  background: var(--color-bg);
+  position: relative;
+}
+

@@ -76,9 +76,15 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const allTags = tags.length > 0 ? tags : badges
-    if (allTags.length > 0) {
-      where.tags = { hasSome: allTags }
+    // Filter by badges (ProductBadge enum)
+    const allBadges = badges.length > 0 ? badges : tags
+    if (allBadges.length > 0) {
+      where.badges = { hasSome: allBadges }
+    }
+    
+    // Also filter by tags if provided separately
+    if (tags.length > 0 && badges.length === 0) {
+      where.tags = { hasSome: tags }
     }
 
     if (ids.length > 0) {
@@ -117,7 +123,17 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where }),
     ])
 
-    return paginatedResponse(products, page, limit, total)
+    // Transform products for response
+    const transformedProducts = products.map((product) => ({
+      ...product,
+      price: Number(product.price),
+      oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
+      rating: product.rating ? Number(product.rating) : 0,
+      badges: product.badges || [],
+      tags: product.tags || [],
+    }))
+
+    return paginatedResponse(transformedProducts, page, limit, total)
   } catch (error) {
     console.error('Products API error:', error)
     return errorResponse('Ошибка при получении товаров', 500)

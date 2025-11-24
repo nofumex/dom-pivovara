@@ -6,6 +6,10 @@
   margin: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   max-width: 100vw;
@@ -15,6 +19,8 @@ body {
   line-height: var(--font-base-line-height);
   color: var(--color-text);
   background-color: var(--color-bg);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 a {
@@ -58,9 +64,11 @@ select {
 }
 
 .container {
-  max-width: var(--container-max-width);
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 // Focus styles

@@ -53,6 +53,19 @@ export default function AdminLoginPage() {
     <div className={styles.login}>
       <div className={styles.card}>
         <h1 className={styles.title}>Вход в админ-панель</h1>
+        <div style={{ 
+          marginBottom: '20px', 
+          padding: '12px', 
+          background: '#FFF5EB', 
+          borderRadius: '8px',
+          fontSize: '14px'
+        }}>
+          <strong>Тестовые аккаунты:</strong>
+          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+            <li>Админ: <code>admin@test.ru</code> / <code>admin123</code></li>
+            <li>Админ (основной): <code>admin@dompivovara.ru</code> / <code>admin123</code></li>
+          </ul>
+        </div>
         <form onSubmit={handleSubmit} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}
           <Input

@@ -1,17 +1,17 @@
-.contentWrapper {
-  display: flex;
-  gap: 24px;
-  margin-top: 48px;
-  margin-bottom: 48px;
+.page {
+  min-height: calc(100vh - 200px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  overflow-x: hidden;
+  background: var(--color-bg);
+  position: relative;
 }
 
-.mainContent {
-  flex: 1;
-}
-
-@media (max-width: 1023px) {
-  .contentWrapper {
-    flex-direction: column;
-  }
+.heroSection {
+  background: transparent;
+  padding: 24px 0;
+  margin-bottom: 32px;
 }
 

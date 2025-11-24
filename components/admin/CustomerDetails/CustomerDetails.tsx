@@ -76,7 +76,6 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
           <div className={styles.form}>
             <Select label="Роль" value={role} onChange={(e) => setRole(e.target.value)}>
               <option value="CUSTOMER">Клиент</option>
-              <option value="MANAGER">Менеджер</option>
               <option value="ADMIN">Администратор</option>
             </Select>
             <label className={styles.checkboxLabel}>

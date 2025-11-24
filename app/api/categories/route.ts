@@ -33,26 +33,28 @@ export async function GET(request: NextRequest) {
           },
           ...(includeProducts && {
             include: {
-              products: {
-                where: {
-                  isActive: true,
-                  visibility: 'VISIBLE',
-                },
+              _count: {
                 select: {
-                  id: true,
+                  products: {
+                    where: {
+                      isActive: true,
+                      visibility: 'VISIBLE',
+                    },
+                  },
                 },
               },
             },
           }),
         },
         ...(includeProducts && {
-          products: {
-            where: {
-              isActive: true,
-              visibility: 'VISIBLE',
-            },
+          _count: {
             select: {
-              id: true,
+              products: {
+                where: {
+                  isActive: true,
+                  visibility: 'VISIBLE',
+                },
+              },
             },
           },
         }),

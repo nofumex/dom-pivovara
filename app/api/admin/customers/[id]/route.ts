@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.MANAGER, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }

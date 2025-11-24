@@ -11,7 +11,7 @@ export default async function SalesPage() {
 
   const products = await prisma.product.findMany({
     where: {
-      tags: { has: 'SALE' },
+      badges: { has: 'SALE' },
       isActive: true,
       visibility: 'VISIBLE',
     },

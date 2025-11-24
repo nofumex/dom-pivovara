@@ -63,13 +63,13 @@ export function ProductDetailsTabs({ product }: ProductDetailsTabsProps) {
                   <div key={review.id} className={styles.review}>
                     <div className={styles.reviewHeader}>
                       <span className={styles.reviewAuthor}>
-                        {review.user.firstName} {review.user.lastName}
+                        {review.user?.firstName || ''} {review.user?.lastName || ''}
                       </span>
                       <span className={styles.reviewRating}>
-                        {'★'.repeat(review.rating)}
+                        {'★'.repeat(review.rating || 0)}
                       </span>
                       <span className={styles.reviewDate}>
-                        {new Date(review.createdAt).toLocaleDateString('ru-RU')}
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString('ru-RU') : ''}
                       </span>
                     </div>
                     {review.title && <h4 className={styles.reviewTitle}>{review.title}</h4>}

@@ -16,7 +16,7 @@ export default async function AdminProductsPage() {
 
   try {
     const user = await verifyAuth({ cookies: () => cookieStore } as any)
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'MANAGER')) {
+    if (!user || user.role !== 'ADMIN') {
       redirect('/admin/login')
     }
   } catch {

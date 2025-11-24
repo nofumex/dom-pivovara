@@ -3,7 +3,8 @@ import { Inter } from 'next/font/google'
 import { Header } from '@/components/organisms/Header/Header'
 import { Footer } from '@/components/organisms/Footer/Footer'
 import { RightDock } from '@/components/organisms/RightDock/RightDock'
-import { LeftCatalog } from '@/components/organisms/LeftCatalog/LeftCatalog'
+import { CatalogSidebar } from '@/components/organisms/CatalogSidebar/CatalogSidebar'
+import { PageWrapper } from '@/components/organisms/PageWrapper/PageWrapper'
 import { ScrollToTop } from '@/components/atoms/ScrollToTop/ScrollToTop'
 import '@/styles/globals.scss'
 
@@ -23,12 +24,10 @@ export default function RootLayout({
     <html lang="ru">
       <body className={inter.className}>
         <Header />
-        <div style={{ display: 'flex' }}>
-          <LeftCatalog />
-          <div style={{ flex: 1 }}>
-            {children}
-          </div>
-        </div>
+        <CatalogSidebar />
+        <PageWrapper>
+          {children}
+        </PageWrapper>
         <Footer />
         <RightDock />
         <ScrollToTop />

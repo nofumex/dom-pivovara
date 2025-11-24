@@ -63,6 +63,10 @@ export function ProductCard({ product }: ProductCardProps) {
     ? 'sale'
     : null
 
+  // Генерируем случайное изображение на основе id товара
+  const imageSeed = product.id.charCodeAt(0) + product.id.charCodeAt(product.id.length - 1)
+  const imageUrl = `https://picsum.photos/seed/${imageSeed}/400/400`
+
   return (
     <Link href={`/product/${product.slug}`} className={styles.card}>
       {badgeType && <Badge type={badgeType} />}
@@ -70,7 +74,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <div
           className={styles.image}
           style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundImage: `url(${imageUrl})`,
           }}
         />
       </div>

@@ -2,10 +2,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border-radius: var(--radius-md);
   transition: all 0.2s;
   font-weight: var(--font-button-weight);
   cursor: pointer;
+  
+  svg {
+    flex-shrink: 0;
+  }
 
   &:disabled {
     background-color: #F0F0F0;
