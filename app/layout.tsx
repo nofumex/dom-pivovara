@@ -24,10 +24,12 @@ export default function RootLayout({
     <html lang="ru">
       <body className={inter.className}>
         <Header />
-        <CatalogSidebar />
-        <PageWrapper>
-          {children}
-        </PageWrapper>
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          <CatalogSidebar />
+          <PageWrapper>
+            {children}
+          </PageWrapper>
+        </div>
         <Footer />
         <RightDock />
         <ScrollToTop />

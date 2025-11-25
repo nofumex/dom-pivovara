@@ -19,3 +19,4 @@ export function CartIcon({ className }: { className?: string }) {
   )
 }
 
+

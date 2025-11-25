@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
 import { Input } from '@/components/atoms/Input/Input'
@@ -10,12 +10,26 @@ import styles from './page.module.scss'
 export default function AdminLoginPage() {
   const router = useRouter()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const user = useAuthStore((state) => state.user)
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const isAuthenticated = user !== null && accessToken !== null
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'ADMIN') {
+        router.push('/admin')
+      } else {
+        router.push('/')
+      }
+    }
+  }, [isAuthenticated, user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,7 +43,15 @@ export default function AdminLoginPage() {
         body: JSON.stringify(formData),
       })
 
-      const data = await response.json()
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        // If response is not JSON, it's likely a server error
+        setError('Ошибка сервера. Попробуйте позже.')
+        return
+      }
+      
       if (data.success) {
         setAuth(data.data.user, data.data.accessToken, data.data.refreshToken)
         
@@ -39,14 +61,69 @@ export default function AdminLoginPage() {
         
         router.push('/admin')
       } else {
-        setError(data.error || 'Ошибка при входе')
+        // Show specific error message from server
+        let errorMessage = data.error || 'Ошибка при входе. Проверьте правильность введенных данных.'
+        
+        // Check for database connection errors
+        if (data.error?.includes('database') || data.error?.includes('5432') || data.error?.includes('Can\'t reach database')) {
+          errorMessage = 'Ошибка подключения к базе данных. Убедитесь, что база данных запущена и доступна.'
+        }
+        
+        setError(errorMessage)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error)
-      setError('Ошибка при входе в систему')
+      
+      // Handle network errors or database connection errors
+      let errorMessage = 'Ошибка при входе в систему. Попробуйте позже.'
+      
+      if (error.message?.includes('fetch') || error.message?.includes('network') || error.message?.includes('Failed to fetch')) {
+        errorMessage = 'Ошибка подключения к серверу. Проверьте подключение к интернету или попробуйте позже.'
+      } else if (error.message?.includes('database') || error.message?.includes('5432')) {
+        errorMessage = 'Ошибка подключения к базе данных. Убедитесь, что база данных запущена и доступна.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Show account options if already authenticated
+  if (isAuthenticated && user) {
+    return (
+      <div className={styles.login}>
+        <div className={styles.card}>
+          <h1 className={styles.title}>Вы уже авторизованы</h1>
+          <div className={styles.userInfo}>
+            <p className={styles.userName}>
+              {user.firstName} {user.lastName}
+            </p>
+            <p className={styles.userEmail}>{user.email}</p>
+          </div>
+          
+          <div className={styles.actions}>
+            {user.role === 'ADMIN' ? (
+              <Button
+                variant="primary"
+                onClick={() => router.push('/admin')}
+                className={styles.actionButton}
+              >
+                Перейти в админ панель
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => router.push('/')}
+                className={styles.actionButton}
+              >
+                Вернуться на главную
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

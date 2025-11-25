@@ -19,3 +19,4 @@ export function SearchIcon({ className }: { className?: string }) {
   )
 }
 
+

@@ -27,8 +27,7 @@
   width: 100%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   transition: transform 0.3s;
 
@@ -74,52 +73,66 @@
   margin-top: 8px;
 }
 
-.partners {
+.manufacturers {
   padding: 32px 0 0 0;
   margin-top: 32px;
   border-top: 1px solid var(--color-border);
 }
 
-.partnersGrid {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 40px;
-  flex-wrap: wrap;
-}
-
-.partnerLogo {
-  width: 120px;
-  height: 80px;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  transition: opacity 0.3s, box-shadow 0.3s;
-  opacity: 0.7;
-
-  &:hover {
-    opacity: 1;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.manufacturersTitle {
+  text-align: center;
+  margin-bottom: 24px;
+  text-decoration: none;
+  display: block;
+  transition: color 0.2s;
+  
+  h3 {
+    font-size: var(--font-h3-size);
+    font-weight: var(--font-h3-weight);
+    margin: 0;
+    color: var(--color-text);
+    transition: color 0.2s;
+  }
+  
+  &:hover h3 {
+    color: var(--color-primary-600);
   }
 }
 
-.partnerName {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: center;
+.manufacturersGrid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 0;
 }
 
-.partnerText {
-  font-size: 10px;
-  color: var(--color-muted);
-  text-align: center;
-  margin-top: 4px;
+.manufacturerLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: transform 0.3s, box-shadow 0.3s;
+  text-decoration: none;
+  flex-shrink: 0;
+  width: 180px;
+  height: 90px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.manufacturerImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 @media (max-width: 1023px) {

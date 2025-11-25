@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/molecules/Modal/Modal'
 import { Input } from '@/components/atoms/Input/Input'
 import { Button } from '@/components/atoms/Button/Button'
@@ -13,6 +14,11 @@ interface ProfileModalProps {
 }
 
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+  const router = useRouter()
+  const user = useAuthStore((state) => state.user)
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const isAuthenticated = user !== null && accessToken !== null
+  const clearAuth = useAuthStore((state) => state.clearAuth)
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
     email: '',
@@ -21,9 +27,18 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     code: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  // Reset error when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setError('')
+    }
+  }, [isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setIsSubmitting(true)
 
     try {
@@ -37,23 +52,127 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           }),
         })
 
-        const data = await response.json()
+        let data
+        try {
+          data = await response.json()
+        } catch (parseError) {
+          // If response is not JSON, it's likely a server error
+          setError('Ошибка сервера. Попробуйте позже.')
+          return
+        }
+        
         if (data.success) {
           const { setAuth } = useAuthStore.getState()
           setAuth(data.data.user, data.data.accessToken, data.data.refreshToken)
+          
+          // Set cookies
+          document.cookie = `accessToken=${data.data.accessToken}; path=/; max-age=900`
+          document.cookie = `refreshToken=${data.data.refreshToken}; path=/; max-age=604800`
+          
+          // Reset form
+          setFormData({ email: '', phone: '', password: '', code: '' })
+          setError('')
           onClose()
+        } else {
+          // Show specific error message from server
+          let errorMessage = data.error || 'Ошибка при входе. Проверьте правильность введенных данных.'
+          
+          // Check for database connection errors
+          if (data.error?.includes('database') || data.error?.includes('5432') || data.error?.includes('Can\'t reach database')) {
+            errorMessage = 'Ошибка подключения к базе данных. Убедитесь, что база данных запущена и доступна.'
+          }
+          
+          setError(errorMessage)
         }
       } else {
         // Registration logic
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth error:', error)
-      alert('Ошибка при входе')
+      
+      // Handle network errors or database connection errors
+      let errorMessage = 'Ошибка подключения к серверу. Проверьте подключение к интернету или попробуйте позже.'
+      
+      if (error.message?.includes('fetch') || error.message?.includes('network') || error.message?.includes('Failed to fetch')) {
+        errorMessage = 'Ошибка подключения к серверу. Проверьте подключение к интернету или попробуйте позже.'
+      } else if (error.message?.includes('database') || error.message?.includes('5432')) {
+        errorMessage = 'Ошибка подключения к базе данных. Убедитесь, что база данных запущена и доступна.'
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      clearAuth()
+      // Clear cookies
+      document.cookie = 'accessToken=; path=/; max-age=0'
+      document.cookie = 'refreshToken=; path=/; max-age=0'
+      onClose()
+    } catch (error) {
+      console.error('Logout error:', error)
+      clearAuth()
+      document.cookie = 'accessToken=; path=/; max-age=0'
+      document.cookie = 'refreshToken=; path=/; max-age=0'
+      onClose()
+    }
+  }
+
+  // If user is authenticated, show account options
+  if (isAuthenticated && user) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Мой аккаунт">
+        <div className={styles.userInfo}>
+          <div className={styles.userDetails}>
+            <p className={styles.userName}>
+              {user.firstName} {user.lastName}
+            </p>
+            <p className={styles.userEmail}>{user.email}</p>
+            {user.phone && <p className={styles.userPhone}>{user.phone}</p>}
+          </div>
+          
+          <div className={styles.actions}>
+            {user.role === 'ADMIN' ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  onClose()
+                  router.push('/admin')
+                }}
+                className={styles.actionButton}
+              >
+                Админ панель
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  onClose()
+                  router.push('/profile')
+                }}
+                className={styles.actionButton}
+              >
+                Мой аккаунт
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              onClick={handleLogout}
+              className={styles.actionButton}
+            >
+              Выйти
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
+
+  // Show login form if not authenticated
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isLogin ? 'Вход' : 'Регистрация'}>
       {isLogin && (
@@ -72,6 +191,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         </div>
       )}
       <form onSubmit={handleSubmit} className={styles.form}>
+        {error && <div className={styles.error}>{error}</div>}
         <Input
           type="email"
           label="Email"

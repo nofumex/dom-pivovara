@@ -5,30 +5,151 @@
   color: var(--color-text);
 }
 
-.content {
+.layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 48px;
+  align-items: start;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 }
 
 .contactBlock {
-  padding: 24px;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-
-  h2 {
-    font-size: var(--font-h3-size);
-    font-weight: var(--font-h3-weight);
-    margin-bottom: 16px;
-    color: var(--color-text);
-  }
-
-  p {
-    font-size: var(--font-base-size);
-    color: var(--color-text);
-    margin-bottom: 8px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border);
+  
+  &:last-of-type {
+    border-bottom: none;
   }
 }
 
+.contactLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contactValue {
+  font-size: var(--font-base-size);
+  color: var(--color-text);
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.contactValuePrimary {
+  font-size: var(--font-base-size);
+  color: var(--color-primary-600);
+  margin-bottom: 8px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.maps {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.mapContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapTitle {
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.map {
+  width: 100%;
+  height: 300px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.formContainer {
+  background: var(--color-white);
+  padding: 32px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  align-self: flex-start;
+  position: sticky;
+  top: 20px;
+}
+
+.formTitle {
+  font-size: var(--font-h2-size);
+  font-weight: var(--font-h2-weight);
+  margin-bottom: 24px;
+  color: var(--color-text);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: var(--font-base-size);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-danger);
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base-size);
+  font-family: inherit;
+  resize: vertical;
+  min-height: 120px;
+  
+  &:focus {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+    border-color: var(--color-primary-600);
+  }
+}
+
+.requiredNote {
+  font-size: var(--font-small-size);
+  color: var(--color-text-secondary);
+  margin: -8px 0 0 0;
+}
+
+.formActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}

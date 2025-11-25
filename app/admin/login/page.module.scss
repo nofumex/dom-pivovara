@@ -44,3 +44,33 @@
   margin-top: 8px;
 }
 
+.userInfo {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.userName {
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.userEmail {
+  font-size: var(--font-body-size);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actionButton {
+  width: 100%;
+}
+

@@ -19,3 +19,4 @@ export function TruckIcon({ className }: { className?: string }) {
   )
 }
 
+

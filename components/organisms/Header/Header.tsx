@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CallbackModal } from '@/components/molecules/CallbackModal/CallbackModal'
 import { PhoneIcon } from '@/components/atoms/Icons/PhoneIcon'
-import { SearchIcon } from '@/components/atoms/Icons/SearchIcon'
 import { MenuIcon } from '@/components/atoms/Icons/MenuIcon'
 import { ChevronDownIcon } from '@/components/atoms/Icons/ChevronDownIcon'
 import styles from './Header.module.scss'
@@ -46,7 +45,11 @@ export function Header() {
         <div className={styles.top}>
           <Link href="/" className={styles.logo}>
             <div className={styles.logoIcon}>
-              <div className={styles.logoBarrel}></div>
+              <img 
+                src="/images/logoPivovar.png" 
+                alt="ДомПивовар" 
+                className={styles.logoImage}
+              />
             </div>
             <h1 className={styles.logoText}>ДомПивовар</h1>
           </Link>
@@ -59,7 +62,10 @@ export function Header() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <button type="submit" className={styles.searchButton} aria-label="Поиск">
-              <SearchIcon />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
+                <path d="m20 20-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
             </button>
           </form>
           <div className={styles.phone}>

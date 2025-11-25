@@ -138,9 +138,6 @@ export function LeftCatalog() {
                   >
                     <span className={styles.icon}>{icon}</span>
                     <span className={styles.name}>{category.name}</span>
-                    {productCount > 0 && (
-                      <span className={styles.count}>({productCount})</span>
-                    )}
                   </Link>
                   {hasChildren && (
                     <button
@@ -165,9 +162,6 @@ export function LeftCatalog() {
                         className={`${styles.subcategoryItem} ${isActive(child.slug) ? styles.active : ''}`}
                       >
                         {child.name}
-                        {child._count && child._count.products > 0 && (
-                          <span className={styles.count}>({child._count.products})</span>
-                        )}
                       </Link>
                     ))}
                   </div>

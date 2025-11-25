@@ -19,3 +19,4 @@ export function BarChartIcon({ className }: { className?: string }) {
   )
 }
 
+

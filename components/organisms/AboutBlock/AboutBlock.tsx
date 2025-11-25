@@ -32,12 +32,12 @@ export function AboutBlock() {
   }, [])
 
 
-  const partners = [
-    { name: 'СИВ', text: 'ВСЕ ДЛЯ ПРИГОТОВЛЕНИЯ СПИРТНЫХ НАПИТКОВ ДОМА' },
-    { name: 'Ставбондарь', text: '' },
-    { name: 'ВИНОКУР', text: 'Алтайский винокур' },
-    { name: 'ДЕД АЛТАЙ', text: '' },
-    { name: 'iplate', text: '' },
+  const manufacturers = [
+    { slug: 'samogon-i-vodka', image: '/images/СамогониВодка.jpg' },
+    { slug: 'stavbondar', image: '/images/Ставбондарь.jpg' },
+    { slug: 'altayskiy-vinokur', image: '/images/АлтайскийВинокур.jpg' },
+    { slug: 'ded-altay', image: '/images/ДедАлтай.jpg' },
+    { slug: 'iplate', image: '/images/Iplate.jpg' },
   ]
 
   return (
@@ -45,12 +45,11 @@ export function AboutBlock() {
       <div className="container">
         <div className={styles.content}>
           <div className={styles.imageWrapper}>
-            <div
+            <img
+              src="/images/aboutPivovar.png"
+              alt="О ДомПивоваре"
               className={styles.image}
-              style={{
-                backgroundImage: 'url(https://images.unsplash.com/photo-1556910103-2c027eb9ef25?w=800&h=600&fit=crop)',
-              }}
-            ></div>
+            />
           </div>
           <div className={styles.text}>
             <h2 className={styles.title}>О ДомПивоваре</h2>
@@ -67,13 +66,23 @@ export function AboutBlock() {
             </Link>
           </div>
         </div>
-        <div className={styles.partners}>
-          <div className={styles.partnersGrid}>
-            {partners.map((partner, index) => (
-              <div key={index} className={styles.partnerLogo}>
-                <div className={styles.partnerName}>{partner.name}</div>
-                {partner.text && <div className={styles.partnerText}>{partner.text}</div>}
-              </div>
+        <div className={styles.manufacturers}>
+          <Link href="/manufacturers" className={styles.manufacturersTitle}>
+            <h3>Производители</h3>
+          </Link>
+          <div className={styles.manufacturersGrid}>
+            {manufacturers.map((manufacturer) => (
+              <Link
+                key={manufacturer.slug}
+                href={`/manufacturers/${manufacturer.slug}`}
+                className={styles.manufacturerLogo}
+              >
+                <img
+                  src={manufacturer.image}
+                  alt=""
+                  className={styles.manufacturerImage}
+                />
+              </Link>
             ))}
           </div>
         </div>

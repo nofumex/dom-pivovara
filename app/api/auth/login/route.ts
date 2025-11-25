@@ -81,8 +81,21 @@ export async function POST(request: NextRequest) {
     if (error.name === 'ZodError') {
       return errorResponse('Ошибка валидации', 400, error.errors[0]?.message)
     }
+    
+    // Handle database connection errors
+    if (error.code === 'P1001' || error.message?.includes('Can\'t reach database') || error.message?.includes('5432')) {
+      console.error('Database connection error:', error)
+      return errorResponse('Ошибка подключения к базе данных. Убедитесь, что база данных запущена и доступна.', 503)
+    }
+    
+    // Handle Prisma errors
+    if (error.code?.startsWith('P')) {
+      console.error('Prisma error:', error)
+      return errorResponse('Ошибка базы данных. Попробуйте позже.', 500)
+    }
+    
     console.error('Login error:', error)
-    return errorResponse('Ошибка при входе', 500)
+    return errorResponse('Ошибка при входе. Попробуйте позже.', 500)
   }
 }
 

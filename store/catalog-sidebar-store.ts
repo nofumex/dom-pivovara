@@ -12,3 +12,4 @@ export const useCatalogSidebarStore = create<CatalogSidebarStore>((set) => ({
   setOpen: (open: boolean) => set({ isOpen: open }),
 }))
 
+
