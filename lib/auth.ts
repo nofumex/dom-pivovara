@@ -161,3 +161,47 @@ export async function validateSession(refreshToken: string): Promise<boolean> {
   return true
 }
 
+// Функция для работы с аутентификацией в Server Components (App Router)
+export async function getAuthUserFromCookies(token: string | undefined): Promise<AuthUser | null> {
+  try {
+    if (!token) {
+      return null
+    }
+
+    const payload = verifyAccessToken(token)
+    if (!payload) {
+      return null
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        phone: true,
+        company: true,
+        isBlocked: true,
+      },
+    })
+
+    if (!user || user.isBlocked) {
+      return null
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      phone: user.phone,
+      company: user.company,
+    }
+  } catch {
+    return null
+  }
+}
+

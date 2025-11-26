@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { FiltersPanel } from '@/components/organisms/FiltersPanel/FiltersPanel'
 import { SortBar } from '@/components/molecules/SortBar/SortBar'
 import { ProductGrid } from '@/components/organisms/ProductGrid/ProductGrid'
+import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
 interface CategoryClientProps {
@@ -13,7 +15,7 @@ interface CategoryClientProps {
     name: string
     slug: string
     parent?: { name: string; slug: string } | null
-    children?: Array<{ id: string; name: string; slug: string }>
+    children?: Array<{ id: string; name: string; slug: string; count?: number }>
   }
   initialProducts: any[]
 }
@@ -87,39 +89,52 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         <h1 className={styles.title}>{category.name}</h1>
 
         {category.children && category.children.length > 0 && (
-          <div className={styles.subcategories}>
-            <h2>Подкатегории:</h2>
-            <div className={styles.subcategoriesList}>
-              {category.children.map((child) => (
-                <a
-                  key={child.id}
-                  href={`/catalog/${category.slug}/${child.slug}`}
-                  className={styles.subcategoryLink}
-                >
-                  {child.name}
-                </a>
-              ))}
-            </div>
+          <div className={styles.subcategoriesGrid}>
+            {category.children.map((child) => (
+              <Link
+                key={child.id}
+                href={`/catalog/${category.slug}/${child.slug}`}
+                className={styles.subcategoryCard}
+              >
+                <div className={styles.subcategoryImageWrapper}>
+                  <img
+                    src={getPlaceholderImage(child.name, 200)}
+                    alt={child.name}
+                    className={styles.subcategoryImage}
+                  />
+                </div>
+                <div className={styles.subcategoryContent}>
+                  <h3 className={styles.subcategoryTitle}>{child.name}</h3>
+                  {child.count !== undefined && (
+                    <span className={styles.subcategoryCount}>{child.count} товаров</span>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
         )}
 
-        <FiltersPanel
-          onFilterChange={(newFilters) => {
-            setFilters(newFilters)
-          }}
-        />
-        <SortBar
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSortChange={(newSortBy, newSortOrder) => {
-            setSortBy(newSortBy)
-            setSortOrder(newSortOrder)
-          }}
-        />
-        {loading ? (
-          <div className={styles.loading}>Загрузка...</div>
-        ) : (
-          <ProductGrid products={products} />
+        {products.length > 0 && (
+          <>
+            <FiltersPanel
+              onFilterChange={(newFilters) => {
+                setFilters(newFilters)
+              }}
+            />
+            <SortBar
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={(newSortBy, newSortOrder) => {
+                setSortBy(newSortBy)
+                setSortOrder(newSortOrder)
+              }}
+            />
+            {loading ? (
+              <div className={styles.loading}>Загрузка...</div>
+            ) : (
+              <ProductGrid products={products} />
+            )}
+          </>
         )}
       </div>
     </main>

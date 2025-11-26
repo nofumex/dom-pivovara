@@ -63,10 +63,16 @@ select {
   font-size: var(--font-base-size);
 }
 
+main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 48px 0 12px;
   width: 100%;
   box-sizing: border-box;
 }

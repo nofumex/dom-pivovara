@@ -2,26 +2,25 @@
   font-size: var(--font-h1-size);
   font-weight: var(--font-h1-weight);
   margin-bottom: 32px;
+  margin-top: 0;
   color: var(--color-text);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
 
 .card {
   display: flex;
-  gap: 20px;
-  padding: 24px;
+  flex-direction: column;
+  padding: 12px;
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  text-decoration: none;
-  color: inherit;
-  transition: box-shadow 0.3s, transform 0.3s;
+  transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
 
   &:hover {
     box-shadow: var(--shadow-elev);
@@ -29,11 +28,21 @@
   }
 }
 
+.cardLink {
+  display: flex;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 10px;
+}
+
 .image {
-  width: 140px;
-  height: 100px;
+  width: 60px;
+  height: 60px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+  object-fit: contain;
+  background: transparent;
 }
 
 .content {
@@ -41,19 +50,61 @@
 }
 
 .cardTitle {
-  font-size: var(--font-h3-size);
-  font-weight: var(--font-h3-weight);
+  font-size: 16px;
+  font-weight: 600;
   color: var(--color-primary-600);
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  line-height: 1.3;
 }
 
 .subcategories {
-  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: var(--font-base-size);
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.subcategoryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
   color: var(--color-text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
+  border-radius: var(--radius-sm, 4px);
+
+  &:hover {
+    background: #FFF5EB;
+    color: var(--color-primary-600);
+  }
+}
+
+.subcategoryName {
+  flex: 1;
+  line-height: 1.3;
+}
+
+.subcategoryCount {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 767px) {
@@ -61,13 +112,13 @@
     grid-template-columns: 1fr;
   }
 
-  .card {
+  .cardLink {
     flex-direction: column;
   }
 
   .image {
     width: 100%;
-    height: 200px;
+    height: 150px;
   }
 }
 

@@ -1,121 +1,177 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { SidebarSections } from '../SidebarSections/SidebarSections'
+import { allCategories, getPlaceholderImage } from '@/lib/catalogData'
 import styles from './CatalogSidebar.module.scss'
-
-// Список всех категорий
-const allCategories = [
-  { name: 'Пивоварение', slug: 'pivovareniye' },
-  { name: 'Самогоноварение', slug: 'samogonovarenie' },
-  { name: 'Виноделие', slug: 'vinodeliye' },
-  { name: 'Шланги, соединения', slug: 'shlangi-soedineniya' },
-  { name: 'Тара и ёмкости', slug: 'tara-emkosti' },
-  { name: 'Бондарные изделия', slug: 'bondarnye-izdeliya' },
-  { name: 'Казаны, тандыры, мангалы, печи, посуда', slug: 'kazany-tandyry-mangaly-pechi-posuda' },
-  { name: 'Всё для изготовления колбас', slug: 'vse-dlya-izgotovleniya-kolbas' },
-  { name: 'Сыроделие', slug: 'syrodelie' },
-  { name: 'Измерительное оборудование', slug: 'izmeritelnoe-oborudovanie' },
-  { name: 'Автоклавы и коптильни', slug: 'avtoklavy-koptilni' },
-  { name: 'Хлеб и квас', slug: 'hleb-kvas' },
-  { name: 'Травы и специи', slug: 'travy-specii' },
-  { name: 'Литература', slug: 'literatura' },
-]
 
 export function CatalogSidebar() {
   const pathname = usePathname()
   const isHomePage = pathname === '/'
+  const isCatalogRoute = pathname.startsWith('/catalog')
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
-  const [categoryProducts, setCategoryProducts] = useState<any[]>([])
   const [isCatalogHovered, setIsCatalogHovered] = useState(false)
+  const isSidebarHoveredRef = useRef(false)
+  const isSubcategoriesPanelHoveredRef = useRef(false)
+  
+  // Определяем активную категорию по pathname
+  const getActiveCategorySlug = () => {
+    if (!isCatalogRoute) return null
+    const pathParts = pathname.split('/').filter(Boolean)
+    if (pathParts.length >= 2 && pathParts[0] === 'catalog') {
+      return pathParts[1] // slug категории
+    }
+    return null
+  }
+  
+  const activeCategorySlug = getActiveCategorySlug()
+  
+  // Функция для открытия сайдбара
+  const openSidebar = useCallback(() => {
+    setIsCatalogHovered(true)
+  }, [])
+  
+  // Функция для проверки и закрытия сайдбара
+  const checkAndCloseSidebar = useCallback(() => {
+    if (!isHomePage && !isCatalogRoute) {
+      // Закрываем только если курсор не находится ни в сайдбаре, ни в панели подкатегорий
+      if (!isSidebarHoveredRef.current && !isSubcategoriesPanelHoveredRef.current) {
+        setIsCatalogHovered(false)
+      }
+    }
+  }, [isHomePage, isCatalogRoute])
 
   useEffect(() => {
-    if (isHomePage) return // На главной странице всегда показываем
+    // На главной странице и всех страницах каталога всегда показываем сайдбар
+    if (isHomePage || isCatalogRoute) {
+      setIsCatalogHovered(true)
+      return
+    }
 
     const catalogButton = document.querySelector('[data-catalog-button]')
-    const sidebarContainer = document.querySelector(`.${styles.sidebarContainer}`)
-    if (!catalogButton || !sidebarContainer) return
+    if (!catalogButton) return
 
-    let timeoutId: NodeJS.Timeout
-
-    const handleMouseEnter = () => {
-      clearTimeout(timeoutId)
-      setIsCatalogHovered(true)
+    const handleCatalogButtonEnter = () => {
+      openSidebar()
     }
     
-    const handleMouseLeave = () => {
-      timeoutId = setTimeout(() => {
-        setIsCatalogHovered(false)
-      }, 200) // Небольшая задержка для плавного перехода
+    const handleCatalogButtonLeave = () => {
+      // При уходе с кнопки проверяем, не находимся ли мы в сайдбаре или панели подкатегорий
+      checkAndCloseSidebar()
     }
 
-    const handleSidebarEnter = () => {
-      clearTimeout(timeoutId)
-      setIsCatalogHovered(true)
-    }
-
-    const handleSidebarLeave = () => {
-      timeoutId = setTimeout(() => {
-        setIsCatalogHovered(false)
-      }, 200)
-    }
-
-    catalogButton.addEventListener('mouseenter', handleMouseEnter)
-    catalogButton.addEventListener('mouseleave', handleMouseLeave)
-    sidebarContainer.addEventListener('mouseenter', handleSidebarEnter)
-    sidebarContainer.addEventListener('mouseleave', handleSidebarLeave)
+    catalogButton.addEventListener('mouseenter', handleCatalogButtonEnter)
+    catalogButton.addEventListener('mouseleave', handleCatalogButtonLeave)
 
     return () => {
-      clearTimeout(timeoutId)
-      catalogButton.removeEventListener('mouseenter', handleMouseEnter)
-      catalogButton.removeEventListener('mouseleave', handleMouseLeave)
-      sidebarContainer.removeEventListener('mouseenter', handleSidebarEnter)
-      sidebarContainer.removeEventListener('mouseleave', handleSidebarLeave)
+      catalogButton.removeEventListener('mouseenter', handleCatalogButtonEnter)
+      catalogButton.removeEventListener('mouseleave', handleCatalogButtonLeave)
     }
-  }, [isHomePage])
+  }, [isHomePage, isCatalogRoute, openSidebar, checkAndCloseSidebar])
 
-  useEffect(() => {
-    if (hoveredCategory) {
-      const fetchProducts = async () => {
-        try {
-          const response = await fetch(`/api/products?category=${hoveredCategory}&limit=6`)
-          const data = await response.json()
-          if (data.success) {
-            setCategoryProducts(data.data || [])
-          }
-        } catch (error) {
-          console.error('Error fetching category products:', error)
-          setCategoryProducts([])
-        }
-      }
-      fetchProducts()
-    } else {
-      setCategoryProducts([])
-    }
-  }, [hoveredCategory])
+  const showCategories = isHomePage || isCatalogRoute || isCatalogHovered
 
-  const showCategories = isHomePage || isCatalogHovered
+  const handleSidebarEnter = () => {
+    isSidebarHoveredRef.current = true
+    openSidebar()
+  }
+
+  const handleSidebarLeave = () => {
+    isSidebarHoveredRef.current = false
+    // Проверяем, не находимся ли мы в панели подкатегорий
+    checkAndCloseSidebar()
+  }
 
   return (
     <>
       <div className={styles.sidebarContainer}>
         {showCategories && (
-          <aside className={styles.sidebar}>
+          <aside 
+            className={styles.sidebar}
+            onMouseEnter={handleSidebarEnter}
+            onMouseLeave={handleSidebarLeave}
+          >
             <div className={styles.content}>
               <div className={styles.list}>
                 {allCategories.map((category) => (
-                  <Link
+                  <div
                     key={category.slug}
-                    href={`/catalog/${category.slug}`}
-                    className={styles.item}
+                    className={styles.categoryItem}
                     onMouseEnter={() => setHoveredCategory(category.slug)}
                     onMouseLeave={() => setHoveredCategory(null)}
                   >
-                    <span className={styles.name}>{category.name}</span>
-                    <span className={styles.arrow}>›</span>
-                  </Link>
+                    <Link
+                      href={`/catalog/${category.slug}`}
+                      className={`${styles.item} ${activeCategorySlug === category.slug ? styles.active : ''}`}
+                    >
+                      <span className={styles.name}>{category.name}</span>
+                      {category.subcategories.length > 0 && (
+                        <span className={styles.arrow}>›</span>
+                      )}
+                    </Link>
+                    {category.subcategories.length > 0 && hoveredCategory === category.slug && (
+                      <div 
+                        className={styles.subcategoriesPanel}
+                        onMouseEnter={() => {
+                          setHoveredCategory(category.slug)
+                          isSubcategoriesPanelHoveredRef.current = true
+                          openSidebar() // Держим сайдбар открытым при наведении на подкатегории
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredCategory(null)
+                          isSubcategoriesPanelHoveredRef.current = false
+                          // Проверяем, не находимся ли мы в сайдбаре
+                          checkAndCloseSidebar()
+                        }}
+                      >
+                        <div className={styles.subcategoriesContent}>
+                          <h3 className={styles.subcategoriesTitle}>{category.name}</h3>
+                          <div className={styles.subcategoriesGrid}>
+                            {category.subcategories.map((subcategory) => (
+                              <div key={subcategory.slug} className={styles.subcategoryCard}>
+                                <Link
+                                  href={`/catalog/${category.slug}/${subcategory.slug}`}
+                                  className={styles.subcategoryHeader}
+                                >
+                                  <img
+                                    src={getPlaceholderImage(subcategory.name, 64)}
+                                    alt={subcategory.name}
+                                    className={styles.subcategoryImage}
+                                  />
+                                  <div className={styles.subcategoryInfo}>
+                                    <span className={styles.subcategoryName}>
+                                      {subcategory.name}
+                                    </span>
+                                    {subcategory.count !== undefined && (
+                                      <span className={styles.subcategoryCount}>
+                                        {subcategory.count}
+                                      </span>
+                                    )}
+                                  </div>
+                                </Link>
+                                {subcategory.subSubcategories && subcategory.subSubcategories.length > 0 && (
+                                  <ul className={styles.subSubcategoriesList}>
+                                    {subcategory.subSubcategories.map((subSubcategory) => (
+                                      <li key={subSubcategory.slug}>
+                                        <Link
+                                          href={`/catalog/${category.slug}/${subcategory.slug}/${subSubcategory.slug}`}
+                                          className={styles.subSubcategoryItem}
+                                        >
+                                          {subSubcategory.name}
+                                        </Link>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -123,47 +179,6 @@ export function CatalogSidebar() {
         )}
         <SidebarSections />
       </div>
-      
-      {hoveredCategory && categoryProducts.length > 0 && (
-        <div 
-          className={styles.productsPreview}
-          onMouseEnter={() => setHoveredCategory(hoveredCategory)}
-          onMouseLeave={() => setHoveredCategory(null)}
-        >
-          <div className={styles.productsPreviewContent}>
-            <h3 className={styles.productsPreviewTitle}>
-              {allCategories.find(c => c.slug === hoveredCategory)?.name}
-            </h3>
-            <div className={styles.productsGrid}>
-              {categoryProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/product/${product.slug}`}
-                  className={styles.productCard}
-                >
-                  <div className={styles.productImage}>
-                    {product.images && product.images[0] ? (
-                      <img src={product.images[0]} alt={product.title} />
-                    ) : (
-                      <div className={styles.productPlaceholder}>📦</div>
-                    )}
-                  </div>
-                  <div className={styles.productTitle}>{product.title}</div>
-                  <div className={styles.productPrice}>
-                    {new Intl.NumberFormat('ru-RU').format(product.price)} ₽
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <Link
-              href={`/catalog/${hoveredCategory}`}
-              className={styles.viewAllLink}
-            >
-              Смотреть все →
-            </Link>
-          </div>
-        </div>
-      )}
     </>
   )
 }

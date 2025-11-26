@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { verifyAuth } from '@/lib/auth'
+import { getAuthUserFromCookies } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
@@ -14,7 +14,7 @@ export default async function AdminCustomersPage() {
   }
 
   try {
-    const user = await verifyAuth({ cookies: () => cookieStore } as any)
+    const user = await getAuthUserFromCookies(token)
     if (!user || user.role !== 'ADMIN') {
       redirect('/admin/login')
     }

@@ -48,20 +48,18 @@ const advantages = [
 export function Advantages() {
   return (
     <div className={styles.advantages}>
-      <div className="container">
-        <div className={styles.grid}>
-          {advantages.map((advantage, index) => {
-            const IconComponent = advantage.icon
-            return (
-              <div key={index} className={styles.item}>
-                <div className={styles.icon}>
-                  <IconComponent />
-                </div>
-                <div className={styles.text}>{advantage.text}</div>
+      <div className={styles.grid}>
+        {advantages.map((advantage, index) => {
+          const IconComponent = advantage.icon
+          return (
+            <div key={index} className={styles.item}>
+              <div className={styles.icon}>
+                <IconComponent />
               </div>
-            )
-          })}
-        </div>
+              <div className={styles.text}>{advantage.text}</div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

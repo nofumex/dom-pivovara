@@ -1,61 +1,56 @@
-import { prisma } from '@/lib/db'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
+import { allCategories, getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
-export default async function CatalogPage() {
-  const categories = await prisma.category.findMany({
-    where: {
-      parentId: null,
-      isActive: true,
-    },
-    include: {
-      children: {
-        where: { isActive: true },
-        include: {
-          _count: {
-            select: { products: true },
-          },
-        },
-      },
-      _count: {
-        select: { products: true },
-      },
-    },
-    orderBy: {
-      sortOrder: 'asc',
-    },
-  })
+export default function CatalogPage() {
+  const breadcrumbs = [
+    { label: 'Главная', href: '/' },
+    { label: 'Каталог', href: '/catalog' },
+  ]
 
   return (
     <main>
       <div className="container">
+        <Breadcrumbs items={breadcrumbs} />
         <h1 className={styles.title}>Каталог</h1>
         <div className={styles.grid}>
-          {categories.map((category) => (
+          {allCategories.map((category) => (
+            <div key={category.slug} className={styles.card}>
             <Link
-              key={category.id}
               href={`/catalog/${category.slug}`}
-              className={styles.card}
+                className={styles.cardLink}
             >
-              <div
+                <img
+                  src={getPlaceholderImage(category.name, 140)}
+                  alt={category.name}
                 className={styles.image}
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                }}
               />
               <div className={styles.content}>
                 <h2 className={styles.cardTitle}>{category.name}</h2>
-                {category.children && category.children.length > 0 && (
-                  <ul className={styles.subcategories}>
-                    {category.children.map((child) => (
-                      <li key={child.id}>
-                        {child.name} {child._count.products > 0 && `(${child._count.products})`}
-                      </li>
-                    ))}
-                  </ul>
+                </div>
+              </Link>
+              {category.subcategories.length > 0 && (
+                <div className={styles.subcategories}>
+                  {category.subcategories.map((subcategory) => (
+                    <Link
+                      key={subcategory.slug}
+                      href={`/catalog/${category.slug}/${subcategory.slug}`}
+                      className={styles.subcategoryItem}
+                    >
+                      <span className={styles.subcategoryName}>
+                        {subcategory.name}
+                      </span>
+                      {subcategory.count !== undefined && (
+                        <span className={styles.subcategoryCount}>
+                          {subcategory.count}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
                 )}
               </div>
-            </Link>
           ))}
         </div>
       </div>

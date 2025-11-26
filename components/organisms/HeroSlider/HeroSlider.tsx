@@ -27,8 +27,7 @@ export function HeroSlider() {
     <div className={styles.slider}>
       <div className={styles.slide}>
         <div className={styles.background}>
-          <div className={styles.sky}></div>
-          <div className={styles.ground}></div>
+          <div className={styles.overlay}></div>
         </div>
         <div className={styles.content}>
           <div className={styles.left}>
@@ -49,15 +48,6 @@ export function HeroSlider() {
                   </button>
                 </Link>
               </div>
-            </div>
-          </div>
-          <div className={styles.right}>
-            <div className={styles.hopsImage}>
-              <div className={styles.hopCone}></div>
-              <div className={styles.hopCone}></div>
-              <div className={styles.hopCone}></div>
-              <div className={styles.hopLeaf}></div>
-              <div className={styles.hopLeaf}></div>
             </div>
           </div>
         </div>

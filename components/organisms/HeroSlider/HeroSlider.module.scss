@@ -22,82 +22,94 @@
   right: 0;
   bottom: 0;
   z-index: 1;
+  background-image: url('https://images.unsplash.com/photo-1608270586621-1a7b4abc5e2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=450&q=80');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-.sky {
+.overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 60%;
-  background: linear-gradient(to bottom, #87CEEB 0%, #B0E0E6 100%);
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+.sky {
+  display: none;
 }
 
 .ground {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(to top, rgba(34, 139, 34, 0.4) 0%, rgba(144, 238, 144, 0.2) 100%);
-  filter: blur(20px);
+  display: none;
 }
 
 .content {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
   max-width: var(--container-max-width);
-  padding: 0 48px;
+  margin: 0 auto;
+  padding: 0 48px 0 12px;
   position: relative;
   z-index: 2;
   gap: 48px;
+  box-sizing: border-box;
+  height: 100%;
 }
 
 .left {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
 }
 
 .textContent {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  padding-left: 40px;
+  max-width: 500px;
 }
 
 .title {
-  font-size: 48px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-white);
   margin: 0;
   line-height: 1.2;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .subtitle {
-  font-size: 72px;
+  font-size: 36px;
   font-weight: 900;
-  color: var(--color-text);
+  color: var(--color-white);
   margin: 0;
   line-height: 1.1;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .price {
-  font-size: 48px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--color-text);
+  color: var(--color-white);
   margin: 0;
   line-height: 1.2;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .description {
   font-size: 16px;
-  color: var(--color-text);
-  margin: 8px 0;
+  color: var(--color-white);
+  margin: 0;
   line-height: 1.5;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .buttons {

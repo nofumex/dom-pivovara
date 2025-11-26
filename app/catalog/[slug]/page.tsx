@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
+import { allCategories } from '@/lib/catalogData'
 import { CategoryClient } from './CategoryClient'
 
 export default async function CategoryPage({
@@ -7,39 +7,26 @@ export default async function CategoryPage({
 }: {
   params: { slug: string }
 }) {
-  const category = await prisma.category.findUnique({
-    where: { slug: params.slug },
-    include: {
-      parent: true,
-      children: {
-        where: { isActive: true },
-      },
-    },
-  })
+  const category = allCategories.find((cat) => cat.slug === params.slug)
 
   if (!category) {
     notFound()
   }
 
-  const products = await prisma.product.findMany({
-    where: {
-      categoryId: category.id,
-      isActive: true,
-      visibility: 'VISIBLE',
-    },
-    include: {
-      categoryObj: true,
-    },
-    take: 50,
-  })
+  // Преобразуем структуру данных для CategoryClient
+  const categoryData = {
+    id: category.slug,
+    name: category.name,
+    slug: category.slug,
+    parent: null,
+    children: category.subcategories.map((sub) => ({
+      id: sub.slug,
+      name: sub.name,
+      slug: sub.slug,
+      count: sub.count,
+    })),
+  }
 
-  const productsWithBadges = products.map((p) => ({
-    ...p,
-    badges: p.tags || [],
-    stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
-    rating: p.rating ? Number(p.rating) : 0,
-  }))
-
-  return <CategoryClient category={category} initialProducts={productsWithBadges} />
+  return <CategoryClient category={categoryData} initialProducts={[]} />
 }
 
