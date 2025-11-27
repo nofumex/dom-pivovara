@@ -1,33 +1,40 @@
-import { NextRequest } from 'next/server'
-import { verifyRefreshToken, validateSession, generateAccessToken, generateRefreshToken } from '@/lib/auth'
-import { successResponse, errorResponse } from '@/lib/response'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { verifyRefreshToken, validateSession, generateAccessToken, generateRefreshToken, createSession, deleteSession } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const refreshToken = body.refreshToken || request.cookies.get('refreshToken')?.value
+    const cookieStore = await cookies()
+    const refreshToken = cookieStore.get('refreshToken')?.value
 
     if (!refreshToken) {
-      return errorResponse('Refresh token не предоставлен', 401)
+      return NextResponse.json(
+        { success: false, error: 'No refresh token' },
+        { status: 401 }
+      )
     }
 
-    // Verify refresh token
+    // Проверяем refresh token
     const payload = verifyRefreshToken(refreshToken)
     if (!payload) {
-      return errorResponse('Недействительный refresh token', 401)
+      return NextResponse.json(
+        { success: false, error: 'Invalid refresh token' },
+        { status: 401 }
+      )
     }
 
-    // Validate session
+    // Проверяем сессию
     const isValidSession = await validateSession(refreshToken)
     if (!isValidSession) {
-      return errorResponse('Сессия истекла', 401)
+      return NextResponse.json(
+        { success: false, error: 'Invalid session' },
+        { status: 401 }
+      )
     }
 
-    // Get user to generate new tokens
-    const { prisma } = await import('@/lib/db')
-    const db = prisma
-    const user = await db.user.findUnique({
+    // Получаем пользователя
+    const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: {
         id: true,
@@ -38,10 +45,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user || user.isBlocked) {
-      return errorResponse('Пользователь не найден или заблокирован', 401)
+      return NextResponse.json(
+        { success: false, error: 'User not found or blocked' },
+        { status: 401 }
+      )
     }
 
-    // Generate new tokens
+    // Генерируем новые токены
     const newAccessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
@@ -50,13 +60,36 @@ export async function POST(request: NextRequest) {
 
     const newRefreshToken = generateRefreshToken({ userId: user.id })
 
-    // Update session
-    const authLib = await import('@/lib/auth')
-    await authLib.deleteSession(refreshToken)
-    await authLib.createSession(user.id, newRefreshToken)
+    // Удаляем старую сессию и создаем новую
+    try {
+      await deleteSession(refreshToken)
+    } catch (error) {
+      console.error('Error deleting old session:', error)
+    }
 
-    // Set cookies
-    const cookieStore = await cookies()
+    try {
+      await createSession(user.id, newRefreshToken)
+    } catch (error) {
+      console.error('Error creating new session:', error)
+      // Если ошибка уникального ограничения, пробуем найти существующую сессию
+      const existingSession = await prisma.session.findFirst({
+        where: { userId: user.id },
+      })
+      if (existingSession) {
+        // Обновляем существующую сессию
+        await prisma.session.update({
+          where: { id: existingSession.id },
+          data: {
+            refreshToken: newRefreshToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        })
+      } else {
+        throw error
+      }
+    }
+
+    // Устанавливаем новые cookies
     cookieStore.set('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -73,13 +106,17 @@ export async function POST(request: NextRequest) {
       path: '/',
     })
 
-    return successResponse({
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+    return NextResponse.json({
+      success: true,
+      data: {
+        accessToken: newAccessToken,
+      },
     })
   } catch (error) {
-    console.error('Refresh error:', error)
-    return errorResponse('Ошибка при обновлении токена', 500)
+    console.error('Error refreshing token:', error)
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
-

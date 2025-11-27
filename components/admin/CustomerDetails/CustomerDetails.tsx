@@ -124,3 +124,4 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
   )
 }
 
+

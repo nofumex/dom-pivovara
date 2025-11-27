@@ -1,75 +1,73 @@
-import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { getAuthUserFromCookies } from '@/lib/auth'
-import Link from 'next/link'
+import { getAuthUserFromCookies, verifyRefreshToken, validateSession } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { redirect } from 'next/navigation'
+import { AdminSidebar } from '@/components/admin/AdminSidebar/AdminSidebar'
 import styles from './layout.module.scss'
 
+// Полностью отдельный layout для админки - переопределяет root layout
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const cookieStore = await cookies()
-  const token = cookieStore.get('accessToken')?.value
+  const accessToken = cookieStore.get('accessToken')?.value
+  const refreshToken = cookieStore.get('refreshToken')?.value
 
-  // Если токена нет, просто рендерим children (для страницы login)
-  // Проверка аутентификации будет в самой странице
-  if (!token) {
-    return <>{children}</>
+  let user = null
+
+  // Проверяем accessToken
+  if (accessToken) {
+    user = await getAuthUserFromCookies(accessToken)
   }
 
-  // Если токен есть, проверяем аутентификацию
-  try {
-    const user = await getAuthUserFromCookies(token)
-    
-    // Если пользователь не админ, редиректим на login
-    if (!user || user.role !== 'ADMIN') {
-      redirect('/admin/login')
+  // Если accessToken невалиден, проверяем refreshToken
+  if (!user && refreshToken) {
+    try {
+      const payload = verifyRefreshToken(refreshToken)
+      if (payload) {
+        const isValidSession = await validateSession(refreshToken)
+        if (isValidSession) {
+          user = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+              phone: true,
+              company: true,
+              isBlocked: true,
+            },
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error validating refresh token:', error)
     }
+  }
 
-    // Рендерим layout с навигацией для авторизованных пользователей
-    return (
-      <div className={styles.admin}>
-        <nav className={styles.nav}>
-          <div className={styles.navHeader}>
-            <h1 className={styles.navTitle}>Админ-панель</h1>
-            <span className={styles.navUser}>
-              {user.firstName} {user.lastName}
-            </span>
-          </div>
-          <div className={styles.navLinks}>
-            <Link href="/admin" className={styles.navLink}>
-              Dashboard
-            </Link>
-            <Link href="/admin/products" className={styles.navLink}>
-              Товары
-            </Link>
-            <Link href="/admin/orders" className={styles.navLink}>
-              Заказы
-            </Link>
-            <Link href="/admin/categories" className={styles.navLink}>
-              Категории
-            </Link>
-            <Link href="/admin/customers" className={styles.navLink}>
-              Клиенты
-            </Link>
-            <Link href="/admin/leads" className={styles.navLink}>
-              Заявки
-            </Link>
-            <Link href="/admin/settings" className={styles.navLink}>
-              Настройки
-            </Link>
-            <Link href="/" className={styles.navLink}>
-              На сайт
-            </Link>
-          </div>
-        </nav>
+  // Если пользователь не авторизован или не админ, редиректим на /login
+  // Но только если нет refreshToken (чтобы избежать бесконечного цикла)
+  if (!user || user.isBlocked || user.role !== 'ADMIN') {
+    // Если есть refreshToken, возможно токен просто истек - не редиректим сразу
+    if (!refreshToken) {
+      redirect('/login')
+    } else {
+      // Если есть refreshToken, но пользователь не найден - редиректим
+      redirect('/login')
+    }
+  }
+
+  // Полностью отдельный layout без Header/Footer/Sidebar сайта
+  return (
+    <div className={styles.adminContainer}>
+      <AdminSidebar user={user} />
+      <div className={styles.adminContent}>
         <main className={styles.main}>{children}</main>
       </div>
-    )
-  } catch (error) {
-    console.error('Auth error in admin layout:', error)
-    // При ошибке просто рендерим children (для страницы login)
-    return <>{children}</>
-  }
+    </div>
+  )
 }

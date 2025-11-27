@@ -129,6 +129,15 @@ export async function createSession(userId: string, refreshToken: string): Promi
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
 
+  // Сначала удаляем все существующие сессии для этого пользователя
+  // чтобы избежать ошибки уникального ограничения
+  await prisma.session.deleteMany({
+    where: {
+      userId,
+    },
+  })
+
+  // Затем создаем новую сессию
   await prisma.session.create({
     data: {
       userId,

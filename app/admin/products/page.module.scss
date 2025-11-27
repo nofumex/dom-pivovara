@@ -1,89 +1,222 @@
 .page {
-  padding: 32px;
+  padding: 0;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
 
-  h1 {
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--color-text);
-  }
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.search {
+  grid-column: 1 / -1;
 }
 
 .tableWrapper {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+}
 
-  th,
-  td {
-    padding: 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
+.table :global {
+  thead {
+    background: #f8fafc;
   }
 
   th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--color-muted);
-    font-size: var(--font-small-size);
-    background: var(--color-bg);
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   td {
-    font-size: var(--font-base-size);
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
   }
 
-  a {
-    color: var(--color-link);
-    text-decoration: none;
+  tbody tr {
+    transition: background 0.2s;
 
     &:hover {
-      text-decoration: underline;
+      background: #f8fafc;
+    }
+
+    &:last-child td {
+      border-bottom: none;
     }
   }
 }
 
-.status {
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-small-size);
-  font-weight: 600;
-
-  &.active {
-    background: var(--color-success);
-    color: white;
-  }
-
-  &.inactive {
-    background: var(--color-muted);
-    color: white;
-  }
+.sku {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: #64748b;
 }
 
-.actions {
-  display: flex;
-  gap: 8px;
-}
-
-.editLink {
-  color: var(--color-link);
+.productLink {
+  color: #3b82f6;
   text-decoration: none;
-  font-size: var(--font-small-size);
+  font-weight: 500;
+  transition: color 0.2s;
 
   &:hover {
+    color: #2563eb;
     text-decoration: underline;
   }
 }
 
+.categoryBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.price {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.stock {
+  font-weight: 500;
+  color: #334155;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+
+  &.active {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  &.inactive {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+}
+
+.visibility {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.editLink {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.paginationButton {
+  padding: 0.625rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.paginationInfo {
+  font-size: 0.9375rem;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+}

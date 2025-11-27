@@ -5,6 +5,7 @@ import { successResponse, errorResponse, paginatedResponse } from '@/lib/respons
 import { createOrderSchema } from '@/lib/validations'
 import { generateOrderNumber } from '@/lib/utils'
 import { OrderStatus } from '@prisma/client'
+import { sendOrderConfirmationEmail, sendNewOrderNotificationEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
   try {
@@ -181,6 +182,35 @@ export async function POST(request: NextRequest) {
         })
       }
     }
+
+    // Send emails
+    const orderItemsForEmail = order.items.map((item) => ({
+      title: item.product.title,
+      quantity: item.quantity,
+      price: parseFloat(item.price.toString()),
+    }))
+
+    // Send confirmation email to customer
+    await sendOrderConfirmationEmail(
+      order.orderNumber,
+      validated.email,
+      total,
+      orderItemsForEmail
+    )
+
+    // Send notification email to admin
+    const deliveryAddress = order.address
+      ? `${order.address.street}, ${order.address.city}, ${order.address.region}, ${order.address.zipCode}`
+      : undefined
+
+    await sendNewOrderNotificationEmail(
+      order.orderNumber,
+      `${validated.firstName} ${validated.lastName}`,
+      validated.email,
+      validated.phone,
+      total,
+      deliveryAddress
+    )
 
     return successResponse({ order, orderNumber: order.orderNumber }, 'Заказ создан успешно')
   } catch (error: any) {

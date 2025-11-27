@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
-import { paginatedResponse, errorResponse } from '@/lib/response'
+import { paginatedResponse, errorResponse, successResponse } from '@/lib/response'
 import { createProductSchema } from '@/lib/validations'
 import { slugify } from '@/lib/utils'
 
@@ -130,4 +130,5 @@ export async function POST(request: NextRequest) {
     return errorResponse('Ошибка при создании товара', 500)
   }
 }
+
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { headers } from 'next/headers'
 import { Header } from '@/components/organisms/Header/Header'
 import { Footer } from '@/components/organisms/Footer/Footer'
 import { RightDock } from '@/components/organisms/RightDock/RightDock'
@@ -15,11 +16,27 @@ export const metadata: Metadata = {
   description: 'Интернет-магазин товаров для пивоварения, самогоноварения и виноделия',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') || ''
+  const isAdminRoute = pathname.startsWith('/admin')
+
+  // Для админ-панели не показываем Header, Footer и другие компоненты сайта
+  if (isAdminRoute) {
+    return (
+      <html lang="ru" style={{ margin: 0, padding: 0 }}>
+        <body className={inter.className} style={{ margin: 0, padding: 0, overflow: 'hidden', width: '100vw', height: '100vh' }}>
+          {children}
+        </body>
+      </html>
+    )
+  }
+
+  // Для обычных страниц показываем полный layout
   return (
     <html lang="ru">
       <body className={inter.className}>

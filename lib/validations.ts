@@ -28,6 +28,7 @@ export const createProductSchema = z.object({
   weight: z.number().optional(),
   dimensions: z.string().optional(),
   material: z.string().optional(),
+  category: z.enum(['ECONOMY', 'MIDDLE', 'LUXURY']).default('ECONOMY'),
   tags: z.array(z.string()).default([]),
   badges: z.array(z.enum(['HIT', 'NEW', 'SALE'])).default([]),
   images: z.array(z.string()).default([]),
@@ -100,4 +101,5 @@ export const createLeadSchema = z.object({
   message: z.string().optional(),
   source: z.string().optional(),
 })
+
 

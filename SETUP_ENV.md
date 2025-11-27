@@ -87,3 +87,4 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 2. Перезапустите терминал после создания `.env`
 3. Убедитесь, что в `.env` нет лишних пробелов или символов
 
+

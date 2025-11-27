@@ -1,133 +1,126 @@
 import { prisma } from '@/lib/db'
-import { getAuthUserFromCookies } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
-import Link from 'next/link'
+import { DashboardStats } from '@/components/admin/DashboardStats/DashboardStats'
+import { RecentOrders } from '@/components/admin/RecentOrders/RecentOrders'
+import { TopProducts } from '@/components/admin/TopProducts/TopProducts'
 import styles from './page.module.scss'
 
 export default async function AdminDashboard() {
-  try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('accessToken')?.value
+  // Авторизация уже проверена в layout
 
-    if (!token) {
-      redirect('/admin/login')
-    }
-
-    try {
-      const user = await getAuthUserFromCookies(token)
-      if (!user || user.role !== 'ADMIN') {
-        redirect('/admin/login')
-      }
-    } catch (error) {
-      console.error('Auth error in admin page:', error)
-      redirect('/admin/login')
-    }
-
-    const [
-      totalUsers,
-      totalOrders,
-      totalProducts,
-      totalRevenue,
-      recentOrders,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.order.count(),
-      prisma.product.count({ where: { isActive: true } }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { status: { not: 'CANCELLED' } },
-      }),
-      prisma.order.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              firstName: true,
-              lastName: true,
-              email: true,
+  const [
+    totalUsers,
+    totalOrders,
+    totalProducts,
+    totalRevenue,
+    recentOrders,
+    newUsersToday,
+    newOrdersToday,
+    topProducts,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.order.count(),
+    prisma.product.count({ where: { isActive: true } }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { status: { not: 'CANCELLED' } },
+    }),
+    prisma.order.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        items: {
+          take: 3,
+          include: {
+            product: {
+              select: {
+                title: true,
+              },
             },
           },
         },
-      }),
-    ])
+      },
+    }),
+    prisma.user.count({
+      where: {
+        createdAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      },
+    }),
+    prisma.order.count({
+      where: {
+        createdAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      },
+    }),
+    prisma.orderItem.groupBy({
+      by: ['productId'],
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+      take: 5,
+    }),
+  ])
 
-    return (
-      <div className={styles.dashboard}>
+  // Get product details for top products
+  const topProductsWithDetails = await Promise.all(
+    topProducts.map(async (item) => {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          price: true,
+          images: true,
+        },
+      })
+      return {
+        ...product,
+        totalSold: item._sum.quantity || 0,
+      }
+    })
+  )
+
+  const stats = {
+    totalUsers,
+    totalOrders,
+    totalProducts,
+    totalRevenue: Number(totalRevenue._sum.total || 0),
+    newUsersToday,
+    newOrdersToday,
+  }
+
+  return (
+    <div className={styles.dashboard}>
+      <div className={styles.dashboardHeader}>
         <h1 className={styles.title}>Панель управления</h1>
+        <p className={styles.subtitle}>Обзор статистики и активности</p>
+      </div>
 
-        <div className={styles.stats}>
-          <div className={styles.statCard}>
-            <h3>Пользователи</h3>
-            <p className={styles.statValue}>{totalUsers}</p>
-            <Link href="/admin/customers" className={styles.statLink}>
-              Управление →
-            </Link>
-          </div>
+      <DashboardStats stats={stats} />
 
-          <div className={styles.statCard}>
-            <h3>Заказы</h3>
-            <p className={styles.statValue}>{totalOrders}</p>
-            <Link href="/admin/orders" className={styles.statLink}>
-              Управление →
-            </Link>
-          </div>
-
-          <div className={styles.statCard}>
-            <h3>Товары</h3>
-            <p className={styles.statValue}>{totalProducts}</p>
-            <Link href="/admin/products" className={styles.statLink}>
-              Управление →
-            </Link>
-          </div>
-
-          <div className={styles.statCard}>
-            <h3>Выручка</h3>
-            <p className={styles.statValue}>
-              {new Intl.NumberFormat('ru-RU').format(
-                Number(totalRevenue._sum.total || 0)
-              )}{' '}
-              ₽
-            </p>
-          </div>
+      <div className={styles.dashboardGrid}>
+        <div className={styles.gridColumn}>
+          <RecentOrders orders={recentOrders} />
         </div>
-
-        <div className={styles.recentOrders}>
-          <h2>Последние заказы</h2>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Номер</th>
-                <th>Клиент</th>
-                <th>Сумма</th>
-                <th>Статус</th>
-                <th>Дата</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.map((order) => (
-                <tr key={order.id}>
-                  <td>
-                    <Link href={`/admin/orders/${order.id}`}>{order.orderNumber}</Link>
-                  </td>
-                  <td>
-                    {order.user.firstName} {order.user.lastName}
-                  </td>
-                  <td>{new Intl.NumberFormat('ru-RU').format(Number(order.total))} ₽</td>
-                  <td>
-                    <span className={styles.status}>{order.status}</span>
-                  </td>
-                  <td>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={styles.gridColumn}>
+          <TopProducts products={topProductsWithDetails} />
         </div>
       </div>
-    )
-  } catch (error) {
-    console.error('Error loading admin dashboard:', error)
-    redirect('/admin/login')
-  }
+    </div>
+  )
 }
