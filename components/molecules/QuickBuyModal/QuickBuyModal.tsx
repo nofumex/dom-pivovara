@@ -111,3 +111,5 @@ export function QuickBuyModal({ isOpen, onClose, product }: QuickBuyModalProps) 
 }
 
 
+
+

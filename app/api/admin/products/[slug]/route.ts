@@ -4,6 +4,7 @@ import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
 import { createProductSchema } from '@/lib/validations'
+import { serializeObject } from '@/lib/serialize'
 
 export async function GET(
   request: NextRequest,
@@ -38,7 +39,9 @@ export async function GET(
       return errorResponse('Товар не найден', 404)
     }
 
-    return successResponse(product)
+    // Сериализуем Decimal поля перед отправкой
+    const serializedProduct = serializeObject(product)
+    return successResponse(serializedProduct)
   } catch (error) {
     console.error('Admin product GET error:', error)
     return errorResponse('Ошибка при получении товара', 500)
@@ -106,7 +109,9 @@ export async function PUT(
       },
     })
 
-    return successResponse(updated, 'Товар обновлен успешно')
+    // Сериализуем Decimal поля перед отправкой
+    const serializedUpdated = serializeObject(updated)
+    return successResponse(serializedUpdated, 'Товар обновлен успешно')
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return errorResponse('Ошибка валидации', 400, error.errors[0]?.message)
@@ -144,5 +149,7 @@ export async function DELETE(
     return errorResponse('Ошибка при удалении товара', 500)
   }
 }
+
+
 
 

@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { allCategories } from '@/lib/catalogData'
+import { prisma } from '@/lib/db'
 import { CategoryClient } from './CategoryClient'
 
 export default async function CategoryPage({
@@ -7,23 +7,54 @@ export default async function CategoryPage({
 }: {
   params: { slug: string }
 }) {
-  const category = allCategories.find((cat) => cat.slug === params.slug)
+  const category = await prisma.category.findUnique({
+    where: { slug: params.slug },
+    include: {
+      parent: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      children: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  isActive: true,
+                  visibility: 'VISIBLE',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
 
-  if (!category) {
+  if (!category || !category.isActive) {
     notFound()
   }
 
   // Преобразуем структуру данных для CategoryClient
   const categoryData = {
-    id: category.slug,
+    id: category.id,
     name: category.name,
     slug: category.slug,
-    parent: null,
-    children: category.subcategories.map((sub) => ({
-      id: sub.slug,
+    parent: category.parent,
+    children: category.children.map((sub) => ({
+      id: sub.id,
       name: sub.name,
       slug: sub.slug,
-      count: sub.count,
+      count: sub._count.products,
     })),
   }
 

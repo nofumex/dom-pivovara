@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/store/cart-store'
 import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/atoms/Button/Button'
@@ -13,6 +14,7 @@ interface CartDrawerProps {
 }
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  const router = useRouter()
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const items = useCartStore((state) => state.items)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
@@ -25,8 +27,14 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const discount = 0
   const total = subtotal - discount
 
+  const handleGoToCart = () => {
+    router.push('/cart')
+    onClose()
+  }
+
   const handleCheckout = () => {
-    setIsCheckoutOpen(true)
+    router.push('/order')
+    onClose()
   }
 
   const handleCheckoutSuccess = (orderNumber: string) => {
@@ -111,8 +119,11 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <Button variant="outline" onClick={onClose}>
                   Продолжить покупки
                 </Button>
+                <Button variant="outline" onClick={handleGoToCart}>
+                  Перейти в корзину
+                </Button>
                 <Button variant="primary" onClick={handleCheckout}>
-                  Оформить
+                  Полноценное оформление заказа
                 </Button>
               </div>
             </>

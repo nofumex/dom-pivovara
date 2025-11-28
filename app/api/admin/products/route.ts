@@ -5,6 +5,7 @@ import { UserRole } from '@prisma/client'
 import { paginatedResponse, errorResponse, successResponse } from '@/lib/response'
 import { createProductSchema } from '@/lib/validations'
 import { slugify } from '@/lib/utils'
+import { serializeObject } from '@/lib/serialize'
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,7 +76,9 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where }),
     ])
 
-    return paginatedResponse(products, page, limit, total)
+    // Сериализуем Decimal поля перед отправкой
+    const serializedProducts = serializeObject(products)
+    return paginatedResponse(serializedProducts, page, limit, total)
   } catch (error) {
     console.error('Admin products GET error:', error)
     return errorResponse('Ошибка при получении товаров', 500)
@@ -121,7 +124,9 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return successResponse(product, 'Товар создан успешно')
+    // Сериализуем Decimal поля перед отправкой
+    const serializedProduct = serializeObject(product)
+    return successResponse(serializedProduct, 'Товар создан успешно')
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return errorResponse('Ошибка валидации', 400, error.errors[0]?.message)

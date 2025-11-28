@@ -74,10 +74,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verifyAuth(request)
-    if (!user) {
-      return errorResponse('Не авторизован', 401)
-    }
+    // Авторизация не обязательна - заказ можно оформить без регистрации
+    const user = await verifyAuth(request).catch(() => null)
 
     const body = await request.json()
     const validated = createOrderSchema.parse(body)
@@ -128,11 +126,36 @@ export async function POST(request: NextRequest) {
     const discount = 0 // Можно добавить логику промокодов
     const total = subtotal + deliveryCost - discount
 
+    // Для неавторизованных пользователей создаем или находим гостевого пользователя
+    let orderUserId = user?.id
+    if (!orderUserId) {
+      // Ищем или создаем гостевого пользователя
+      const guestUser = await prisma.user.findUnique({
+        where: { email: 'guest@system.local' },
+      })
+      
+      if (guestUser) {
+        orderUserId = guestUser.id
+      } else {
+        // Создаем гостевого пользователя (пароль не нужен, так как он не будет использоваться)
+        const newGuestUser = await prisma.user.create({
+          data: {
+            email: 'guest@system.local',
+            password: 'guest', // Пароль не используется
+            firstName: 'Гость',
+            lastName: 'Система',
+            role: 'CUSTOMER',
+          },
+        })
+        orderUserId = newGuestUser.id
+      }
+    }
+
     // Create order
     const order = await prisma.order.create({
       data: {
         orderNumber: generateOrderNumber(),
-        userId: user.id,
+        userId: orderUserId,
         status: OrderStatus.NEW,
         subtotal: subtotal.toString(),
         delivery: deliveryCost.toString(),
@@ -153,8 +176,8 @@ export async function POST(request: NextRequest) {
         logs: {
           create: {
             status: OrderStatus.NEW,
-            comment: 'Заказ создан',
-            createdBy: user.id,
+            comment: user ? 'Заказ создан' : 'Заказ создан (гость)',
+            createdBy: orderUserId,
           },
         },
       },

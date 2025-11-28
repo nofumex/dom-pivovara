@@ -1,74 +1,71 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { allCategories, getPlaceholderImage } from '@/lib/catalogData'
-import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
-import { FiltersPanel } from '@/components/organisms/FiltersPanel/FiltersPanel'
-import { SortBar } from '@/components/molecules/SortBar/SortBar'
-import { ProductGrid } from '@/components/organisms/ProductGrid/ProductGrid'
-import styles from './page.module.scss'
+import { prisma } from '@/lib/db'
+import { CategoryClient } from '../CategoryClient'
 
 export default async function SubcategoryPage({
   params,
 }: {
   params: { slug: string; subslug: string }
 }) {
-  const category = allCategories.find((cat) => cat.slug === params.slug)
-  
-  if (!category) {
+  // Ищем категорию по последнему slug (subslug) - это может быть подкатегория или под-подкатегория
+  // Игнорируем первый slug, так как он может быть любым родителем в иерархии
+  const targetCategory = await prisma.category.findUnique({
+    where: { slug: params.subslug },
+    include: {
+      parent: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          parent: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+      children: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  isActive: true,
+                  visibility: 'VISIBLE',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!targetCategory || !targetCategory.isActive) {
     notFound()
   }
 
-  const subcategory = category.subcategories.find((sub) => sub.slug === params.subslug)
-
-  if (!subcategory) {
-    notFound()
+  const categoryData = {
+    id: targetCategory.id,
+    name: targetCategory.name,
+    slug: targetCategory.slug,
+    parent: targetCategory.parent,
+    children: targetCategory.children.map((child) => ({
+      id: child.id,
+      name: child.name,
+      slug: child.slug,
+      count: child._count.products,
+    })),
   }
 
-  const breadcrumbs = [
-    { label: 'Главная', href: '/' },
-    { label: 'Каталог', href: '/catalog' },
-    { label: category.name, href: `/catalog/${params.slug}` },
-    { label: subcategory.name, href: `/catalog/${params.slug}/${params.subslug}` },
-  ]
-
-  const hasSubSubcategories = subcategory.subSubcategories && subcategory.subSubcategories.length > 0
-
-  return (
-    <main>
-      <div className="container">
-        <Breadcrumbs items={breadcrumbs} />
-        <h1 className={styles.title}>{subcategory.name}</h1>
-
-        {hasSubSubcategories && (
-          <div className={styles.subSubcategoriesSection}>
-            <div className={styles.subSubcategoriesGrid}>
-              {subcategory.subSubcategories.map((subSubcategory) => (
-                <Link
-                  key={subSubcategory.slug}
-                  href={`/catalog/${params.slug}/${params.subslug}/${subSubcategory.slug}`}
-                  className={styles.subSubcategoryCard}
-                >
-                  <img
-                    src={getPlaceholderImage(subSubcategory.name, 64)}
-                    alt={subSubcategory.name}
-                    className={styles.subSubcategoryImage}
-                  />
-                  <div className={styles.subSubcategoryInfo}>
-                    <span className={styles.subSubcategoryName}>
-                      {subSubcategory.name}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <FiltersPanel />
-        <SortBar />
-        <ProductGrid products={[]} />
-      </div>
-    </main>
-  )
+  return <CategoryClient category={categoryData} initialProducts={[]} />
 }
 

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole, OrderStatus } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
+import { serializeObject } from '@/lib/serialize'
 
 export async function GET(
   request: NextRequest,
@@ -37,7 +38,9 @@ export async function GET(
       return errorResponse('Заказ не найден', 404)
     }
 
-    return successResponse(order)
+    // Сериализуем Decimal поля перед отправкой
+    const serializedOrder = serializeObject(order)
+    return successResponse(serializedOrder)
   } catch (error) {
     console.error('Admin order GET error:', error)
     return errorResponse('Ошибка при получении заказа', 500)
@@ -101,11 +104,15 @@ export async function PUT(
       })
     }
 
-    return successResponse(updated, 'Заказ обновлен успешно')
+    // Сериализуем Decimal поля перед отправкой
+    const serializedUpdated = serializeObject(updated)
+    return successResponse(serializedUpdated, 'Заказ обновлен успешно')
   } catch (error) {
     console.error('Admin order PUT error:', error)
     return errorResponse('Ошибка при обновлении заказа', 500)
   }
 }
+
+
 
 

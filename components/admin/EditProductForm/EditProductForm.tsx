@@ -81,6 +81,7 @@ export function EditProductForm({ product, categories }: EditProductFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
@@ -115,6 +116,7 @@ export function EditProductForm({ product, categories }: EditProductFormProps) {
     try {
       const response = await fetch(`/api/admin/products/${product.slug}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       const data = await response.json()

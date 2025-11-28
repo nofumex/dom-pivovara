@@ -146,6 +146,7 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
                     try {
                       await fetch(`/api/admin/categories/${category.id}`, {
                         method: 'DELETE',
+                        credentials: 'include',
                       })
                       router.refresh()
                     } catch (error) {
@@ -229,4 +230,6 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
     </div>
   )
 }
+
+
 

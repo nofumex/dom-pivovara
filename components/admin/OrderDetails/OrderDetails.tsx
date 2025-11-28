@@ -23,6 +23,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
       const response = await fetch(`/api/admin/orders/${order.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           status,
           trackNumber,
@@ -157,5 +158,7 @@ export function OrderDetails({ order }: OrderDetailsProps) {
     </div>
   )
 }
+
+
 
 

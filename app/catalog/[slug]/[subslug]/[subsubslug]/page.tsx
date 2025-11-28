@@ -1,56 +1,74 @@
 import { notFound } from 'next/navigation'
-import { allCategories } from '@/lib/catalogData'
-import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
-import { FiltersPanel } from '@/components/organisms/FiltersPanel/FiltersPanel'
-import { SortBar } from '@/components/molecules/SortBar/SortBar'
-import { ProductGrid } from '@/components/organisms/ProductGrid/ProductGrid'
-import styles from './page.module.scss'
+import { prisma } from '@/lib/db'
+import { CategoryClient } from '../../CategoryClient'
 
 export default async function SubSubcategoryPage({
   params,
 }: {
   params: { slug: string; subslug: string; subsubslug: string }
 }) {
-  const category = allCategories.find((cat) => cat.slug === params.slug)
-  
-  if (!category) {
+  // Ищем категорию по последнему slug (subsubslug)
+  // Игнорируем промежуточные slug'ы, так как они могут быть любыми родителями в иерархии
+  const targetCategory = await prisma.category.findUnique({
+    where: { slug: params.subsubslug },
+    include: {
+      parent: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          parent: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+      children: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  isActive: true,
+                  visibility: 'VISIBLE',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!targetCategory || !targetCategory.isActive) {
     notFound()
   }
 
-  const subcategory = category.subcategories.find((sub) => sub.slug === params.subslug)
-
-  if (!subcategory) {
-    notFound()
+  const categoryData = {
+    id: targetCategory.id,
+    name: targetCategory.name,
+    slug: targetCategory.slug,
+    parent: targetCategory.parent,
+    children: targetCategory.children.map((child) => ({
+      id: child.id,
+      name: child.name,
+      slug: child.slug,
+      count: child._count.products,
+    })),
   }
 
-  const subSubcategory = subcategory.subSubcategories?.find(
-    (subSub) => subSub.slug === params.subsubslug
-  )
-
-  if (!subSubcategory) {
-    notFound()
-  }
-
-  const breadcrumbs = [
-    { label: 'Главная', href: '/' },
-    { label: 'Каталог', href: '/catalog' },
-    { label: category.name, href: `/catalog/${params.slug}` },
-    { label: subcategory.name, href: `/catalog/${params.slug}/${params.subslug}` },
-    { label: subSubcategory.name, href: `/catalog/${params.slug}/${params.subslug}/${params.subsubslug}` },
-  ]
-
-  return (
-    <main>
-      <div className="container">
-        <Breadcrumbs items={breadcrumbs} />
-        <h1 className={styles.title}>{subSubcategory.name}</h1>
-
-        <FiltersPanel />
-        <SortBar />
-        <ProductGrid products={[]} />
-      </div>
-    </main>
-  )
+  return <CategoryClient category={categoryData} initialProducts={[]} />
 }
+
+
 
 

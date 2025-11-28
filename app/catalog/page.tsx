@@ -1,13 +1,57 @@
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
-import { allCategories, getPlaceholderImage } from '@/lib/catalogData'
+import { prisma } from '@/lib/db'
+import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
-export default function CatalogPage() {
+export default async function CatalogPage() {
   const breadcrumbs = [
     { label: 'Главная', href: '/' },
     { label: 'Каталог', href: '/catalog' },
   ]
+
+  // Получаем все категории из базы данных
+  const categories = await prisma.category.findMany({
+    where: {
+      parentId: null,
+      isActive: true,
+    },
+    include: {
+      children: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          sortOrder: 'asc',
+        },
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  isActive: true,
+                  visibility: 'VISIBLE',
+                },
+              },
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          products: {
+            where: {
+              isActive: true,
+              visibility: 'VISIBLE',
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      sortOrder: 'asc',
+    },
+  })
 
   return (
     <main>
@@ -15,14 +59,14 @@ export default function CatalogPage() {
         <Breadcrumbs items={breadcrumbs} />
         <h1 className={styles.title}>Каталог</h1>
         <div className={styles.grid}>
-          {allCategories.map((category) => (
+          {categories.map((category) => (
             <div key={category.slug} className={styles.card}>
             <Link
               href={`/catalog/${category.slug}`}
                 className={styles.cardLink}
             >
                 <img
-                  src={getPlaceholderImage(category.name, 140)}
+                  src={category.image || getPlaceholderImage(category.name, 140)}
                   alt={category.name}
                 className={styles.image}
               />
@@ -30,9 +74,9 @@ export default function CatalogPage() {
                 <h2 className={styles.cardTitle}>{category.name}</h2>
                 </div>
               </Link>
-              {category.subcategories.length > 0 && (
+              {category.children.length > 0 && (
                 <div className={styles.subcategories}>
-                  {category.subcategories.map((subcategory) => (
+                  {category.children.map((subcategory) => (
                     <Link
                       key={subcategory.slug}
                       href={`/catalog/${category.slug}/${subcategory.slug}`}
@@ -41,9 +85,9 @@ export default function CatalogPage() {
                       <span className={styles.subcategoryName}>
                         {subcategory.name}
                       </span>
-                      {subcategory.count !== undefined && (
+                      {subcategory._count.products > 0 && (
                         <span className={styles.subcategoryCount}>
-                          {subcategory.count}
+                          {subcategory._count.products}
                         </span>
                       )}
                     </Link>

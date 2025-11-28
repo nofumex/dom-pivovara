@@ -19,7 +19,9 @@ export function ImportExportManager() {
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      const response = await fetch(`/api/admin/export?format=${exportFormat}`)
+      const response = await fetch(`/api/admin/export?format=${exportFormat}`, {
+        credentials: 'include',
+      })
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -49,6 +51,7 @@ export function ImportExportManager() {
     try {
       const response = await fetch('/api/admin/validate-file', {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       })
       const data = await response.json()
@@ -75,6 +78,7 @@ export function ImportExportManager() {
     try {
       const response = await fetch('/api/admin/import', {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       })
       const data = await response.json()
@@ -269,4 +273,6 @@ export function ImportExportManager() {
     </div>
   )
 }
+
+
 

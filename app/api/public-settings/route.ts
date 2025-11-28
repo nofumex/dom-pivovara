@@ -8,6 +8,7 @@ const PUBLIC_SETTINGS_KEYS = [
   'address',
   'socialLinks',
   'extraContacts',
+  'heroSliderInterval',
 ]
 
 export async function GET(request: NextRequest) {
@@ -43,5 +44,7 @@ export async function GET(request: NextRequest) {
     return errorResponse('Ошибка при получении настроек', 500)
   }
 }
+
+
 
 

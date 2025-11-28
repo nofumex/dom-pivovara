@@ -22,6 +22,7 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
       const response = await fetch(`/api/admin/customers/${customer.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           role,
           isBlocked,
@@ -123,5 +124,7 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
     </div>
   )
 }
+
+
 
 

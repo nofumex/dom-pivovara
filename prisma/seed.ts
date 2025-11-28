@@ -1,7 +1,47 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, StockStatus, ProductBadge, OrderStatus, DeliveryType } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { allCategories } from '../lib/catalogData'
+import { slugify } from '../lib/utils'
 
 const prisma = new PrismaClient()
+
+// Helper function to generate random product data
+function generateProduct(
+  categoryId: string,
+  name: string,
+  skuPrefix: string,
+  index: number
+) {
+  const basePrice = Math.floor(Math.random() * 50000) + 100
+  const hasOldPrice = Math.random() > 0.7
+  const oldPrice = hasOldPrice ? basePrice * 1.3 : null
+  const stock = Math.floor(Math.random() * 100)
+  const stockStatuses: StockStatus[] = ['MANY', 'ENOUGH', 'FEW', 'NONE']
+  const stockStatus = stock > 50 ? 'MANY' : stock > 20 ? 'ENOUGH' : stock > 0 ? 'FEW' : 'NONE'
+  const badges: ProductBadge[] = []
+  if (Math.random() > 0.7) badges.push('HIT')
+  if (Math.random() > 0.8) badges.push('NEW')
+  if (hasOldPrice) badges.push('SALE')
+
+  return {
+    sku: `${skuPrefix}-${String(index + 1).padStart(3, '0')}`,
+    title: name,
+    slug: `${slugify(name)}-${index + 1}`,
+    description: `Описание товара: ${name}. Качественный продукт для домашнего использования.`,
+    price: basePrice.toString(),
+    oldPrice: oldPrice ? oldPrice.toString() : null,
+    stock,
+    stockStatus,
+    isActive: true,
+    isInStock: stock > 0,
+    visibility: 'VISIBLE' as const,
+    badges,
+    images: [`/uploads/placeholder-${skuPrefix}-${index + 1}.jpg`],
+    rating: (Math.random() * 2 + 3).toFixed(1), // 3.0 to 5.0
+    ratingCount: Math.floor(Math.random() * 50),
+    categoryId,
+  }
+}
 
 async function main() {
   console.log('🌱 Начало заполнения базы данных...')
@@ -26,6 +66,20 @@ async function main() {
 
   console.log('✅ Администратор создан:', admin.email)
 
+  // Создание гостевого пользователя для неавторизованных заказов
+  const guestUser = await prisma.user.upsert({
+    where: { email: 'guest@system.local' },
+    update: {},
+    create: {
+      email: 'guest@system.local',
+      password: await bcrypt.hash('guest', 12),
+      firstName: 'Гость',
+      lastName: 'Система',
+      role: 'CUSTOMER',
+    },
+  })
+  console.log('✅ Гостевой пользователь создан:', guestUser.email)
+
   // Создание тестовых пользователей
   const testUsers = [
     {
@@ -36,17 +90,18 @@ async function main() {
       role: 'CUSTOMER' as const,
     },
     {
-      email: 'admin@test.ru',
-      password: 'admin123',
+      email: 'manager@test.ru',
+      password: 'manager123',
       firstName: 'Тестовый',
-      lastName: 'Админ',
-      role: 'ADMIN' as const,
+      lastName: 'Менеджер',
+      role: 'MANAGER' as const,
     },
   ]
 
+  const createdUsers = [admin]
   for (const userData of testUsers) {
     const hashedPassword = await bcrypt.hash(userData.password, 12)
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { email: userData.email },
       update: {},
       create: {
@@ -54,1134 +109,420 @@ async function main() {
         password: hashedPassword,
       },
     })
+    createdUsers.push(user)
     console.log(`✅ Тестовый пользователь создан: ${userData.email} (пароль: ${userData.password})`)
   }
 
-  // Создание категорий
-  const categories = [
-    {
-      name: 'Пивоварение',
-      slug: 'pivovareniye',
-      description: 'Товары для пивоварения',
-      subcategories: [
-        { name: 'Пивоварни и ЦКТ', slug: 'pivovarni-i-ckt' },
-        { name: 'Ингредиенты', slug: 'ingredienty' },
-        { name: 'Брожение и розлив', slug: 'brozhenie-i-rozliv' },
-        { name: 'Пивные наборы и медовуха', slug: 'nabori-i-medovuha' },
-        { name: 'Сидр и медовуха', slug: 'sidr-i-medovuha' },
-        { name: 'Дополнительное оборудование', slug: 'dop-oborudovanie' },
-      ],
-    },
-    {
-      name: 'Самогоноварение',
-      slug: 'samogonovarenie',
-      description: 'Товары для самогоноварения',
-      subcategories: [
-        { name: 'Самогонные аппараты', slug: 'samogonnye-apparaty' },
-        { name: 'Комплектующие', slug: 'komplektuyushchie' },
-        { name: 'Доп. компоненты', slug: 'dop-komponenty' },
-        { name: 'Автоматика', slug: 'avtomatika' },
-      ],
-    },
-    {
-      name: 'Виноделие',
-      slug: 'vinodeliye',
-      description: 'Товары для виноделия',
-      subcategories: [
-        { name: 'Винодельческое оборудование', slug: 'vinodelcheskoe-oborudovanie' },
-        { name: 'Ингредиенты для вина', slug: 'ingredienty-dlya-vina' },
-      ],
-    },
-  ]
+  // Создание всех категорий из catalogData
+  console.log('📁 Создание категорий...')
+  const categoryMap = new Map<string, string>() // slug -> id
+  const subcategoryMap = new Map<string, string>() // slug -> id
+  const subSubcategoryMap = new Map<string, string>() // slug -> id
 
-  for (const categoryData of categories) {
-    const { subcategories, ...categoryInfo } = categoryData
+  let sortOrder = 0
+
+  for (const categoryData of allCategories) {
+    // Создаем главную категорию
     const category = await prisma.category.upsert({
-      where: { slug: categoryInfo.slug },
-      update: {},
-      create: categoryInfo,
+      where: { slug: categoryData.slug },
+      update: {
+        name: categoryData.name,
+        sortOrder: sortOrder++,
+      },
+      create: {
+        name: categoryData.name,
+        slug: categoryData.slug,
+        description: `Категория: ${categoryData.name}`,
+        sortOrder: sortOrder++,
+        isActive: true,
+      },
     })
-
+    categoryMap.set(categoryData.slug, category.id)
     console.log(`✅ Категория создана: ${category.name}`)
 
-    // Создание подкатегорий
-    for (const subcategoryData of subcategories) {
-      await prisma.category.upsert({
+    // Создаем подкатегории
+    let subSortOrder = 0
+    for (const subcategoryData of categoryData.subcategories) {
+      const subcategory = await prisma.category.upsert({
         where: { slug: subcategoryData.slug },
-        update: {},
-        create: {
-          ...subcategoryData,
+        update: {
+          name: subcategoryData.name,
           parentId: category.id,
+          sortOrder: subSortOrder++,
+        },
+        create: {
+          name: subcategoryData.name,
+          slug: subcategoryData.slug,
+          description: `Подкатегория: ${subcategoryData.name}`,
+          parentId: category.id,
+          sortOrder: subSortOrder++,
+          isActive: true,
         },
       })
+      subcategoryMap.set(subcategoryData.slug, subcategory.id)
+
+      // Создаем под-подкатегории
+      if (subcategoryData.subSubcategories) {
+        let subSubSortOrder = 0
+        for (const subSubcategoryData of subcategoryData.subSubcategories) {
+          const subSubcategory = await prisma.category.upsert({
+            where: { slug: subSubcategoryData.slug },
+            update: {
+              name: subSubcategoryData.name,
+              parentId: subcategory.id,
+              sortOrder: subSubSortOrder++,
+            },
+            create: {
+              name: subSubcategoryData.name,
+              slug: subSubcategoryData.slug,
+              description: `Под-подкатегория: ${subSubcategoryData.name}`,
+              parentId: subcategory.id,
+              sortOrder: subSubSortOrder++,
+              isActive: true,
+            },
+          })
+          subSubcategoryMap.set(subSubcategoryData.slug, subSubcategory.id)
+        }
+      }
     }
   }
 
-  // Получение всех категорий
-  const pivovareniyeCategory = await prisma.category.findUnique({
-    where: { slug: 'pivovarni-i-ckt' },
-  })
-  
-  const ingredientyCategory = await prisma.category.findUnique({
-    where: { slug: 'ingredienty' },
-  })
-  
-  const brozhenieCategory = await prisma.category.findUnique({
-    where: { slug: 'brozhenie-i-rozliv' },
-  })
-  
-  const naboriCategory = await prisma.category.findUnique({
-    where: { slug: 'nabori-i-medovuha' },
-  })
-  
-  const dopOborudovanieCategory = await prisma.category.findUnique({
-    where: { slug: 'dop-oborudovanie' },
-  })
-  
-  const samogonCategory = await prisma.category.findFirst({
-    where: { slug: 'samogonnye-apparaty' },
-  })
-  
-  const komplektuyushchieCategory = await prisma.category.findFirst({
-    where: { slug: 'komplektuyushchie' },
-  })
-  
-  const dopKomponentyCategory = await prisma.category.findFirst({
-    where: { slug: 'dop-komponenty' },
-  })
-  
-  const avtomatikaCategory = await prisma.category.findFirst({
-    where: { slug: 'avtomatika' },
-  })
-  
-  const vinodelcheskoeCategory = await prisma.category.findFirst({
-    where: { slug: 'vinodelcheskoe-oborudovanie' },
-  })
-  
-  const ingredientyVinaCategory = await prisma.category.findFirst({
-    where: { slug: 'ingredienty-dlya-vina' },
-  })
+  console.log(`✅ Создано категорий: ${categoryMap.size}, подкатегорий: ${subcategoryMap.size}, под-подкатегорий: ${subSubcategoryMap.size}`)
 
-  // Товары для вкладки "Хиты продаж" (HIT)
-  const hitProducts = [
-    {
-      sku: 'HIT001',
-      title: 'Самогонный аппарат Люкссталь LUXSTAHL 8M 37л',
-      slug: 'samogonnyj-apparat-lyuksstal-luxstahl-8m-37l',
-      description: 'Профессиональный самогонный аппарат объемом 37 литров',
-      price: 41981,
-      stock: 0,
-      stockStatus: 'NONE' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-1.jpg'],
-      categoryId: samogonCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 3.0,
-      ratingCount: 5,
-    },
-    {
-      sku: 'HIT002',
-      title: 'Солодовый экстракт "Кукуруза и карамельный солод", 4.1 кг',
-      slug: 'solodovyj-ekstrakt-kukuruza-i-karamelnyj-solod-4-1-kg',
-      description: 'Готовый солодовый экстракт для пивоварения',
-      price: 1090,
-      stock: 15,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-2.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 2.0,
-      ratingCount: 3,
-    },
-    {
-      sku: 'HIT003',
-      title: 'Хмель "Подвязный" (Россия, Чувашия), 50гр',
-      slug: 'hmel-podvyaznyj-rossiya-chuvashiya-50gr',
-      description: 'Качественный хмель из Чувашии',
-      price: 109,
-      stock: 50,
-      stockStatus: 'MANY' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-3.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 5.0,
-      ratingCount: 12,
-    },
-    {
-      sku: 'HIT004',
-      title: 'Хмель гранулированный "Ранний Московский" (Россия, Чувашия), 50гр',
-      slug: 'hmel-granulirovannyj-rannij-moskovskij-rossiya-chuvashiya-50gr',
-      description: 'Гранулированный хмель раннего сорта',
-      price: 109,
-      stock: 45,
-      stockStatus: 'MANY' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-4.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.0,
-      ratingCount: 8,
-    },
-    {
-      sku: 'HIT005',
-      title: 'Хмель "Истринский" (Россия, Чувашия), 50гр',
-      slug: 'hmel-istrinskij-rossiya-chuvashiya-50gr',
-      description: 'Хмель сорта Истринский',
-      price: 109,
-      stock: 40,
-      stockStatus: 'MANY' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-5.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 5.0,
-      ratingCount: 15,
-    },
-    {
-      sku: 'HIT006',
-      title: 'Солод "Пэйл-эль" (Pale ale) Bestmalz, 1кг',
-      slug: 'solod-pejl-el-pale-ale-bestmalz-1kg',
-      description: 'Солод для светлого эля',
-      price: 250,
-      stock: 30,
-      stockStatus: 'MANY' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-6.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 5.0,
-      ratingCount: 20,
-    },
-    {
-      sku: 'HIT007',
-      title: 'Солод "Пилсен" Курск, 1кг',
-      slug: 'solod-pilsen-kursk-1kg',
-      description: 'Пилсенский солод производства Курск',
-      price: 220,
-      stock: 35,
-      stockStatus: 'MANY' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-7.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 5.0,
-      ratingCount: 18,
-    },
-    {
-      sku: 'HIT008',
-      title: 'Солод "Пилсен" Курск, 50кг',
-      slug: 'solod-pilsen-kursk-50kg',
-      description: 'Пилсенский солод производства Курск, оптовая упаковка',
-      price: 10500,
-      stock: 8,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['HIT' as const],
-      images: ['/uploads/placeholder-8.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 5.0,
-      ratingCount: 7,
-    },
-  ]
+  // Создание товаров для каждой категории/подкатегории/под-подкатегории
+  console.log('📦 Создание товаров...')
+  let productCount = 0
 
-  // Товары для вкладки "Новинки" (NEW)
-  const newProducts = [
-    {
-      sku: 'NEW001',
-      title: 'Пивоварня Beer Zavodik Start',
-      slug: 'pivovarnya-beer-zavodik-start',
-      description: 'Комплект для начинающих пивоваров',
-      price: 3390,
-      stock: 10,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-9.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 10,
-    },
-    {
-      sku: 'NEW002',
-      title: 'Домашняя пивоварня Бавария "BAVARIA 50L" WiFi',
-      slug: 'domashnyaya-pivovarnya-bavariya-50l-wifi',
-      description: 'Профессиональная пивоварня с WiFi управлением',
-      price: 57990,
-      stock: 2,
-      stockStatus: 'FEW' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-10.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 5,
-    },
-    {
-      sku: 'NEW003',
-      title: 'Набор для пивоварения "Премиум"',
-      slug: 'nabor-dlya-pivovareniya-premium',
-      description: 'Полный набор для профессионального пивоварения',
-      price: 12500,
-      stock: 5,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-11.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 3,
-    },
-    {
-      sku: 'NEW004',
-      title: 'Хмель "Цитра" (Citra), 100гр',
-      slug: 'hmel-citra-citra-100gr',
-      description: 'Американский хмель с цитрусовым ароматом',
-      price: 450,
-      stock: 20,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-12.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.9,
-      ratingCount: 6,
-    },
-    {
-      sku: 'NEW005',
-      title: 'Солод "Карамельный" (Caramel), 1кг',
-      slug: 'solod-karamelnyj-caramel-1kg',
-      description: 'Карамельный солод для темного пива',
-      price: 280,
-      stock: 25,
-      stockStatus: 'MANY' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-13.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 4,
-    },
-    {
-      sku: 'NEW006',
-      title: 'Дрожжи пивные сухие Safale US-05, 11.5г',
-      slug: 'drozhzhi-pivnye-suhie-safale-us-05-11-5g',
-      description: 'Американские пивные дрожжи',
-      price: 120,
-      stock: 40,
-      stockStatus: 'MANY' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-14.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 9,
-    },
-    {
-      sku: 'NEW007',
-      title: 'ЦКТ (Циклонно-охлаждающий танк) 30л',
-      slug: 'ckt-ciklonno-ohlazhdayushchij-tank-30l',
-      description: 'Циклонно-охлаждающий танк для брожения',
-      price: 8500,
-      stock: 6,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-15.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 2,
-    },
-    {
-      sku: 'NEW008',
-      title: 'Термометр цифровой для пивоварения',
-      slug: 'termometr-cifrovoj-dlya-pivovareniya',
-      description: 'Точный цифровой термометр',
-      price: 890,
-      stock: 15,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['NEW' as const],
-      images: ['/uploads/placeholder-16.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.4,
-      ratingCount: 7,
-    },
-  ]
-
-  // Товары для вкладки "По акции" (SALE)
-  const saleProducts = [
-    {
-      sku: 'SALE001',
-      title: 'Пивоварня Beer Zavodik Classic',
-      slug: 'pivovarnya-beer-zavodik-classic',
-      description: 'Классическая пивоварня для домашнего использования',
-      price: 3200,
-      oldPrice: 3790,
-      stock: 8,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-17.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 12,
-    },
-    {
-      sku: 'SALE002',
-      title: 'Крышка для ЦКТ Easy Brew 32 л с чиллером',
-      slug: 'kryshka-dlya-ckt-easy-brew-32l',
-      description: 'Крышка с чиллером для ЦКТ 32 литра',
-      price: 6500,
-      oldPrice: 7641,
-      stock: 5,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-18.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.3,
-      ratingCount: 8,
-    },
-    {
-      sku: 'SALE003',
-      title: 'Хмель "Каскад" (Cascade), 50гр',
-      slug: 'hmel-kaskad-cascade-50gr',
-      description: 'Американский хмель Каскад',
-      price: 95,
-      oldPrice: 120,
-      stock: 30,
-      stockStatus: 'MANY' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-19.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 11,
-    },
-    {
-      sku: 'SALE004',
-      title: 'Солод "Мюнхенский" (Munich), 1кг',
-      slug: 'solod-myunhenskij-munich-1kg',
-      description: 'Мюнхенский солод для темного пива',
-      price: 200,
-      oldPrice: 250,
-      stock: 20,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-20.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 14,
-    },
-    {
-      sku: 'SALE005',
-      title: 'Набор ингредиентов для IPA',
-      slug: 'nabor-ingredientov-dlya-ipa',
-      description: 'Готовый набор для приготовления IPA',
-      price: 1800,
-      oldPrice: 2200,
-      stock: 12,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-21.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 6,
-    },
-    {
-      sku: 'SALE006',
-      title: 'Бутылки для пива стеклянные, 0.5л (12 шт)',
-      slug: 'butylki-dlya-piva-steklyannye-0-5l-12-sht',
-      description: 'Набор стеклянных бутылок для розлива',
-      price: 450,
-      oldPrice: 600,
-      stock: 25,
-      stockStatus: 'MANY' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-22.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.2,
-      ratingCount: 9,
-    },
-    {
-      sku: 'SALE007',
-      title: 'Кеги для пива 5л',
-      slug: 'kegi-dlya-piva-5l',
-      description: 'Кеги из нержавеющей стали',
-      price: 3200,
-      oldPrice: 3800,
-      stock: 7,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-23.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 5,
-    },
-    {
-      sku: 'SALE008',
-      title: 'Дрожжи пивные жидкие Wyeast 1056, 125мл',
-      slug: 'drozhzhi-pivnye-zhidkie-wyeast-1056-125ml',
-      description: 'Американские жидкие пивные дрожжи',
-      price: 350,
-      oldPrice: 450,
-      stock: 18,
-      stockStatus: 'ENOUGH' as const,
-      badges: ['SALE' as const],
-      images: ['/uploads/placeholder-24.jpg'],
-      categoryId: ingredientyCategory?.id || pivovareniyeCategory?.id || '',
-      rating: 4.9,
-      ratingCount: 13,
-    },
-  ]
-
-  // Дополнительные товары для всех категорий
-  const additionalProducts = [
-    // Пивоварни и ЦКТ
-    {
-      sku: 'PIV001',
-      title: 'Пивоварня Beer Zavodik Pro 50л',
-      slug: 'pivovarnya-beer-zavodik-pro-50l',
-      description: 'Профессиональная пивоварня на 50 литров',
-      price: 45900,
-      stock: 3,
-      stockStatus: 'FEW' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-piv001.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 8,
-    },
-    {
-      sku: 'PIV002',
-      title: 'ЦКТ (Циклонно-охлаждающий танк) 50л',
-      slug: 'ckt-ciklonno-ohlazhdayushchij-tank-50l',
-      description: 'Большой ЦКТ для брожения',
-      price: 12500,
-      stock: 5,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-piv002.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 6,
-    },
-    {
-      sku: 'PIV003',
-      title: 'Пивоварня Easy Brew 30л',
-      slug: 'pivovarnya-easy-brew-30l',
-      description: 'Компактная пивоварня для дома',
-      price: 18900,
-      stock: 8,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-piv003.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 12,
-    },
-    {
-      sku: 'PIV004',
-      title: 'Крышка для ЦКТ с гидрозатвором 30л',
-      slug: 'kryshka-dlya-ckt-s-gidrozatvorom-30l',
-      description: 'Крышка с гидрозатвором для брожения',
-      price: 1200,
-      stock: 15,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-piv004.jpg'],
-      categoryId: pivovareniyeCategory?.id || '',
-      rating: 4.4,
-      ratingCount: 9,
-    },
-    // Ингредиенты
-    {
-      sku: 'ING001',
-      title: 'Хмель "Амарилло" (Amarillo), 100гр',
-      slug: 'hmel-amarillo-amarillo-100gr',
-      description: 'Американский хмель с цитрусовым ароматом',
-      price: 480,
-      stock: 25,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing001.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 11,
-    },
-    {
-      sku: 'ING002',
-      title: 'Хмель "Мозаик" (Mosaic), 100гр',
-      slug: 'hmel-mozaik-mosaic-100gr',
-      description: 'Хмель с тропическим ароматом',
-      price: 520,
-      stock: 20,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing002.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.9,
-      ratingCount: 14,
-    },
-    {
-      sku: 'ING003',
-      title: 'Солод "Венский" (Vienna), 1кг',
-      slug: 'solod-venskij-vienna-1kg',
-      description: 'Венский солод для светлого пива',
-      price: 240,
-      stock: 30,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing003.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 10,
-    },
-    {
-      sku: 'ING004',
-      title: 'Солод "Шоколадный" (Chocolate), 1кг',
-      slug: 'solod-shokoladnyj-chocolate-1kg',
-      description: 'Темный солод для портера и стаута',
-      price: 320,
-      stock: 18,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing004.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 7,
-    },
-    {
-      sku: 'ING005',
-      title: 'Дрожжи пивные сухие Safale S-04, 11.5г',
-      slug: 'drozhzhi-pivnye-suhie-safale-s-04-11-5g',
-      description: 'Английские элевые дрожжи',
-      price: 110,
-      stock: 45,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing005.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 16,
-    },
-    {
-      sku: 'ING006',
-      title: 'Дрожжи пивные жидкие Wyeast 1968, 125мл',
-      slug: 'drozhzhi-pivnye-zhidkie-wyeast-1968-125ml',
-      description: 'Английские элевые дрожжи',
-      price: 380,
-      stock: 12,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing006.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 5,
-    },
-    {
-      sku: 'ING007',
-      title: 'Солод "Вит" (Wheat), 1кг',
-      slug: 'solod-vit-wheat-1kg',
-      description: 'Пшеничный солод для вайсбира',
-      price: 260,
-      stock: 22,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing007.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 13,
-    },
-    {
-      sku: 'ING008',
-      title: 'Хмель "Симко" (Simcoe), 100гр',
-      slug: 'hmel-simko-simcoe-100gr',
-      description: 'Американский хмель с хвойным ароматом',
-      price: 550,
-      stock: 15,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ing008.jpg'],
-      categoryId: ingredientyCategory?.id || '',
-      rating: 4.9,
-      ratingCount: 9,
-    },
-    // Брожение и розлив
-    {
-      sku: 'BRO001',
-      title: 'Гидрозатвор для брожения',
-      slug: 'gidrozatvor-dlya-brozheniya',
-      description: 'Гидрозатвор для бродильных емкостей',
-      price: 150,
-      stock: 50,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-bro001.jpg'],
-      categoryId: brozhenieCategory?.id || '',
-      rating: 4.3,
-      ratingCount: 20,
-    },
-    {
-      sku: 'BRO002',
-      title: 'Бутылки для пива стеклянные, 0.5л (24 шт)',
-      slug: 'butylki-dlya-piva-steklyannye-0-5l-24-sht',
-      description: 'Набор стеклянных бутылок',
-      price: 850,
-      stock: 30,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-bro002.jpg'],
-      categoryId: brozhenieCategory?.id || '',
-      rating: 4.4,
-      ratingCount: 15,
-    },
-    {
-      sku: 'BRO003',
-      title: 'Кеги для пива 19л',
-      slug: 'kegi-dlya-piva-19l',
-      description: 'Большие кеги из нержавеющей стали',
-      price: 8500,
-      stock: 4,
-      stockStatus: 'FEW' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-bro003.jpg'],
-      categoryId: brozhenieCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 3,
-    },
-    {
-      sku: 'BRO004',
-      title: 'Автоматический разливочный аппарат',
-      slug: 'avtomaticheskij-razlivochnyj-apparat',
-      description: 'Аппарат для розлива пива в бутылки',
-      price: 12500,
-      stock: 2,
-      stockStatus: 'FEW' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-bro004.jpg'],
-      categoryId: brozhenieCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 2,
-    },
-    // Пивные наборы
-    {
-      sku: 'NAB001',
-      title: 'Набор для пивоварения "Начинающий"',
-      slug: 'nabor-dlya-pivovareniya-nachinayushchij',
-      description: 'Полный набор для начинающих пивоваров',
-      price: 5500,
-      stock: 10,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-nab001.jpg'],
-      categoryId: naboriCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 8,
-    },
-    {
-      sku: 'NAB002',
-      title: 'Набор для IPA "Американский"',
-      slug: 'nabor-dlya-ipa-amerikanskij',
-      description: 'Готовый набор для IPA',
-      price: 2200,
-      stock: 15,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-nab002.jpg'],
-      categoryId: naboriCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 12,
-    },
-    {
-      sku: 'NAB003',
-      title: 'Набор для стаута "Ирландский"',
-      slug: 'nabor-dlya-stauta-irlandskij',
-      description: 'Готовый набор для ирландского стаута',
-      price: 2400,
-      stock: 12,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-nab003.jpg'],
-      categoryId: naboriCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 6,
-    },
-    // Дополнительное оборудование
-    {
-      sku: 'DOP001',
-      title: 'Термометр цифровой с зондом',
-      slug: 'termometr-cifrovoj-s-zondom',
-      description: 'Точный термометр для контроля температуры',
-      price: 1200,
-      stock: 20,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-dop001.jpg'],
-      categoryId: dopOborudovanieCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 14,
-    },
-    {
-      sku: 'DOP002',
-      title: 'Ареометр для измерения плотности',
-      slug: 'areometr-dlya-izmereniya-plotnosti',
-      description: 'Ареометр для контроля процесса брожения',
-      price: 350,
-      stock: 35,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-dop002.jpg'],
-      categoryId: dopOborudovanieCategory?.id || '',
-      rating: 4.4,
-      ratingCount: 18,
-    },
-    {
-      sku: 'DOP003',
-      title: 'Фильтр для пива',
-      slug: 'filt-dlya-piva',
-      description: 'Фильтр для очистки пива',
-      price: 890,
-      stock: 18,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-dop003.jpg'],
-      categoryId: dopOborudovanieCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 9,
-    },
-    // Самогонные аппараты
-    {
-      sku: 'SAM001',
-      title: 'Самогонный аппарат "Классик" 20л',
-      slug: 'samogonnyj-apparat-klassik-20l',
-      description: 'Классический самогонный аппарат',
-      price: 18900,
-      stock: 6,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-sam001.jpg'],
-      categoryId: samogonCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 7,
-    },
-    {
-      sku: 'SAM002',
-      title: 'Самогонный аппарат "Премиум" 30л',
-      slug: 'samogonnyj-apparat-premium-30l',
-      description: 'Премиум аппарат с автоматикой',
-      price: 32900,
-      stock: 3,
-      stockStatus: 'FEW' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-sam002.jpg'],
-      categoryId: samogonCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 5,
-    },
-    {
-      sku: 'SAM003',
-      title: 'Самогонный аппарат "Эконом" 15л',
-      slug: 'samogonnyj-apparat-ekonom-15l',
-      description: 'Бюджетный вариант для начинающих',
-      price: 12900,
-      stock: 10,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-sam003.jpg'],
-      categoryId: samogonCategory?.id || '',
-      rating: 4.3,
-      ratingCount: 11,
-    },
-    // Комплектующие для самогоноварения
-    {
-      sku: 'KOM001',
-      title: 'Сухопарник для самогонного аппарата',
-      slug: 'suhoparnik-dlya-samogonnogo-apparata',
-      description: 'Сухопарник для очистки дистиллята',
-      price: 1200,
-      stock: 25,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-kom001.jpg'],
-      categoryId: komplektuyushchieCategory?.id || '',
-      rating: 4.4,
-      ratingCount: 16,
-    },
-    {
-      sku: 'KOM002',
-      title: 'Холодильник для самогонного аппарата',
-      slug: 'holodilnik-dlya-samogonnogo-apparata',
-      description: 'Холодильник для конденсации паров',
-      price: 2500,
-      stock: 15,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-kom002.jpg'],
-      categoryId: komplektuyushchieCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 8,
-    },
-    {
-      sku: 'KOM003',
-      title: 'Царга для ректификационной колонны',
-      slug: 'tsarga-dlya-rektifikatsionnoj-kolonny',
-      description: 'Царга для увеличения высоты колонны',
-      price: 1800,
-      stock: 12,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-kom003.jpg'],
-      categoryId: komplektuyushchieCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 6,
-    },
-    // Доп. компоненты
-    {
-      sku: 'DOPK001',
-      title: 'Активированный уголь для очистки',
-      slug: 'aktivirovannyj-ugol-dlya-ochistki',
-      description: 'Уголь для очистки самогона',
-      price: 450,
-      stock: 40,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-dopk001.jpg'],
-      categoryId: dopKomponentyCategory?.id || '',
-      rating: 4.3,
-      ratingCount: 22,
-    },
-    {
-      sku: 'DOPK002',
-      title: 'Дрожжи спиртовые турбо 50г',
-      slug: 'drozhzhi-spirtovye-turbo-50g',
-      description: 'Быстрые дрожжи для браги',
-      price: 180,
-      stock: 50,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-dopk002.jpg'],
-      categoryId: dopKomponentyCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 28,
-    },
-    {
-      sku: 'DOPK003',
-      title: 'Сахар для браги 5кг',
-      slug: 'sahar-dlya-bragi-5kg',
-      description: 'Специальный сахар для самогоноварения',
-      price: 350,
-      stock: 30,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-dopk003.jpg'],
-      categoryId: dopKomponentyCategory?.id || '',
-      rating: 4.2,
-      ratingCount: 19,
-    },
-    // Автоматика
-    {
-      sku: 'AVT001',
-      title: 'Термостат для самогонного аппарата',
-      slug: 'termostat-dlya-samogonnogo-apparata',
-      description: 'Автоматический контроль температуры',
-      price: 5500,
-      stock: 5,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-avt001.jpg'],
-      categoryId: avtomatikaCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 4,
-    },
-    {
-      sku: 'AVT002',
-      title: 'Таймер для процесса дистилляции',
-      slug: 'tajmer-dlya-protsessa-distillyatsii',
-      description: 'Таймер с автоматическим отключением',
-      price: 2200,
-      stock: 8,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-avt002.jpg'],
-      categoryId: avtomatikaCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 6,
-    },
-    // Винодельческое оборудование
-    {
-      sku: 'VIN001',
-      title: 'Пресс для винограда 20л',
-      slug: 'press-dlya-vinograda-20l',
-      description: 'Ручной пресс для отжима винограда',
-      price: 8900,
-      stock: 4,
-      stockStatus: 'FEW' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-vin001.jpg'],
-      categoryId: vinodelcheskoeCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 3,
-    },
-    {
-      sku: 'VIN002',
-      title: 'Дробилка для винограда',
-      slug: 'drobilka-dlya-vinograda',
-      description: 'Ручная дробилка для винограда',
-      price: 4500,
-      stock: 6,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-vin002.jpg'],
-      categoryId: vinodelcheskoeCategory?.id || '',
-      rating: 4.5,
-      ratingCount: 5,
-    },
-    {
-      sku: 'VIN003',
-      title: 'Бочка для вина дубовая 10л',
-      slug: 'bochka-dlya-vina-dubovaya-10l',
-      description: 'Дубовая бочка для выдержки вина',
-      price: 12500,
-      stock: 2,
-      stockStatus: 'FEW' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-vin003.jpg'],
-      categoryId: vinodelcheskoeCategory?.id || '',
-      rating: 4.8,
-      ratingCount: 2,
-    },
-    // Ингредиенты для вина
-    {
-      sku: 'VING001',
-      title: 'Дрожжи винные Red Star Premier Rouge',
-      slug: 'drozhzhi-vinnye-red-star-premier-rouge',
-      description: 'Французские винные дрожжи',
-      price: 280,
-      stock: 20,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ving001.jpg'],
-      categoryId: ingredientyVinaCategory?.id || '',
-      rating: 4.7,
-      ratingCount: 7,
-    },
-    {
-      sku: 'VING002',
-      title: 'Винная кислота 100г',
-      slug: 'vinnaya-kislota-100g',
-      description: 'Винная кислота для регулирования кислотности',
-      price: 350,
-      stock: 25,
-      stockStatus: 'MANY' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ving002.jpg'],
-      categoryId: ingredientyVinaCategory?.id || '',
-      rating: 4.4,
-      ratingCount: 11,
-    },
-    {
-      sku: 'VING003',
-      title: 'Дубильные вещества для вина 50г',
-      slug: 'dubilnye-veshchestva-dlya-vina-50g',
-      description: 'Дубильные вещества для структуры вина',
-      price: 420,
-      stock: 18,
-      stockStatus: 'ENOUGH' as const,
-      badges: [] as const,
-      images: ['/uploads/placeholder-ving003.jpg'],
-      categoryId: ingredientyVinaCategory?.id || '',
-      rating: 4.6,
-      ratingCount: 8,
-    },
-  ]
-
-  // Объединяем все товары
-  const allProducts = [...hitProducts, ...newProducts, ...saleProducts, ...additionalProducts]
-
-  // Проверяем наличие категорий
-  const defaultCategoryId = pivovareniyeCategory?.id || ingredientyCategory?.id || samogonCategory?.id
-  
-  if (!defaultCategoryId) {
-    console.log('⚠️ Категории не найдены, создание товаров пропущено')
-  } else {
-    for (const productData of allProducts) {
-      // Используем defaultCategoryId если categoryId пустой
-      const finalCategoryId = productData.categoryId || defaultCategoryId
-      
-      if (!finalCategoryId) {
-        console.log(`⚠️ Пропущен товар ${productData.sku}: категория не найдена`)
-        continue
-      }
-      
+  // Функция для добавления товаров в категорию
+  async function addProductsToCategory(
+    categoryId: string,
+    categoryName: string,
+    count: number = 2,
+    categorySlug?: string
+  ) {
+    for (let i = 0; i < count; i++) {
+      const productName = `${categoryName} - Товар ${i + 1}`
+      // Используем slug категории для уникальности SKU
+      const skuPrefix = (categorySlug || categoryName.substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, 'X') || 'PRD').substring(0, 6).toUpperCase()
+      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
       try {
-        // Проверяем существование товара по SKU
+        const baseProductData = generateProduct(categoryId, productName, skuPrefix, i)
+        
+        // Делаем SKU и slug уникальными
+        const uniqueSku = `${skuPrefix}-${uniqueId.substring(0, 8).toUpperCase()}`
+        const uniqueSlug = `${slugify(categoryName)}-tovar-${i + 1}-${uniqueId.substring(0, 6)}`
+        
+        const productData = {
+          ...baseProductData,
+          sku: uniqueSku,
+          slug: uniqueSlug,
+        }
+        
+        // Проверяем существование по SKU и slug
         const existingBySku = await prisma.product.findUnique({
           where: { sku: productData.sku },
         })
         
-        // Проверяем существование товара по slug
         const existingBySlug = await prisma.product.findUnique({
           where: { slug: productData.slug },
         })
         
-        if (existingBySku) {
-          // Обновляем существующий товар
-          await prisma.product.update({
-            where: { sku: productData.sku },
-            data: {
-              ...productData,
-              price: productData.price.toString(),
-              oldPrice: productData.oldPrice?.toString(),
-              rating: productData.rating?.toString(),
-              categoryId: finalCategoryId,
-            },
-          })
-          console.log(`✅ Товар обновлен: ${productData.title}`)
-        } else if (existingBySlug) {
-          // Если товар с таким slug существует, но SKU другой, создаем с уникальным slug
-          const uniqueSlug = `${productData.slug}-${productData.sku.toLowerCase()}`
+        if (!existingBySku && !existingBySlug) {
           await prisma.product.create({
-            data: {
-              ...productData,
-              slug: uniqueSlug,
-              price: productData.price.toString(),
-              oldPrice: productData.oldPrice?.toString(),
-              rating: productData.rating?.toString(),
-              categoryId: finalCategoryId,
-            },
+            data: productData,
           })
-          console.log(`✅ Товар создан с уникальным slug: ${productData.title}`)
+          productCount++
+          if (productCount % 10 === 0) {
+            console.log(`   Создано товаров: ${productCount}...`)
+          }
         } else {
-          // Создаем новый товар
-          await prisma.product.create({
-            data: {
-              ...productData,
-              price: productData.price.toString(),
-              oldPrice: productData.oldPrice?.toString(),
-              rating: productData.rating?.toString(),
-              categoryId: finalCategoryId,
-            },
+          // Если конфликт, пробуем еще раз с другим уникальным ID
+          const retryId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+          const retrySku = `${skuPrefix}-${retryId.substring(0, 8).toUpperCase()}`
+          const retrySlug = `${slugify(categoryName)}-tovar-${i + 1}-${retryId.substring(0, 6)}`
+          
+          const retryProductData = {
+            ...baseProductData,
+            sku: retrySku,
+            slug: retrySlug,
+          }
+          
+          const retryExistingBySku = await prisma.product.findUnique({
+            where: { sku: retryProductData.sku },
           })
-          console.log(`✅ Товар создан: ${productData.title}`)
+          
+          const retryExistingBySlug = await prisma.product.findUnique({
+            where: { slug: retryProductData.slug },
+          })
+          
+          if (!retryExistingBySku && !retryExistingBySlug) {
+            await prisma.product.create({
+              data: retryProductData,
+            })
+            productCount++
+            if (productCount % 10 === 0) {
+              console.log(`   Создано товаров: ${productCount}...`)
+            }
+          }
         }
       } catch (error: any) {
-        console.log(`❌ Ошибка при создании товара ${productData.sku}: ${error.message}`)
+        console.log(`⚠️ Ошибка при создании товара для ${categoryName}: ${error.message}`)
+        console.log(`   Детали ошибки:`, error)
       }
     }
   }
 
-  // Создание настроек
+  // Добавляем товары во все категории
+  console.log('   Добавление товаров в основные категории...')
+  for (const categoryData of allCategories) {
+    const categoryId = categoryMap.get(categoryData.slug)
+    if (categoryId) {
+      await addProductsToCategory(categoryId, categoryData.name, 2, categoryData.slug)
+    }
+  }
+
+  console.log('   Добавление товаров в подкатегории...')
+  // Добавляем товары в подкатегории
+  for (const categoryData of allCategories) {
+    for (const subcategoryData of categoryData.subcategories) {
+      const subcategoryId = subcategoryMap.get(subcategoryData.slug)
+      if (subcategoryId) {
+        await addProductsToCategory(subcategoryId, subcategoryData.name, 2, subcategoryData.slug)
+      }
+    }
+  }
+
+  console.log('   Добавление товаров в под-подкатегории...')
+  // Добавляем товары в под-подкатегории
+  for (const categoryData of allCategories) {
+    for (const subcategoryData of categoryData.subcategories) {
+      if (subcategoryData.subSubcategories) {
+        for (const subSubcategoryData of subcategoryData.subSubcategories) {
+          const subSubcategoryId = subSubcategoryMap.get(subSubcategoryData.slug)
+          if (subSubcategoryId) {
+            await addProductsToCategory(subSubcategoryId, subSubcategoryData.name, 1, subSubcategoryData.slug)
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`✅ Создано товаров: ${productCount}`)
+
+  // Создание тестовых заказов
+  console.log('🛒 Создание тестовых заказов...')
+  const products = await prisma.product.findMany({
+    where: { isActive: true, visibility: 'VISIBLE' },
+    take: 20,
+  })
+
+  if (products.length > 0 && createdUsers.length > 0) {
+    const customer = createdUsers.find(u => u.role === 'CUSTOMER') || createdUsers[0]
+    
+    for (let i = 0; i < 10; i++) {
+      const orderNumber = `ORD-${String(Date.now()).slice(-8)}-${String(i + 1).padStart(3, '0')}`
+      const selectedProducts = products.slice(0, Math.floor(Math.random() * 5) + 1)
+      
+      let subtotal = 0
+      const orderItems = selectedProducts.map((product) => {
+        const quantity = Math.floor(Math.random() * 3) + 1
+        const price = Number(product.price)
+        const total = price * quantity
+        subtotal += total
+        return {
+          productId: product.id,
+          quantity,
+          price: price.toString(),
+          total: total.toString(),
+        }
+      })
+
+      const delivery = Math.floor(Math.random() * 500) + 100
+      const discount = Math.random() > 0.7 ? Math.floor(subtotal * 0.1) : 0
+      const total = subtotal + delivery - discount
+
+      const statuses: OrderStatus[] = ['NEW', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']
+      const status = statuses[Math.floor(Math.random() * statuses.length)]
+      const deliveryTypes: DeliveryType[] = ['PICKUP', 'COURIER', 'TRANSPORT']
+      const deliveryType = deliveryTypes[Math.floor(Math.random() * deliveryTypes.length)]
+
+      try {
+        const order = await prisma.order.create({
+            data: {
+            orderNumber,
+            userId: customer.id,
+            status,
+            total: total.toString(),
+            subtotal: subtotal.toString(),
+            delivery: delivery.toString(),
+            discount: discount.toString(),
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            email: customer.email,
+            phone: customer.phone || '+7 999 123-45-67',
+            deliveryType,
+            items: {
+              create: orderItems,
+            },
+          },
+        })
+        console.log(`✅ Заказ создан: ${order.orderNumber}`)
+      } catch (error: any) {
+        console.log(`⚠️ Ошибка при создании заказа: ${error.message}`)
+      }
+    }
+  }
+
+  // Создание расширенных настроек
+  console.log('⚙️ Создание настроек...')
   const settings = [
+    // Контакты
     { key: 'contactEmail', value: 'info@dompivovara.ru', type: 'STRING' as const },
     { key: 'contactPhone', value: '+7 913 555-222-6', type: 'STRING' as const },
+    { key: 'contactPhone2', value: '+7 913 555-222-7', type: 'STRING' as const },
     { key: 'address', value: 'г. Москва, ул. Примерная, д. 1', type: 'STRING' as const },
+    { key: 'workingHours', value: 'Пн-Пт: 9:00-18:00, Сб-Вс: 10:00-16:00', type: 'STRING' as const },
+    
+    // Социальные сети
     {
       key: 'socialLinks',
       value: JSON.stringify([
         { label: 'VK', url: 'https://vk.com/dompivovara' },
         { label: 'YouTube', url: 'https://youtube.com/@dompivovara' },
         { label: 'Telegram', url: 'https://t.me/dompivovara' },
+        { label: 'Instagram', url: 'https://instagram.com/dompivovara' },
       ]),
       type: 'JSON' as const,
     },
+    
+    // Заказы
     { key: 'minOrderTotal', value: '1000', type: 'NUMBER' as const },
+    { key: 'freeDeliveryThreshold', value: '5000', type: 'NUMBER' as const },
+    { key: 'deliveryPrice', value: '500', type: 'NUMBER' as const },
+    
+    // Сайт
+    { key: 'siteName', value: 'Дом Пивовара', type: 'STRING' as const },
+    { key: 'siteDescription', value: 'Интернет-магазин товаров для пивоварения, самогоноварения и виноделия', type: 'STRING' as const },
+    { key: 'currency', value: 'RUB', type: 'STRING' as const },
+    { key: 'currencySymbol', value: '₽', type: 'STRING' as const },
+    
+    // Email настройки
+    {
+      key: 'emailSettings',
+      value: JSON.stringify({
+        smtpHost: 'smtp.gmail.com',
+        smtpPort: 587,
+        smtpUser: 'noreply@dompivovara.ru',
+        smtpPassword: '',
+        fromEmail: 'noreply@dompivovara.ru',
+        fromName: 'Дом Пивовара',
+        companyEmail: 'info@dompivovara.ru',
+      }),
+      type: 'JSON' as const,
+    },
+    
+    // Попап
+    { key: 'popupEnabled', value: 'false', type: 'BOOLEAN' as const },
+    { key: 'popupTitle', value: 'Специальное предложение!', type: 'STRING' as const },
+    { key: 'popupText', value: 'Получите скидку 10% на первый заказ', type: 'STRING' as const },
+    { key: 'popupButtonLabel', value: 'Получить скидку', type: 'STRING' as const },
+    { key: 'popupButtonUrl', value: '/catalog', type: 'STRING' as const },
+    { key: 'popupDelaySeconds', value: '5', type: 'NUMBER' as const },
+    
+    // SEO
+    { key: 'seoTitle', value: 'Дом Пивовара - Товары для пивоварения, самогоноварения и виноделия', type: 'STRING' as const },
+    { key: 'seoDescription', value: 'Широкий ассортимент товаров для домашнего пивоварения, самогоноварения и виноделия. Доставка по всей России.', type: 'STRING' as const },
+    { key: 'seoKeywords', value: 'пивоварение, самогоноварение, виноделие, товары для пивоварения', type: 'STRING' as const },
+    
+    // Слайдер
+    { key: 'heroSliderInterval', value: '5000', type: 'NUMBER' as const },
+    
+    // Дополнительные контакты
+    {
+      key: 'extraContacts',
+      value: JSON.stringify([
+        { title: 'Отдел продаж', values: ['+7 913 555-222-6', 'sales@dompivovara.ru'] },
+        { title: 'Техническая поддержка', values: ['+7 913 555-222-7', 'support@dompivovara.ru'] },
+        { title: 'Оптовые заказы', values: ['+7 913 555-222-8', 'wholesale@dompivovara.ru'] },
+      ]),
+      type: 'JSON' as const,
+    },
   ]
 
   for (const setting of settings) {
     await prisma.setting.upsert({
       where: { key: setting.key },
-      update: {},
+      update: { value: setting.value, type: setting.type },
       create: setting,
     })
   }
 
-  console.log('✅ Настройки созданы')
+  console.log(`✅ Создано настроек: ${settings.length}`)
+
+  // Создание тестовых слайдов для hero секции
+  console.log('🖼️ Создание слайдов...')
+  const heroSlides = [
+    {
+      url: 'https://images.unsplash.com/photo-1608270586621-1a7b4abc5e2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=450&q=80',
+      alt: 'Пивоварение',
+      title: 'Акция',
+      text: 'Специальные предложения на товары для пивоварения',
+      buttonText: 'Подробнее об акции',
+      buttonUrl: '/sales',
+      order: 0,
+      isActive: true,
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=450&q=80',
+      alt: 'Самогоноварение',
+      title: 'Новинки',
+      text: 'Новое оборудование для самогоноварения',
+      buttonText: 'Смотреть каталог',
+      buttonUrl: '/catalog',
+      order: 1,
+      isActive: true,
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=450&q=80',
+      alt: 'Виноделие',
+      title: 'Виноделие',
+      text: 'Все необходимое для домашнего виноделия',
+      buttonText: 'Перейти в каталог',
+      buttonUrl: '/catalog/vinodeliye',
+      order: 2,
+      isActive: true,
+    },
+  ]
+
+  // Создаем слайды по порядку
+  for (let i = 0; i < heroSlides.length; i++) {
+    const slideData = heroSlides[i]
+    // Ищем существующий слайд с таким же порядком или создаем новый
+    const existing = await prisma.heroImage.findFirst({
+      where: { order: slideData.order },
+    })
+
+    if (existing) {
+      await prisma.heroImage.update({
+        where: { id: existing.id },
+        data: slideData,
+      })
+    } else {
+      await prisma.heroImage.create({
+        data: slideData,
+      })
+    }
+  }
+  console.log(`✅ Создано слайдов: ${heroSlides.length}`)
 
   console.log('🎉 Заполнение базы данных завершено!')
+  console.log(`📊 Статистика:`)
+  console.log(`   - Категорий: ${categoryMap.size}`)
+  console.log(`   - Подкатегорий: ${subcategoryMap.size}`)
+  console.log(`   - Под-подкатегорий: ${subSubcategoryMap.size}`)
+  console.log(`   - Товаров: ${productCount}`)
+  console.log(`   - Пользователей: ${createdUsers.length}`)
+  console.log(`   - Настроек: ${settings.length}`)
 }
 
 main()

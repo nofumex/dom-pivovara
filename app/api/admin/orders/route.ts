@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { paginatedResponse, errorResponse } from '@/lib/response'
+import { serializeObject } from '@/lib/serialize'
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,11 +71,15 @@ export async function GET(request: NextRequest) {
       prisma.order.count({ where }),
     ])
 
-    return paginatedResponse(orders, page, limit, total)
+    // Сериализуем Decimal поля перед отправкой
+    const serializedOrders = serializeObject(orders)
+    return paginatedResponse(serializedOrders, page, limit, total)
   } catch (error) {
     console.error('Admin orders GET error:', error)
     return errorResponse('Ошибка при получении заказов', 500)
   }
 }
+
+
 
 
