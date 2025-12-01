@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { randomUUID } from 'crypto'
 import { prisma } from './db'
 import { UserRole } from '@prisma/client'
 
@@ -62,14 +63,17 @@ export function verifyRefreshToken(token: string): { userId: string } | null {
 export async function getAuthUser(request: NextRequest): Promise<AuthUser | null> {
   try {
     const authHeader = request.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '') || request.cookies.get('accessToken')?.value
+    const cookieToken = request.cookies.get('accessToken')?.value
+    const token = authHeader?.replace('Bearer ', '') || cookieToken
 
     if (!token) {
+      console.log('No token found in request')
       return null
     }
 
     const payload = verifyAccessToken(token)
     if (!payload) {
+      console.log('Token verification failed')
       return null
     }
 
@@ -140,6 +144,7 @@ export async function createSession(userId: string, refreshToken: string): Promi
   // Затем создаем новую сессию
   await prisma.session.create({
     data: {
+      id: randomUUID(),
       userId,
       refreshToken,
       expiresAt,

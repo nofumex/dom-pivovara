@@ -1,5 +1,6 @@
 import { PrismaClient, StockStatus, ProductBadge, OrderStatus, DeliveryType } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { randomUUID } from 'crypto'
 import { allCategories } from '../lib/catalogData'
 import { slugify } from '../lib/utils'
 
@@ -56,11 +57,13 @@ async function main() {
     where: { email: adminEmail },
     update: {},
     create: {
+      id: randomUUID(),
       email: adminEmail,
       password: hashedPassword,
       firstName: 'Администратор',
       lastName: 'Системы',
       role: 'ADMIN',
+      updatedAt: new Date(),
     },
   })
 
@@ -71,11 +74,13 @@ async function main() {
     where: { email: 'guest@system.local' },
     update: {},
     create: {
+      id: randomUUID(),
       email: 'guest@system.local',
       password: await bcrypt.hash('guest', 12),
       firstName: 'Гость',
       lastName: 'Система',
       role: 'CUSTOMER',
+      updatedAt: new Date(),
     },
   })
   console.log('✅ Гостевой пользователь создан:', guestUser.email)
@@ -89,13 +94,6 @@ async function main() {
       lastName: 'Пользователь',
       role: 'CUSTOMER' as const,
     },
-    {
-      email: 'manager@test.ru',
-      password: 'manager123',
-      firstName: 'Тестовый',
-      lastName: 'Менеджер',
-      role: 'MANAGER' as const,
-    },
   ]
 
   const createdUsers = [admin]
@@ -105,8 +103,10 @@ async function main() {
       where: { email: userData.email },
       update: {},
       create: {
+        id: randomUUID(),
         ...userData,
         password: hashedPassword,
+        updatedAt: new Date(),
       },
     })
     createdUsers.push(user)
@@ -130,11 +130,13 @@ async function main() {
         sortOrder: sortOrder++,
       },
       create: {
+        id: randomUUID(),
         name: categoryData.name,
         slug: categoryData.slug,
         description: `Категория: ${categoryData.name}`,
         sortOrder: sortOrder++,
         isActive: true,
+        updatedAt: new Date(),
       },
     })
     categoryMap.set(categoryData.slug, category.id)
@@ -151,12 +153,14 @@ async function main() {
           sortOrder: subSortOrder++,
         },
         create: {
+          id: randomUUID(),
           name: subcategoryData.name,
           slug: subcategoryData.slug,
           description: `Подкатегория: ${subcategoryData.name}`,
           parentId: category.id,
           sortOrder: subSortOrder++,
           isActive: true,
+          updatedAt: new Date(),
         },
       })
       subcategoryMap.set(subcategoryData.slug, subcategory.id)
@@ -173,12 +177,14 @@ async function main() {
               sortOrder: subSubSortOrder++,
             },
             create: {
+              id: randomUUID(),
               name: subSubcategoryData.name,
               slug: subSubcategoryData.slug,
               description: `Под-подкатегория: ${subSubcategoryData.name}`,
               parentId: subcategory.id,
               sortOrder: subSubSortOrder++,
               isActive: true,
+              updatedAt: new Date(),
             },
           })
           subSubcategoryMap.set(subSubcategoryData.slug, subSubcategory.id)
@@ -229,7 +235,12 @@ async function main() {
         
         if (!existingBySku && !existingBySlug) {
           await prisma.product.create({
-            data: productData,
+            data: {
+              ...productData,
+              id: randomUUID(),
+              updatedAt: new Date(),
+              stockStatus: productData.stockStatus as StockStatus,
+            },
           })
           productCount++
           if (productCount % 10 === 0) {
@@ -257,7 +268,12 @@ async function main() {
           
           if (!retryExistingBySku && !retryExistingBySlug) {
             await prisma.product.create({
-              data: retryProductData,
+              data: {
+                ...retryProductData,
+                id: randomUUID(),
+                updatedAt: new Date(),
+                stockStatus: retryProductData.stockStatus as StockStatus,
+              },
             })
             productCount++
             if (productCount % 10 === 0) {
@@ -349,6 +365,7 @@ async function main() {
       try {
         const order = await prisma.order.create({
             data: {
+            id: randomUUID(),
             orderNumber,
             userId: customer.id,
             status,
@@ -361,8 +378,12 @@ async function main() {
             email: customer.email,
             phone: customer.phone || '+7 999 123-45-67',
             deliveryType,
-            items: {
-              create: orderItems,
+            updatedAt: new Date(),
+            OrderItem: {
+              create: orderItems.map(item => ({
+                ...item,
+                id: randomUUID(),
+              })),
             },
           },
         })
@@ -453,7 +474,10 @@ async function main() {
     await prisma.setting.upsert({
       where: { key: setting.key },
       update: { value: setting.value, type: setting.type },
-      create: setting,
+      create: {
+        ...setting,
+        id: randomUUID(),
+      },
     })
   }
 
@@ -505,11 +529,18 @@ async function main() {
     if (existing) {
       await prisma.heroImage.update({
         where: { id: existing.id },
-        data: slideData,
+        data: {
+          ...slideData,
+          updatedAt: new Date(),
+        },
       })
     } else {
       await prisma.heroImage.create({
-        data: slideData,
+        data: {
+          ...slideData,
+          id: randomUUID(),
+          updatedAt: new Date(),
+        },
       })
     }
   }

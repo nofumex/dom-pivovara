@@ -10,14 +10,14 @@ export default async function CategoryPage({
   const category = await prisma.category.findUnique({
     where: { slug: params.slug },
     include: {
-      parent: {
+      Category: {
         select: {
           id: true,
           name: true,
           slug: true,
         },
       },
-      children: {
+      other_Category: {
         where: {
           isActive: true,
         },
@@ -27,7 +27,7 @@ export default async function CategoryPage({
         include: {
           _count: {
             select: {
-              products: {
+              Product: {
                 where: {
                   isActive: true,
                   visibility: 'VISIBLE',
@@ -49,12 +49,12 @@ export default async function CategoryPage({
     id: category.id,
     name: category.name,
     slug: category.slug,
-    parent: category.parent,
-    children: category.children.map((sub) => ({
+    parent: category.Category,
+    children: category.other_Category.map((sub) => ({
       id: sub.id,
       name: sub.name,
       slug: sub.slug,
-      count: sub._count.products,
+      count: sub._count.Product,
     })),
   }
 

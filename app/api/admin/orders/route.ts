@@ -7,7 +7,7 @@ import { serializeObject } from '@/lib/serialize'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           createdAt: 'desc',
         },
         include: {
-          user: {
+          User: {
             select: {
               id: true,
               email: true,
@@ -53,9 +53,9 @@ export async function GET(request: NextRequest) {
               lastName: true,
             },
           },
-          items: {
+          OrderItem: {
             include: {
-              product: {
+              Product: {
                 select: {
                   id: true,
                   title: true,
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
               },
             },
           },
-          address: true,
+          Address: true,
         },
       }),
       prisma.order.count({ where }),

@@ -18,7 +18,7 @@ const heroImageSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.MANAGER, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }

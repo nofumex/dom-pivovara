@@ -15,22 +15,22 @@ export async function GET(
         isActive: true,
       },
       include: {
-        categoryObj: {
+        Category: {
           include: {
-            parent: true,
+            Category: true,
           },
         },
-        variants: {
+        ProductVariant: {
           where: {
             isActive: true,
           },
         },
-        reviews: {
+        Review: {
           where: {
             isActive: true,
           },
           include: {
-            user: {
+            User: {
               select: {
                 firstName: true,
                 lastName: true,

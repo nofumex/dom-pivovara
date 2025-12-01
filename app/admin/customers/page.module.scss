@@ -1,79 +1,132 @@
 .page {
-  padding: 32px;
+  padding: 0;
+}
 
-  h1 {
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 32px;
-    color: var(--color-text);
-  }
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
 }
 
 .tableWrapper {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
 
-  th,
-  td {
-    padding: 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
+  thead {
+    background: #f8fafc;
   }
 
   th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--color-muted);
-    font-size: var(--font-small-size);
-    background: var(--color-bg);
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   td {
-    font-size: var(--font-base-size);
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
+    color: #1e293b;
+  }
+
+  tbody tr {
+    transition: background 0.2s;
+
+    &:hover {
+      background: #f8fafc;
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
   }
 
   a {
-    color: var(--color-link);
+    color: #f97316;
     text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
 
     &:hover {
+      color: #ea580c;
       text-decoration: underline;
     }
   }
 }
 
+.id {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.customer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.customerName {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.email {
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
 .status {
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-small-size);
-  font-weight: 600;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
 
-  &.active {
-    background: var(--color-success);
-    color: white;
-  }
+.viewLink {
+  color: #f97316;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s;
 
-  &.blocked {
-    background: var(--color-danger);
-    color: white;
+  &:hover {
+    color: #ea580c;
+    text-decoration: underline;
   }
 }
 
-.editLink {
-  color: var(--color-link);
-  text-decoration: none;
-  font-size: var(--font-small-size);
-
-  &:hover {
-    text-decoration: underline;
-  }
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
 }
 
 

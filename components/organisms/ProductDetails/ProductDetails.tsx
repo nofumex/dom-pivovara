@@ -77,23 +77,28 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     <div className={styles.details}>
       <div className={styles.images}>
         <div className={styles.mainImage}>
-          {product.images && product.images.length > 0 && product.images[selectedImage] ? (
-            <div
-              className={styles.image}
-              style={{
-                backgroundImage: `url(${product.images[selectedImage]})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            />
-          ) : (
-            <div
-              className={styles.image}
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              }}
-            />
-          )}
+          {(() => {
+            const hasRealImage = product.images && 
+              product.images.length > 0 && 
+              product.images[selectedImage] && 
+              !product.images[selectedImage].includes('placeholder') &&
+              !product.images[selectedImage].startsWith('/uploads/placeholder')
+            
+            const imageUrl = hasRealImage
+              ? product.images[selectedImage]
+              : `https://picsum.photos/seed/${product.id}/800/800`
+            
+            return (
+              <div
+                className={styles.image}
+                style={{
+                  backgroundImage: `url(${imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            )
+          })()}
         </div>
         {Array.isArray(product.images) && product.images.length > 1 && (
           <div className={styles.thumbnails}>
@@ -106,7 +111,14 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 <div
                   className={styles.thumbImage}
                   style={{
-                    backgroundImage: image ? `url(${image})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    backgroundImage: (() => {
+                      const hasRealImage = image && 
+                        !image.includes('placeholder') &&
+                        !image.startsWith('/uploads/placeholder')
+                      return hasRealImage
+                        ? `url(${image})`
+                        : `url(https://picsum.photos/seed/${product.id}-${index}/200/200)`
+                    })(),
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                   }}

@@ -89,8 +89,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Устанавливаем новые cookies
-    cookieStore.set('accessToken', newAccessToken, {
+    // Create response
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        accessToken: newAccessToken,
+      },
+    })
+
+    // Устанавливаем новые cookies в response
+    response.cookies.set('accessToken', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -98,7 +106,7 @@ export async function POST(request: NextRequest) {
       path: '/',
     })
 
-    cookieStore.set('refreshToken', newRefreshToken, {
+    response.cookies.set('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -106,12 +114,7 @@ export async function POST(request: NextRequest) {
       path: '/',
     })
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        accessToken: newAccessToken,
-      },
-    })
+    return response
   } catch (error) {
     console.error('Error refreshing token:', error)
     return NextResponse.json(

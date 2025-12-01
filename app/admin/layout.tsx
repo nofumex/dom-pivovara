@@ -3,6 +3,8 @@ import { getAuthUserFromCookies, verifyRefreshToken, validateSession } from '@/l
 import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import { AdminSidebar } from '@/components/admin/AdminSidebar/AdminSidebar'
+import { ScrollToTop } from '@/components/atoms/ScrollToTop/ScrollToTop'
+import { AuthSync } from '@/components/AuthSync/AuthSync'
 import styles from './layout.module.scss'
 
 // Полностью отдельный layout для админки - переопределяет root layout
@@ -64,10 +66,14 @@ export default async function AdminLayout({
   // Полностью отдельный layout без Header/Footer/Sidebar сайта
   return (
     <div className={styles.adminContainer}>
+      <AuthSync />
       <AdminSidebar user={user} />
       <div className={styles.adminContent}>
-        <main className={styles.main}>{children}</main>
+        <main id="admin-main" className={styles.main}>
+          {children}
+        </main>
       </div>
+      <ScrollToTop targetId="admin-main" />
     </div>
   )
 }

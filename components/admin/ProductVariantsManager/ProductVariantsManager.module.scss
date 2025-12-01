@@ -24,7 +24,7 @@
 
 .addButton {
   padding: 0.625rem 1.25rem;
-  background: #3b82f6;
+  background: #f97316;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -34,7 +34,7 @@
   transition: all 0.2s;
 
   &:hover {
-    background: #2563eb;
+    background: #ea580c;
     transform: translateY(-1px);
   }
 }
@@ -76,7 +76,7 @@
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: #f97316;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 }
@@ -202,7 +202,7 @@
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: #f97316;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
 }

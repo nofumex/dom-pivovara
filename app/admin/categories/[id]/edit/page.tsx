@@ -26,8 +26,8 @@ export default function EditCategoryPage() {
     parentId: '',
     isActive: true,
     sortOrder: 0,
-    metaTitle: '',
-    metaDescription: '',
+    seoTitle: '',
+    seoDesc: '',
   })
   const [categories, setCategories] = useState<Category[]>([])
 
@@ -35,15 +35,37 @@ export default function EditCategoryPage() {
     const fetchData = async () => {
       try {
         const [categoryResponse, categoriesResponse] = await Promise.all([
-          fetch(`/api/admin/categories/${categoryId}`),
-          fetch('/api/admin/categories'),
+          fetch(`/api/admin/categories/${categoryId}`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }),
+          fetch('/api/admin/categories', {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }),
         ])
+
+        if (!categoryResponse.ok) {
+          const errorText = await categoryResponse.text()
+          console.error('Failed to fetch category:', categoryResponse.status, errorText)
+          alert('Ошибка загрузки категории. Проверьте консоль для деталей.')
+          setLoadingData(false)
+          return
+        }
 
         const categoryData = await categoryResponse.json()
         const categoriesData = await categoriesResponse.json()
 
-        if (categoryData.success) {
+        console.log('Category data response:', categoryData)
+        console.log('Categories data response:', categoriesData)
+
+        if (categoryData.success && categoryData.data) {
           const cat = categoryData.data
+          console.log('Setting form data with category:', cat)
           setFormData({
             name: cat.name || '',
             slug: cat.slug || '',
@@ -51,12 +73,15 @@ export default function EditCategoryPage() {
             parentId: cat.parentId || '',
             isActive: cat.isActive ?? true,
             sortOrder: cat.sortOrder || 0,
-            metaTitle: cat.metaTitle || '',
-            metaDescription: cat.metaDescription || '',
+            seoTitle: cat.seoTitle || '',
+            seoDesc: cat.seoDesc || '',
           })
+        } else {
+          console.error('Category API error:', categoryData.error || categoryData.message, categoryData)
+          alert(`Ошибка загрузки категории: ${categoryData.error || categoryData.message || 'Неизвестная ошибка'}`)
         }
 
-        if (categoriesData.success) {
+        if (categoriesData.success && categoriesData.data) {
           setCategories(
             (categoriesData.data || []).filter((c: Category) => c.id !== categoryId)
           )
@@ -80,12 +105,13 @@ export default function EditCategoryPage() {
     try {
       const response = await fetch(`/api/admin/categories/${categoryId}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...formData,
-          parentId: formData.parentId || undefined,
+          parentId: formData.parentId || null,
         }),
       })
 
@@ -114,6 +140,7 @@ export default function EditCategoryPage() {
     try {
       const response = await fetch(`/api/admin/categories/${categoryId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       const data = await response.json()
@@ -202,21 +229,21 @@ export default function EditCategoryPage() {
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="metaTitle">Meta Title</label>
+          <label htmlFor="seoTitle">SEO Title</label>
           <Input
-            id="metaTitle"
-            value={formData.metaTitle}
-            onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+            id="seoTitle"
+            value={formData.seoTitle}
+            onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
           />
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="metaDescription">Meta Description</label>
+          <label htmlFor="seoDesc">SEO Description</label>
           <textarea
-            id="metaDescription"
-            value={formData.metaDescription}
+            id="seoDesc"
+            value={formData.seoDesc}
             onChange={(e) =>
-              setFormData({ ...formData, metaDescription: e.target.value })
+              setFormData({ ...formData, seoDesc: e.target.value })
             }
             className={styles.textarea}
             rows={3}

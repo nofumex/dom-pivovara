@@ -1,83 +1,109 @@
 .page {
-  padding: 32px;
+  padding: 0;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
 
   h1 {
-    font-size: 32px;
+    font-size: 2rem;
     font-weight: 700;
-    color: var(--color-text);
+    color: #1e293b;
+    margin: 0;
   }
 }
 
 .tableWrapper {
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
 
-  th,
-  td {
-    padding: 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
+  thead {
+    background: #f8fafc;
   }
 
   th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    color: var(--color-muted);
-    font-size: var(--font-small-size);
-    background: var(--color-bg);
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   td {
-    font-size: var(--font-base-size);
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
+    color: #1e293b;
+  }
+
+  tbody tr {
+    transition: background 0.2s;
+
+    &:hover {
+      background: #f8fafc;
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
   }
 
   a {
-    color: var(--color-link);
+    color: #f97316;
     text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
 
     &:hover {
+      color: #ea580c;
       text-decoration: underline;
     }
   }
 }
 
 .status {
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-small-size);
-  font-weight: 600;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
 
   &.active {
-    background: var(--color-success);
-    color: white;
+    background: #d1fae5;
+    color: #065f46;
   }
 
   &.inactive {
-    background: var(--color-muted);
-    color: white;
+    background: #fee2e2;
+    color: #991b1b;
   }
 }
 
 .editLink {
-  color: var(--color-link);
+  color: #f97316;
   text-decoration: none;
-  font-size: var(--font-small-size);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s;
 
   &:hover {
+    color: #ea580c;
     text-decoration: underline;
   }
 }

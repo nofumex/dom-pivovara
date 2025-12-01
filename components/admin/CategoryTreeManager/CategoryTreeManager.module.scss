@@ -25,7 +25,7 @@
 }
 
 .createButton {
-  background: #3b82f6;
+  background: #f97316;
   color: #fff;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
@@ -38,9 +38,9 @@
   gap: 0.5rem;
 
   &:hover {
-    background: #2563eb;
+    background: #ea580c;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
   }
 }
 
@@ -70,8 +70,8 @@
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
   }
 }
 
@@ -206,7 +206,7 @@
 
 .editButton {
   padding: 0.5rem 1rem;
-  background: #3b82f6;
+  background: #f97316;
   color: #fff;
   border-radius: 6px;
   text-decoration: none;
@@ -215,7 +215,7 @@
   transition: all 0.2s;
 
   &:hover {
-    background: #2563eb;
+    background: #ea580c;
   }
 }
 
@@ -248,7 +248,7 @@
 .createLink {
   display: inline-block;
   margin-top: 1rem;
-  color: #3b82f6;
+  color: #f97316;
   text-decoration: none;
   font-weight: 500;
 

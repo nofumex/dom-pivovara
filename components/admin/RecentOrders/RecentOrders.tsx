@@ -9,14 +9,14 @@ interface Order {
   total: any
   status: string
   createdAt: Date
-  user: {
+  User: {
     firstName: string
     lastName: string
     email: string
   }
-  items: Array<{
+  OrderItem: Array<{
     quantity: number
-    product: {
+    Product: {
       title: string
     }
   }>
@@ -82,9 +82,9 @@ export function RecentOrders({ orders }: RecentOrdersProps) {
                   <td>
                     <div className={styles.customer}>
                       <span className={styles.customerName}>
-                        {order.user.firstName} {order.user.lastName}
+                        {order.User.firstName} {order.User.lastName}
                       </span>
-                      <span className={styles.customerEmail}>{order.user.email}</span>
+                      <span className={styles.customerEmail}>{order.User.email}</span>
                     </div>
                   </td>
                   <td className={styles.amount}>

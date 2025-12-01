@@ -298,6 +298,4 @@ enum StockStatus {
 enum UserRole {
   CUSTOMER
   ADMIN
-  MANAGER
-  VIEWER
 }

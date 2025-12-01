@@ -17,7 +17,7 @@ export default async function CatalogPage() {
       isActive: true,
     },
     include: {
-      children: {
+      other_Category: {
         where: {
           isActive: true,
         },
@@ -27,7 +27,7 @@ export default async function CatalogPage() {
         include: {
           _count: {
             select: {
-              products: {
+              Product: {
                 where: {
                   isActive: true,
                   visibility: 'VISIBLE',
@@ -39,7 +39,7 @@ export default async function CatalogPage() {
       },
       _count: {
         select: {
-          products: {
+          Product: {
             where: {
               isActive: true,
               visibility: 'VISIBLE',
@@ -74,9 +74,9 @@ export default async function CatalogPage() {
                 <h2 className={styles.cardTitle}>{category.name}</h2>
                 </div>
               </Link>
-              {category.children.length > 0 && (
+              {category.other_Category.length > 0 && (
                 <div className={styles.subcategories}>
-                  {category.children.map((subcategory) => (
+                  {category.other_Category.map((subcategory) => (
                     <Link
                       key={subcategory.slug}
                       href={`/catalog/${category.slug}/${subcategory.slug}`}
@@ -85,9 +85,9 @@ export default async function CatalogPage() {
                       <span className={styles.subcategoryName}>
                         {subcategory.name}
                       </span>
-                      {subcategory._count.products > 0 && (
+                      {subcategory._count.Product > 0 && (
                         <span className={styles.subcategoryCount}>
-                          {subcategory._count.products}
+                          {subcategory._count.Product}
                         </span>
                       )}
                     </Link>

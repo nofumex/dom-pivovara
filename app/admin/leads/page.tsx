@@ -17,15 +17,38 @@ export default async function AdminLeadsPage() {
     take: 100,
   })
 
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, { bg: string; color: string }> = {
+      NEW: { bg: '#dbeafe15', color: '#1e40af' },
+      PROCESSED: { bg: '#d1fae515', color: '#065f46' },
+      CLOSED: { bg: '#f3f4f615', color: '#374151' },
+    }
+    return colors[status] || { bg: '#f3f4f615', color: '#374151' }
+  }
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      NEW: 'Новая',
+      PROCESSED: 'Обработана',
+      CLOSED: 'Закрыта',
+    }
+    return labels[status] || status
+  }
+
   return (
     <div className={styles.page}>
-      <h1>Заявки</h1>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Управление заявками</h1>
+          <p className={styles.subtitle}>Список всех заявок магазина</p>
+        </div>
+      </div>
+
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
               <th>ID</th>
-              <th>Тип</th>
               <th>Имя</th>
               <th>Телефон</th>
               <th>Email</th>
@@ -35,42 +58,52 @@ export default async function AdminLeadsPage() {
             </tr>
           </thead>
           <tbody>
-            {leads.map((lead) => (
-              <tr key={lead.id}>
-                <td>{lead.id.substring(0, 8)}...</td>
-                <td>{lead.type}</td>
-                <td>{lead.name || '-'}</td>
-                <td>{lead.phone || '-'}</td>
-                <td>{lead.email || '-'}</td>
-                <td className={styles.message}>
-                  {lead.message ? (
-                    lead.message.length > 50
-                      ? `${lead.message.substring(0, 50)}...`
-                      : lead.message
-                  ) : (
-                    '-'
-                  )}
+            {leads.length === 0 ? (
+              <tr>
+                <td colSpan={7} className={styles.empty}>
+                  Заявки не найдены
                 </td>
-                <td>
-                  <span
-                    className={`${styles.status} ${
-                      lead.status === 'NEW'
-                        ? styles.new
-                        : lead.status === 'PROCESSED'
-                        ? styles.processed
-                        : styles.closed
-                    }`}
-                  >
-                    {lead.status === 'NEW'
-                      ? 'Новая'
-                      : lead.status === 'PROCESSED'
-                      ? 'Обработана'
-                      : 'Закрыта'}
-                  </span>
-                </td>
-                <td>{new Date(lead.createdAt).toLocaleDateString('ru-RU')}</td>
               </tr>
-            ))}
+            ) : (
+              leads.map((lead) => {
+                const statusStyle = getStatusColor(lead.status)
+                return (
+                  <tr key={lead.id}>
+                    <td className={styles.id}>{lead.id.substring(0, 8)}...</td>
+                    <td>{lead.name || '-'}</td>
+                    <td>{lead.phone || '-'}</td>
+                    <td className={styles.email}>{lead.email || '-'}</td>
+                    <td className={styles.message}>
+                      {lead.message ? (
+                        lead.message.length > 50
+                          ? `${lead.message.substring(0, 50)}...`
+                          : lead.message
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className={styles.status}
+                        style={{
+                          background: statusStyle.bg,
+                          color: statusStyle.color,
+                        }}
+                      >
+                        {getStatusLabel(lead.status)}
+                      </span>
+                    </td>
+                    <td className={styles.date}>
+                      {new Date(lead.createdAt).toLocaleDateString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
       </div>

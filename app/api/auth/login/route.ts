@@ -1,15 +1,16 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { generateAccessToken, generateRefreshToken, createSession } from '@/lib/auth'
 import { loginSchema } from '@/lib/validations'
-import { successResponse, errorResponse } from '@/lib/response'
-import { cookies } from 'next/headers'
+import { errorResponse } from '@/lib/response'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Login API: Starting login request')
     const body = await request.json()
     const validated = loginSchema.parse(body)
+    console.log('Login API: Validated email:', validated.email)
 
     // Find user
     const user = await prisma.user.findUnique({
@@ -17,19 +18,24 @@ export async function POST(request: NextRequest) {
     })
 
     if (!user) {
+      console.log('Login API: User not found')
       return errorResponse('Неверный email или пароль', 401)
     }
 
     // Check if user is blocked
     if (user.isBlocked) {
+      console.log('Login API: User is blocked')
       return errorResponse('Аккаунт заблокирован', 403)
     }
 
     // Verify password
     const isValidPassword = await bcrypt.compare(validated.password, user.password)
     if (!isValidPassword) {
+      console.log('Login API: Invalid password')
       return errorResponse('Неверный email или пароль', 401)
     }
+
+    console.log('Login API: Password verified, generating tokens')
 
     // Generate tokens
     const accessToken = generateAccessToken({
@@ -42,27 +48,12 @@ export async function POST(request: NextRequest) {
 
     // Create session
     await createSession(user.id, refreshToken)
+    console.log('Login API: Session created')
 
-    // Set cookies
-    const cookieStore = await cookies()
-    cookieStore.set('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 15, // 15 minutes
-      path: '/',
-    })
-
-    cookieStore.set('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    })
-
-    return successResponse(
-      {
+    // Create response with data
+    const response = NextResponse.json({
+      success: true,
+      data: {
         user: {
           id: user.id,
           email: user.email,
@@ -75,8 +66,28 @@ export async function POST(request: NextRequest) {
         accessToken,
         refreshToken,
       },
-      'Вход выполнен успешно'
-    )
+      message: 'Вход выполнен успешно',
+    })
+
+    // Set cookies in response
+    response.cookies.set('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 15, // 15 minutes
+      path: '/',
+    })
+
+    response.cookies.set('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    })
+
+    console.log('Login API: Cookies set, returning response')
+    return response
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return errorResponse('Ошибка валидации', 400, error.errors[0]?.message)

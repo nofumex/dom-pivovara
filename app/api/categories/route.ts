@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         sortOrder: 'asc',
       },
       include: {
-        children: {
+        other_Category: {
           where: {
             isActive: true,
           },
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             include: {
               _count: {
                 select: {
-                  products: {
+                  Product: {
                     where: {
                       isActive: true,
                       visibility: 'VISIBLE',
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         ...(includeProducts && {
           _count: {
             select: {
-              products: {
+              Product: {
                 where: {
                   isActive: true,
                   visibility: 'VISIBLE',

@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }
@@ -18,15 +18,15 @@ export async function GET(
     const order = await prisma.order.findUnique({
       where: { id: params.id },
       include: {
-        user: true,
-        items: {
+        User: true,
+        OrderItem: {
           include: {
-            product: true,
-            variant: true,
+            Product: true,
+            ProductVariant: true,
           },
         },
-        address: true,
-        logs: {
+        Address: true,
+        OrderLog: {
           orderBy: {
             createdAt: 'desc',
           },
@@ -77,14 +77,14 @@ export async function PUT(
       where: { id: params.id },
       data: updateData,
       include: {
-        user: true,
-        items: {
+        User: true,
+        OrderItem: {
           include: {
-            product: true,
+            Product: true,
           },
         },
-        address: true,
-        logs: {
+        Address: true,
+        OrderLog: {
           orderBy: {
             createdAt: 'desc',
           },

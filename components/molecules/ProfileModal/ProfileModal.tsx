@@ -29,10 +29,31 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  // Reset error when modal opens/closes
+  // Reset error when modal opens/closes and check auth
   useEffect(() => {
     if (isOpen) {
       setError('')
+      // Проверяем авторизацию при открытии модального окна
+      const checkAuth = async () => {
+        try {
+          const response = await fetch('/api/auth/me', {
+            credentials: 'include',
+          })
+          const data = await response.json()
+          if (data.success && data.data) {
+            const { setAuth } = useAuthStore.getState()
+            // Обновляем состояние, если пользователь авторизован
+            const currentState = useAuthStore.getState()
+            if (!currentState.user || currentState.user.id !== data.data.id) {
+              // Обновляем только если состояние изменилось
+              setAuth(data.data, currentState.accessToken || '', currentState.refreshToken || '')
+            }
+          }
+        } catch (error) {
+          console.error('Error checking auth:', error)
+        }
+      }
+      checkAuth()
     }
   }, [isOpen])
 
@@ -61,18 +82,37 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           return
         }
         
-        if (data.success) {
+        if (data.success && data.data) {
           const { setAuth } = useAuthStore.getState()
-          setAuth(data.data.user, data.data.accessToken, data.data.refreshToken)
+          const userData = data.data.user || data.data
+          const accessToken = data.data.accessToken || data.accessToken
+          const refreshToken = data.data.refreshToken || data.refreshToken
           
-          // Set cookies
-          document.cookie = `accessToken=${data.data.accessToken}; path=/; max-age=900`
-          document.cookie = `refreshToken=${data.data.refreshToken}; path=/; max-age=604800`
+          setAuth(userData, accessToken, refreshToken)
+          
+          // Небольшая задержка для установки cookies
+          await new Promise(resolve => setTimeout(resolve, 200))
+          
+          // Проверяем авторизацию через /api/auth/me для синхронизации
+          try {
+            const meResponse = await fetch('/api/auth/me', {
+              credentials: 'include',
+            })
+            const meData = await meResponse.json()
+            if (meData.success && meData.data) {
+              setAuth(meData.data, accessToken, refreshToken)
+            }
+          } catch (meError) {
+            console.error('Error checking /api/auth/me:', meError)
+          }
           
           // Reset form
           setFormData({ email: '', phone: '', password: '', code: '' })
           setError('')
           onClose()
+          
+          // Обновляем страницу для синхронизации состояния
+          window.location.reload()
         } else {
           // Show specific error message from server
           let errorMessage = data.error || 'Ошибка при входе. Проверьте правильность введенных данных.'
@@ -186,7 +226,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <strong>Тестовые аккаунты:</strong>
           <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
             <li>Пользователь: <code>user@test.ru</code> / <code>user123</code></li>
-            <li>Админ: <code>admin@test.ru</code> / <code>admin123</code></li>
+            <li>Админ: <code>admin@dompivovara.ru</code> / <code>admin123</code></li>
           </ul>
         </div>
       )}

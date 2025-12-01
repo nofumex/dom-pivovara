@@ -18,7 +18,7 @@ interface Product {
   isActive: boolean
   visibility: string
   category: string
-  categoryObj: {
+  Category: {
     name: string
     slug: string
   }
@@ -53,6 +53,9 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     fetchCategories()
+  }, [])
+
+  useEffect(() => {
     fetchProducts()
   }, [filters, pagination.page])
 
@@ -82,18 +85,48 @@ export default function AdminProductsPage() {
         sortOrder: filters.sortOrder,
       })
 
-      const response = await fetch(`/api/admin/products?${params}`)
+      const response = await fetch(`/api/admin/products?${params}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Products API HTTP error:', response.status, response.statusText, errorText)
+        setProducts([])
+        setLoading(false)
+        return
+      }
       const data = await response.json()
+      console.log('Products API response:', data)
+      console.log('Products API response keys:', Object.keys(data))
+      console.log('Products API data.success:', data.success)
+      console.log('Products API data.data:', data.data)
+      console.log('Products API data.data type:', typeof data.data)
+      console.log('Products API data.data isArray:', Array.isArray(data.data))
+      
       if (data.success) {
-        setProducts(data.data)
-        setPagination((prev) => ({
-          ...prev,
-          total: data.pagination.total,
-          pages: data.pagination.pages,
-        }))
+        const productsData = Array.isArray(data.data) ? data.data : (data.data ? [data.data] : [])
+        console.log('Products loaded:', productsData.length, 'products')
+        setProducts(productsData)
+        if (data.pagination) {
+          setPagination((prev) => ({
+            ...prev,
+            total: data.pagination.total || 0,
+            pages: data.pagination.pages || 0,
+          }))
+        } else {
+          console.warn('Products API: No pagination data')
+        }
+      } else {
+        console.error('Products API error:', data.error || data.message || 'Unknown error', data)
+        alert(`Ошибка загрузки товаров: ${data.error || data.message || 'Неизвестная ошибка'}`)
+        setProducts([])
       }
     } catch (error) {
       console.error('Error fetching products:', error)
+      setProducts([])
     } finally {
       setLoading(false)
     }
@@ -206,7 +239,7 @@ export default function AdminProductsPage() {
                           {product.title}
                         </Link>
                       </td>
-                      <td>{product.categoryObj.name}</td>
+                      <td>{(product.Category || product.categoryObj)?.name || 'Без категории'}</td>
                       <td>
                         <span className={styles.categoryBadge}>
                           {product.category === 'ECONOMY' && 'Эконом'}

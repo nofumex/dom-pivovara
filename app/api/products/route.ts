@@ -33,16 +33,16 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) {
-      where.categoryObj = {
+      where.Category = {
         slug: category,
       }
     }
 
     if (subcategory) {
-      where.categoryObj = {
+      where.Category = {
         OR: [
           { slug: subcategory },
-          { children: { some: { slug: subcategory } } },
+          { other_Category: { some: { slug: subcategory } } },
         ],
       }
     }
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy,
         include: {
-          categoryObj: {
+          Category: {
             select: {
               id: true,
               name: true,

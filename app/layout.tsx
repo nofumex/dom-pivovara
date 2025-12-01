@@ -7,6 +7,7 @@ import { RightDock } from '@/components/organisms/RightDock/RightDock'
 import { CatalogSidebar } from '@/components/organisms/CatalogSidebar/CatalogSidebar'
 import { PageWrapper } from '@/components/organisms/PageWrapper/PageWrapper'
 import { ScrollToTop } from '@/components/atoms/ScrollToTop/ScrollToTop'
+import { AuthSync } from '@/components/AuthSync/AuthSync'
 import '@/styles/globals.scss'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -14,6 +15,10 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 export const metadata: Metadata = {
   title: 'ДомПивовар - Интернет-магазин товаров для пивоварения',
   description: 'Интернет-магазин товаров для пивоварения, самогоноварения и виноделия',
+  icons: {
+    icon: '/images/logoPivovar.png',
+    apple: '/images/logoPivovar.png',
+  },
 }
 
 export default async function RootLayout({
@@ -40,6 +45,7 @@ export default async function RootLayout({
   return (
     <html lang="ru">
       <body className={inter.className}>
+        <AuthSync />
         <Header />
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
           <CatalogSidebar />

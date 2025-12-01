@@ -18,11 +18,11 @@ export default async function AdminCustomerPage({
   const customer = await prisma.user.findUnique({
     where: { id: params.id },
     include: {
-      orders: {
+      Order: {
         take: 10,
         orderBy: { createdAt: 'desc' },
       },
-      addresses: true,
+      Address: true,
     },
   })
 

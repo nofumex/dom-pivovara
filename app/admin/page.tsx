@@ -28,17 +28,17 @@ export default async function AdminDashboard() {
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: {
+        User: {
           select: {
             firstName: true,
             lastName: true,
             email: true,
           },
         },
-        items: {
+        OrderItem: {
           take: 3,
           include: {
-            product: {
+            Product: {
               select: {
                 title: true,
               },

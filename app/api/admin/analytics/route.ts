@@ -6,7 +6,7 @@ import { successResponse, errorResponse } from '@/lib/response'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }

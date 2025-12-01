@@ -12,12 +12,12 @@ export default async function SubSubcategoryPage({
   const targetCategory = await prisma.category.findUnique({
     where: { slug: params.subsubslug },
     include: {
-      parent: {
+      Category: {
         select: {
           id: true,
           name: true,
           slug: true,
-          parent: {
+          Category: {
             select: {
               id: true,
               name: true,
@@ -26,7 +26,7 @@ export default async function SubSubcategoryPage({
           },
         },
       },
-      children: {
+      other_Category: {
         where: {
           isActive: true,
         },
@@ -36,7 +36,7 @@ export default async function SubSubcategoryPage({
         include: {
           _count: {
             select: {
-              products: {
+              Product: {
                 where: {
                   isActive: true,
                   visibility: 'VISIBLE',
@@ -57,12 +57,12 @@ export default async function SubSubcategoryPage({
     id: targetCategory.id,
     name: targetCategory.name,
     slug: targetCategory.slug,
-    parent: targetCategory.parent,
-    children: targetCategory.children.map((child) => ({
+    parent: targetCategory.Category,
+    children: targetCategory.other_Category.map((child) => ({
       id: child.id,
       name: child.name,
       slug: child.slug,
-      count: child._count.products,
+      count: child._count.Product,
     })),
   }
 

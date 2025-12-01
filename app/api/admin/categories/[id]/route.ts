@@ -10,28 +10,33 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    console.log('Category API: Starting request for ID:', params.id)
+    const user = await verifyRole(request, [UserRole.ADMIN])
+    console.log('Category API: User verified:', user ? 'yes' : 'no')
     if (!user) {
+      console.error('Category API: Unauthorized')
       return errorResponse('Не авторизован', 401)
     }
 
     const category = await prisma.category.findUnique({
       where: { id: params.id },
       include: {
-        parent: true,
-        children: true,
+        Category: true,
+        other_Category: true,
         _count: {
           select: {
-            products: true,
+            Product: true,
           },
         },
       },
     })
 
     if (!category) {
+      console.error('Category API: Category not found')
       return errorResponse('Категория не найдена', 404)
     }
 
+    console.log('Category API: Category found:', category.name)
     return successResponse(category)
   } catch (error) {
     console.error('Admin category GET error:', error)
@@ -74,8 +79,8 @@ export async function PUT(
       where: { id: params.id },
       data: validated,
       include: {
-        parent: true,
-        children: true,
+        Category: true,
+        other_Category: true,
       },
     })
 
@@ -104,8 +109,8 @@ export async function DELETE(
       include: {
         _count: {
           select: {
-            products: true,
-            children: true,
+            Product: true,
+            other_Category: true,
           },
         },
       },
@@ -115,11 +120,11 @@ export async function DELETE(
       return errorResponse('Категория не найдена', 404)
     }
 
-    if (category._count.products > 0) {
+    if (category._count.Product > 0) {
       return errorResponse('Нельзя удалить категорию с товарами', 400)
     }
 
-    if (category._count.children > 0) {
+    if (category._count.other_Category > 0) {
       return errorResponse('Нельзя удалить категорию с подкатегориями', 400)
     }
 

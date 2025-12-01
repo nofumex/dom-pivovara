@@ -23,7 +23,7 @@ export default async function SearchPage({
         visibility: 'VISIBLE',
       },
       include: {
-        categoryObj: true,
+        Category: true,
       },
       take: 20,
     })

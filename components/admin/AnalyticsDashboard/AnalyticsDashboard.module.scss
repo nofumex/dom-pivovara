@@ -45,9 +45,9 @@
   }
 
   &.active {
-    background: #3b82f6;
+    background: #f97316;
     color: #fff;
-    border-color: #3b82f6;
+    border-color: #f97316;
   }
 }
 
@@ -164,7 +164,7 @@
 
 .statusBarFill {
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(90deg, #f97316, #fb923c);
   border-radius: 4px;
   transition: width 0.3s ease;
 }

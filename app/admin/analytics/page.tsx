@@ -46,7 +46,7 @@ export default async function AdminAnalyticsPage() {
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: {
+        User: {
           select: {
             firstName: true,
             lastName: true,

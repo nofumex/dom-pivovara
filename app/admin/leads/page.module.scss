@@ -1,52 +1,82 @@
 .page {
-  padding: 32px;
+  padding: 0;
+}
+
+.header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
 }
 
 .tableWrapper {
-  margin-top: 24px;
-  overflow-x: auto;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--color-white);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
 
   thead {
-    background: var(--color-primary-600);
-    color: var(--color-white);
-
-    th {
-      padding: 16px;
-      text-align: left;
-      font-weight: 600;
-      font-size: var(--font-small-size);
-      text-transform: uppercase;
-    }
+    background: #f8fafc;
   }
 
-  tbody {
-    tr {
-      border-bottom: 1px solid var(--color-border);
+  th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+  }
 
-      &:hover {
-        background: var(--color-gray-50);
-      }
+  td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
+    color: #1e293b;
+  }
 
-      &:last-child {
-        border-bottom: none;
-      }
+  tbody tr {
+    transition: background 0.2s;
+
+    &:hover {
+      background: #f8fafc;
     }
 
-    td {
-      padding: 16px;
-      font-size: var(--font-base-size);
-      color: var(--color-text);
+    &:last-child td {
+      border-bottom: none;
     }
   }
+}
+
+.id {
+  font-family: monospace;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.email {
+  color: #64748b;
+  font-size: 0.8125rem;
 }
 
 .message {
@@ -54,26 +84,21 @@
 }
 
 .status {
-  padding: 4px 12px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-small-size);
-  font-weight: 600;
-  text-transform: uppercase;
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
 
-  &.new {
-    background: var(--color-accent-blue);
-    color: var(--color-white);
-  }
+.date {
+  color: #64748b;
+}
 
-  &.processed {
-    background: var(--color-accent-green);
-    color: var(--color-white);
-  }
-
-  &.closed {
-    background: var(--color-gray-300);
-    color: var(--color-text);
-  }
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #64748b;
 }
 
 

@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }
@@ -26,15 +26,15 @@ export async function GET(
         role: true,
         isBlocked: true,
         createdAt: true,
-        addresses: true,
-        orders: {
+        Address: true,
+        Order: {
           orderBy: {
             createdAt: 'desc',
           },
           include: {
-            items: {
+            OrderItem: {
               include: {
-                product: {
+                Product: {
                   select: {
                     id: true,
                     title: true,
@@ -70,7 +70,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { role, isBlocked } = body
+    const { firstName, lastName, email, phone, company, role, isBlocked } = body
 
     const customer = await prisma.user.findUnique({
       where: { id: params.id },
@@ -80,7 +80,22 @@ export async function PUT(
       return errorResponse('Клиент не найден', 404)
     }
 
+    // Check email uniqueness if changed
+    if (email && email !== customer.email) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      })
+      if (existingUser) {
+        return errorResponse('Пользователь с таким email уже существует', 409)
+      }
+    }
+
     const updateData: any = {}
+    if (firstName) updateData.firstName = firstName
+    if (lastName) updateData.lastName = lastName
+    if (email) updateData.email = email
+    if (phone !== undefined) updateData.phone = phone || null
+    if (company !== undefined) updateData.company = company || null
     if (role) updateData.role = role
     if (isBlocked !== undefined) updateData.isBlocked = isBlocked
 

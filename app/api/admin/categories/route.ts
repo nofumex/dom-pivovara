@@ -8,7 +8,7 @@ import { slugify } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }
@@ -18,15 +18,15 @@ export async function GET(request: NextRequest) {
         sortOrder: 'asc',
       },
       include: {
-        parent: true,
-        children: {
+        Category: true,
+        other_Category: {
           orderBy: {
             sortOrder: 'asc',
           },
         },
         _count: {
           select: {
-            products: true,
+            Product: true,
           },
         },
       },
@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
     const category = await prisma.category.create({
       data: validated,
       include: {
-        parent: true,
-        children: true,
+        Category: true,
+        other_Category: true,
       },
     })
 

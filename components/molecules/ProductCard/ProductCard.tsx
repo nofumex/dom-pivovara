@@ -63,9 +63,18 @@ export function ProductCard({ product }: ProductCardProps) {
     ? 'sale'
     : null
 
-  // Генерируем случайное изображение на основе id товара
-  const imageSeed = product.id.charCodeAt(0) + product.id.charCodeAt(product.id.length - 1)
-  const imageUrl = `https://picsum.photos/seed/${imageSeed}/400/400`
+  // Используем реальные изображения из product.images, если есть и это не placeholder, иначе fallback
+  const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null
+  const isPlaceholder = firstImage && (
+    firstImage.includes('placeholder') || 
+    firstImage.startsWith('/uploads/placeholder') ||
+    firstImage === '' ||
+    firstImage.trim() === ''
+  )
+  
+  const imageUrl = firstImage && !isPlaceholder
+    ? firstImage
+    : `https://picsum.photos/seed/${product.id}/400/400`
 
   return (
     <Link href={`/product/${product.slug}`} className={styles.card}>
@@ -75,6 +84,8 @@ export function ProductCard({ product }: ProductCardProps) {
           className={styles.image}
           style={{
             backgroundImage: `url(${imageUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
           }}
         />
       </div>

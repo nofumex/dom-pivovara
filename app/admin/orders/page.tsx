@@ -12,7 +12,7 @@ interface Order {
   total: any
   status: string
   createdAt: Date
-  user: {
+  User: {
     firstName: string
     lastName: string
     email: string
@@ -51,15 +51,32 @@ export default function AdminOrdersPage() {
         sortOrder: filters.sortOrder,
       })
 
-      const response = await fetch(`/api/admin/orders?${params}`)
+      const response = await fetch(`/api/admin/orders?${params}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Orders API HTTP error:', response.status, response.statusText, errorText)
+        setOrders([])
+        setLoading(false)
+        return
+      }
       const data = await response.json()
       if (data.success) {
-        setOrders(data.data)
-        setPagination((prev) => ({
-          ...prev,
-          total: data.pagination.total,
-          pages: data.pagination.pages,
-        }))
+        setOrders(data.data || [])
+        if (data.pagination) {
+          setPagination((prev) => ({
+            ...prev,
+            total: data.pagination.total || 0,
+            pages: data.pagination.pages || 0,
+          }))
+        }
+      } else {
+        console.error('Orders API error:', data.error || data.message)
+        setOrders([])
       }
     } catch (error) {
       console.error('Error fetching orders:', error)
@@ -75,7 +92,7 @@ export default function AdminOrdersPage() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      NEW: '#3b82f6',
+      NEW: '#f97316',
       PROCESSING: '#f59e0b',
       SHIPPED: '#8b5cf6',
       DELIVERED: '#10b981',
@@ -175,11 +192,11 @@ export default function AdminOrdersPage() {
                 <td>
                         <div className={styles.customer}>
                           <span className={styles.customerName}>
-                  {order.user.firstName} {order.user.lastName}
+                  {order.User.firstName} {order.User.lastName}
                           </span>
                         </div>
                       </td>
-                      <td className={styles.email}>{order.user.email}</td>
+                      <td className={styles.email}>{order.User.email}</td>
                       <td className={styles.amount}>
                         {new Intl.NumberFormat('ru-RU').format(Number(order.total))} ₽
                 </td>

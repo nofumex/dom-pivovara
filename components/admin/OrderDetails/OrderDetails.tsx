@@ -82,9 +82,9 @@ export function OrderDetails({ order }: OrderDetailsProps) {
               </tr>
             </thead>
             <tbody>
-              {order.items.map((item: any) => (
+              {(order.OrderItem || order.items || []).map((item: any) => (
                 <tr key={item.id}>
-                  <td>{item.product.title}</td>
+                  <td>{(item.Product || item.product)?.title || 'Товар'}</td>
                   <td>{item.quantity}</td>
                   <td>{new Intl.NumberFormat('ru-RU').format(Number(item.price))} ₽</td>
                   <td>
@@ -138,11 +138,11 @@ export function OrderDetails({ order }: OrderDetailsProps) {
           </div>
         </div>
 
-        {order.logs && order.logs.length > 0 && (
+        {(order.OrderLog || order.logs) && (order.OrderLog || order.logs).length > 0 && (
           <div className={styles.section}>
             <h2>История изменений</h2>
             <div className={styles.logs}>
-              {order.logs.map((log: any) => (
+              {(order.OrderLog || order.logs || []).map((log: any) => (
                 <div key={log.id} className={styles.log}>
                   <span className={styles.logDate}>
                     {new Date(log.createdAt).toLocaleString('ru-RU')}

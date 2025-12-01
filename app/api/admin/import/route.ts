@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
+import { randomUUID } from 'crypto'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
@@ -250,6 +251,7 @@ export async function POST(request: NextRequest) {
 
           const product = await prisma.product.create({
             data: {
+              id: randomUUID(),
               sku: productData.sku,
               title: productData.title,
               slug: productData.slug,
@@ -262,7 +264,6 @@ export async function POST(request: NextRequest) {
               weight: productData.weight?.toString(),
               dimensions: productData.dimensions,
               material: productData.material,
-              category: productData.category || 'ECONOMY',
               tags: productData.tags || [],
               images: productData.images || [],
               isActive: productData.isActive ?? true,
@@ -274,6 +275,7 @@ export async function POST(request: NextRequest) {
               seoDesc: productData.seoDesc,
               metaTitle: productData.metaTitle,
               metaDesc: productData.metaDesc,
+              updatedAt: new Date(),
             },
           })
 

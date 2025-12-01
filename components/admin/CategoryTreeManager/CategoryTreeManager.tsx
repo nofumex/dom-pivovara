@@ -14,23 +14,23 @@ interface Category {
   parentId: string | null
   isActive: boolean
   sortOrder: number
-  parent: {
+  Category: {
     id: string
     name: string
     slug: string
   } | null
-  children: Array<{
+  other_Category: Array<{
     id: string
     name: string
     slug: string
     sortOrder: number
     isActive: boolean
     _count: {
-      products: number
+      Product: number
     }
   }>
   _count: {
-    products: number
+    Product: number
   }
 }
 
@@ -55,13 +55,13 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
   }
 
   // Build tree structure
-  const buildTree = (cats: Category[]): Category[] => {
-    const categoryMap = new Map<string, Category>()
-    const rootCategories: Category[] = []
+  const buildTree = (cats: Category[]): any[] => {
+    const categoryMap = new Map<string, any>()
+    const rootCategories: any[] = []
 
-    // First pass: create map
+    // First pass: create map with children array
     cats.forEach((cat) => {
-      categoryMap.set(cat.id, { ...cat, children: [] })
+      categoryMap.set(cat.id, { ...cat, children: cat.other_Category || [] })
     })
 
     // Second pass: build tree
@@ -70,6 +70,7 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
       if (cat.parentId) {
         const parent = categoryMap.get(cat.parentId)
         if (parent) {
+          if (!parent.children) parent.children = []
           parent.children.push(category)
         } else {
           rootCategories.push(category)
@@ -92,10 +93,12 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
 
   const categoryTree = buildTree(filteredCategories)
 
-  const renderCategory = (category: Category, level: number = 0) => {
-    const hasChildren = category.children.length > 0
+  const renderCategory = (category: any, level: number = 0) => {
+    const hasChildren = (category.children && category.children.length > 0) || (category.other_Category && category.other_Category.length > 0)
     const isExpanded = expandedCategories.has(category.id)
     const indent = level * 24
+    const productCount = category._count?.Product || category._count?.products || 0
+    const canDelete = !hasChildren && productCount === 0
 
     return (
       <div key={category.id} className={styles.categoryItem}>
@@ -120,7 +123,7 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
             </div>
             <div className={styles.categoryMeta}>
               <span className={styles.productCount}>
-                {category._count.products} товаров
+                {productCount} товаров
               </span>
               <span
                 className={`${styles.status} ${
@@ -138,7 +141,7 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
             >
               Редактировать
             </Link>
-            {category.children.length === 0 && (
+            {canDelete && (
               <button
                 className={styles.deleteButton}
                 onClick={async () => {

@@ -12,14 +12,14 @@ export default async function AdminCategoriesPage() {
 
   const categories = await prisma.category.findMany({
     include: {
-      parent: {
+      Category: {
         select: {
           id: true,
           name: true,
           slug: true,
         },
       },
-      children: {
+      other_Category: {
         select: {
           id: true,
           name: true,
@@ -27,12 +27,12 @@ export default async function AdminCategoriesPage() {
           sortOrder: true,
           isActive: true,
           _count: {
-            select: { products: true },
+            select: { Product: true },
           },
         },
       },
       _count: {
-        select: { products: true },
+        select: { Product: true },
       },
     },
     orderBy: {

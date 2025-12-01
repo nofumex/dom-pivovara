@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
       return errorResponse('Не авторизован', 401)
     }
@@ -19,11 +19,11 @@ export async function GET(
     const product = await prisma.product.findUnique({
       where: { slug: params.slug },
       include: {
-        categoryObj: true,
-        variants: true,
-        reviews: {
+        Category: true,
+        ProductVariant: true,
+        Review: {
           include: {
-            user: {
+            User: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -89,7 +89,8 @@ export async function PUT(
       }
     }
 
-    const updateData: any = { ...validated }
+    const { category, ...rest } = validated
+    const updateData: any = { ...rest }
     if (validated.price !== undefined) {
       updateData.price = validated.price.toString()
     }
@@ -104,8 +105,8 @@ export async function PUT(
       where: { slug: params.slug },
       data: updateData,
       include: {
-        categoryObj: true,
-        variants: true,
+        Category: true,
+        ProductVariant: true,
       },
     })
 

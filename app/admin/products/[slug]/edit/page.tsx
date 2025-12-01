@@ -17,10 +17,10 @@ export default async function EditProductPage({
 
   const product = await prisma.product.findUnique({
     where: { slug: params.slug },
-    include: {
-      categoryObj: true,
-      variants: true,
-    },
+      include: {
+        Category: true,
+        ProductVariant: true,
+      },
   })
 
   if (!product) {

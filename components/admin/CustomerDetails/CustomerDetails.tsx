@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/atoms/Button/Button'
+import { Input } from '@/components/atoms/Input/Input'
 import { Select } from '@/components/atoms/Select/Select'
 import styles from './CustomerDetails.module.scss'
 
@@ -12,8 +13,15 @@ interface CustomerDetailsProps {
 
 export function CustomerDetails({ customer }: CustomerDetailsProps) {
   const router = useRouter()
-  const [role, setRole] = useState(customer.role)
-  const [isBlocked, setIsBlocked] = useState(customer.isBlocked)
+  const [formData, setFormData] = useState({
+    firstName: customer.firstName || '',
+    lastName: customer.lastName || '',
+    email: customer.email || '',
+    phone: customer.phone || '',
+    company: customer.company || '',
+    role: customer.role,
+    isBlocked: customer.isBlocked,
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleUpdate = async () => {
@@ -23,10 +31,7 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          role,
-          isBlocked,
-        }),
+        body: JSON.stringify(formData),
       })
 
       const data = await response.json()
@@ -52,50 +57,91 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
 
       <div className={styles.sections}>
         <div className={styles.section}>
-          <h2>Личная информация</h2>
-          <div className={styles.info}>
-            <p>
-              <strong>Email:</strong> {customer.email}
-            </p>
-            <p>
-              <strong>Телефон:</strong> {customer.phone || '-'}
-            </p>
-            {customer.company && (
-              <p>
-                <strong>Компания:</strong> {customer.company}
-              </p>
-            )}
-            <p>
-              <strong>Дата регистрации:</strong>{' '}
-              {new Date(customer.createdAt).toLocaleDateString('ru-RU')}
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.section}>
-          <h2>Управление</h2>
+          <h2>Редактирование пользователя</h2>
           <div className={styles.form}>
-            <Select label="Роль" value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="CUSTOMER">Клиент</option>
-              <option value="ADMIN">Администратор</option>
-            </Select>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={isBlocked}
-                onChange={(e) => setIsBlocked(e.target.checked)}
+            <div className={styles.field}>
+              <Input
+                label="Имя *"
+                type="text"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                required
               />
-              <span>Заблокирован</span>
-            </label>
-            <Button variant="primary" onClick={handleUpdate} disabled={isSubmitting}>
-              {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
-            </Button>
+            </div>
+            <div className={styles.field}>
+              <Input
+                label="Фамилия *"
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <Input
+                label="Email *"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className={styles.field}>
+              <Input
+                label="Телефон"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
+            <div className={styles.field}>
+              <Input
+                label="Компания"
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+              />
+            </div>
+            <div className={styles.field}>
+              <Select
+                label="Роль *"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+              >
+                <option value="CUSTOMER">Клиент</option>
+                <option value="ADMIN">Администратор</option>
+              </Select>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={formData.isBlocked}
+                  onChange={(e) => setFormData({ ...formData, isBlocked: e.target.checked })}
+                />
+                <span>Заблокирован</span>
+              </label>
+            </div>
+            <div className={styles.field}>
+              <p className={styles.info}>
+                <strong>Дата регистрации:</strong>{' '}
+                {new Date(customer.createdAt).toLocaleDateString('ru-RU')}
+              </p>
+            </div>
+            <div className={styles.actions}>
+              <Button variant="primary" onClick={handleUpdate} disabled={isSubmitting}>
+                {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
+              </Button>
+              <Button variant="secondary" onClick={() => router.back()}>
+                Отмена
+              </Button>
+            </div>
           </div>
         </div>
 
-        {customer.orders && customer.orders.length > 0 && (
+        {(customer.Order || customer.orders) && (customer.Order || customer.orders).length > 0 && (
           <div className={styles.section}>
-            <h2>Заказы ({customer.orders.length})</h2>
+            <h2>Заказы ({(customer.Order || customer.orders).length})</h2>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -106,7 +152,7 @@ export function CustomerDetails({ customer }: CustomerDetailsProps) {
                 </tr>
               </thead>
               <tbody>
-                {customer.orders.map((order: any) => (
+                {(customer.Order || customer.orders || []).map((order: any) => (
                   <tr key={order.id}>
                     <td>{order.orderNumber}</td>
                     <td>

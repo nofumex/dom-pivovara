@@ -16,7 +16,7 @@ interface EditProductFormProps {
 export function EditProductForm({ product, categories }: EditProductFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [variants, setVariants] = useState(product.variants || [])
+  const [variants, setVariants] = useState(product.ProductVariant || product.variants || [])
   const [images, setImages] = useState<string[]>(product.images || [])
   const [formData, setFormData] = useState({
     title: product.title || '',
@@ -153,14 +153,23 @@ export function EditProductForm({ product, categories }: EditProductFormProps) {
           <Button
             type="button"
             variant="danger"
+            className={styles.deleteButton}
             onClick={handleDelete}
           >
             Удалить
           </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting}
+            form="edit-product-form"
+          >
+            {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
+          </Button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
+      <form id="edit-product-form" onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.formGrid}>
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Основная информация</h2>
@@ -297,16 +306,20 @@ export function EditProductForm({ product, categories }: EditProductFormProps) {
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Изображения</h2>
             <div className={styles.imageUpload}>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || [])
-                  files.forEach((file) => handleImageUpload(file))
-                }}
-                className={styles.fileInput}
-              />
+              <label className={styles.uploadButton}>
+                <span className={styles.uploadIcon}>⬆</span>
+                <span>Загрузить изображения</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || [])
+                    files.forEach((file) => handleImageUpload(file))
+                  }}
+                  className={styles.fileInput}
+                />
+              </label>
               <div className={styles.imagesList}>
                 {images.map((url, index) => (
                   <div key={index} className={styles.imageItem}>
@@ -443,18 +456,7 @@ export function EditProductForm({ product, categories }: EditProductFormProps) {
           }}
         />
 
-        <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Сохранение...' : 'Сохранить изменения'}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.back()}
-          >
-            Отмена
-          </Button>
-        </div>
+        {/* Нижний блок действий убран — все ключевые кнопки находятся в sticky‑хедере */}
       </form>
     </div>
   )

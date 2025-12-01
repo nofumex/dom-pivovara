@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
+import { randomUUID } from 'crypto'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { paginatedResponse, errorResponse, successResponse } from '@/lib/response'
@@ -9,8 +10,11 @@ import { serializeObject } from '@/lib/serialize'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyRole(request, [UserRole.ADMIN, UserRole.VIEWER])
+    console.log('Products API: Starting request')
+    const user = await verifyRole(request, [UserRole.ADMIN])
+    console.log('Products API: User verified:', user ? 'yes' : 'no')
     if (!user) {
+      console.error('Products API: Unauthorized')
       return errorResponse('Не авторизован', 401)
     }
 
@@ -57,6 +61,7 @@ export async function GET(request: NextRequest) {
       orderBy.createdAt = sortOrder
     }
 
+    console.log('Products API: Fetching products with where:', JSON.stringify(where))
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -64,7 +69,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy,
         include: {
-          categoryObj: {
+          Category: {
             select: {
               id: true,
               name: true,
@@ -76,9 +81,16 @@ export async function GET(request: NextRequest) {
       prisma.product.count({ where }),
     ])
 
+    console.log('Products API: Found products:', products.length, 'Total:', total)
+    if (products.length === 0) {
+      console.log('Products API: No products found with filters:', where)
+    }
     // Сериализуем Decimal поля перед отправкой
     const serializedProducts = serializeObject(products)
-    return paginatedResponse(serializedProducts, page, limit, total)
+    console.log('Products API: Serialized products:', serializedProducts.length)
+    const response = paginatedResponse(serializedProducts, page, limit, total)
+    console.log('Products API: Response status will be:', response.status)
+    return response
   } catch (error) {
     console.error('Admin products GET error:', error)
     return errorResponse('Ошибка при получении товаров', 500)
@@ -94,6 +106,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validated = createProductSchema.parse(body)
+    const { category, ...productData } = validated
 
     // Check if SKU exists
     const existingSku = await prisma.product.findUnique({
@@ -114,13 +127,15 @@ export async function POST(request: NextRequest) {
     // Create product
     const product = await prisma.product.create({
       data: {
-        ...validated,
+        id: randomUUID(),
+        ...productData,
         price: validated.price.toString(),
         oldPrice: validated.oldPrice?.toString(),
         weight: validated.weight?.toString(),
+        updatedAt: new Date(),
       },
       include: {
-        categoryObj: true,
+        Category: true,
       },
     })
 

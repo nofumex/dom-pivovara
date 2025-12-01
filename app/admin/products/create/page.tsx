@@ -109,7 +109,16 @@ export default function CreateProductPage() {
           price: parseFloat(formData.price),
           oldPrice: formData.oldPrice ? parseFloat(formData.oldPrice) : undefined,
           stock: parseInt(formData.stock),
-          minOrder: parseInt(formData.minOrder),
+          minOrder: parseInt(formData.minOrder || '1'),
+          // Простейшая логика статуса склада по количеству
+          stockStatus:
+            parseInt(formData.stock) > 50
+              ? 'MANY'
+              : parseInt(formData.stock) > 20
+              ? 'ENOUGH'
+              : parseInt(formData.stock) > 0
+              ? 'FEW'
+              : 'NONE',
           weight: formData.weight ? parseFloat(formData.weight) : undefined,
           tags: tagsArray,
           images,
@@ -135,16 +144,26 @@ export default function CreateProductPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Создать товар</h1>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => router.back()}
-        >
-          Отмена
-        </Button>
+        <div className={styles.headerActions}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.back()}
+          >
+            Отмена
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting}
+            form="create-product-form"
+          >
+            {isSubmitting ? 'Создание...' : 'Создать товар'}
+          </Button>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
+      <form id="create-product-form" onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.formGrid}>
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Основная информация</h2>
@@ -281,16 +300,20 @@ export default function CreateProductPage() {
           <div className={styles.formSection}>
             <h2 className={styles.sectionTitle}>Изображения</h2>
             <div className={styles.imageUpload}>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || [])
-                  files.forEach((file) => handleImageUpload(file))
-                }}
-                className={styles.fileInput}
-              />
+              <label className={styles.uploadButton}>
+                <span className={styles.uploadIcon}>⬆</span>
+                <span>Загрузить изображения</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || [])
+                    files.forEach((file) => handleImageUpload(file))
+                  }}
+                  className={styles.fileInput}
+                />
+              </label>
               <div className={styles.imagesList}>
                 {images.map((url, index) => (
                   <div key={index} className={styles.imageItem}>
@@ -389,18 +412,7 @@ export default function CreateProductPage() {
           onVariantsChange={setVariants}
         />
 
-        <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Создание...' : 'Создать товар'}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.back()}
-          >
-            Отмена
-          </Button>
-        </div>
+        {/* Нижний блок действий не нужен — ключевые кнопки в sticky‑хедере */}
       </form>
     </div>
   )

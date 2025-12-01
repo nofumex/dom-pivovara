@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { ProductDetails } from '@/components/organisms/ProductDetails/ProductDetails'
 import { ProductDetailsTabs } from '@/components/organisms/ProductDetailsTabs/ProductDetailsTabs'
+import { ProductViewTracker } from '@/components/organisms/ProductDetails/ProductViewTracker'
 
 export default async function ProductPage({
   params,
@@ -16,18 +17,18 @@ export default async function ProductPage({
       visibility: 'VISIBLE',
     },
     include: {
-      categoryObj: {
+      Category: {
         include: {
-          parent: true,
+          Category: true,
         },
       },
-      variants: {
+      ProductVariant: {
         where: { isActive: true },
       },
-      reviews: {
+      Review: {
         where: { isActive: true },
         include: {
-          user: {
+          User: {
             select: {
               firstName: true,
               lastName: true,
@@ -55,15 +56,15 @@ export default async function ProductPage({
     images: product.images || [],
     stock: product.stock || 0,
     stockStatus: product.isInStock ? (product.stock > 10 ? 'MANY' : product.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE',
-    reviews: product.reviews.map((review) => ({
+    reviews: product.Review.map((review) => ({
       id: review.id,
       rating: review.rating,
       title: review.title,
       content: review.content,
       createdAt: review.createdAt.toISOString(),
       user: {
-        firstName: review.user.firstName,
-        lastName: review.user.lastName,
+        firstName: review.User.firstName,
+        lastName: review.User.lastName,
       },
     })),
     description: product.description || '',
@@ -77,13 +78,14 @@ export default async function ProductPage({
   const breadcrumbs = [
     { label: 'Главная', href: '/' },
     { label: 'Каталог', href: '/catalog' },
-    { label: product.categoryObj.parent?.name || product.categoryObj.name, href: `/catalog/${product.categoryObj.parent?.slug || product.categoryObj.slug}` },
-    { label: product.categoryObj.name, href: `/catalog/${product.categoryObj.slug}` },
+    { label: product.Category.Category?.name || product.Category.name, href: `/catalog/${product.Category.Category?.slug || product.Category.slug}` },
+    { label: product.Category.name, href: `/catalog/${product.Category.slug}` },
     { label: product.title, href: `/product/${product.slug}` },
   ]
 
   return (
     <main>
+      <ProductViewTracker productId={product.id} />
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
         <ProductDetails product={productWithBadges} />

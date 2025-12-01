@@ -1,21 +1,84 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { CallbackModal } from '@/components/molecules/CallbackModal/CallbackModal'
+import { useRecentlyViewedStore } from '@/store/recently-viewed-store'
 import styles from './Footer.module.scss'
 
 export function Footer() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
+  const [recentProducts, setRecentProducts] = useState<any[]>([])
+  const recentIds = useRecentlyViewedStore((state) => state.getRecent(6))
+
+  useEffect(() => {
+    const loadRecentProducts = async () => {
+      if (recentIds.length === 0) {
+        setRecentProducts([])
+        return
+      }
+
+      try {
+        const response = await fetch('/api/products/by-ids', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ids: recentIds }),
+        })
+
+        const data = await response.json()
+        if (data.success && data.data) {
+          setRecentProducts(data.data)
+        }
+      } catch (error) {
+        console.error('Error loading recent products:', error)
+        setRecentProducts([])
+      }
+    }
+
+    loadRecentProducts()
+  }, [recentIds.join(',')]) // Обновляем при изменении списка ID
+
+  // Всегда показываем 6 слотов
+  const slots = Array.from({ length: 6 }, (_, i) => {
+    return recentProducts[i] || null
+  })
 
   return (
     <>
     <footer className={styles.footer}>
-      <div className={styles.partners}>
+      <div className={styles.recentlyViewed}>
         <div className="container">
-          <div className={styles.partnersGrid}>
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className={styles.partnerLogo}></div>
+          <h2 className={styles.recentlyViewedTitle}>Вы недавно смотрели</h2>
+          <div className={styles.recentlyViewedGrid}>
+            {slots.map((product, index) => (
+              <div key={product?.id || `empty-${index}`} className={styles.recentProductSlot}>
+                {product ? (
+                  <Link href={`/product/${product.slug}`} className={styles.productLink}>
+                    <div
+                      className={styles.productImagePlaceholder}
+                      style={{
+                        backgroundImage: (() => {
+                          // Проверяем, есть ли реальное изображение
+                          const hasRealImage = product.images && 
+                            product.images.length > 0 && 
+                            product.images[0] && 
+                            !product.images[0].includes('placeholder')
+                          
+                          if (hasRealImage) {
+                            return `url(${product.images[0]})`
+                          }
+                          // Используем picsum.photos как fallback
+                          return `url(https://picsum.photos/seed/${product.id}/400/400)`
+                        })(),
+                      }}
+                    />
+                  </Link>
+                ) : (
+                  <div className={styles.emptySlot}></div>
+                )}
+              </div>
             ))}
           </div>
         </div>

@@ -20,7 +20,13 @@ export default async function AdminCustomersPage() {
 
   return (
     <div className={styles.page}>
-      <h1>Клиенты</h1>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Управление клиентами</h1>
+          <p className={styles.subtitle}>Список всех клиентов магазина</p>
+        </div>
+      </div>
+
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
@@ -35,34 +41,48 @@ export default async function AdminCustomersPage() {
             </tr>
           </thead>
           <tbody>
-            {customers.map((customer) => (
-              <tr key={customer.id}>
-                <td>{customer.id.substring(0, 8)}...</td>
-                <td>
-                  {customer.firstName} {customer.lastName}
-                </td>
-                <td>{customer.email}</td>
-                <td>{customer.phone || '-'}</td>
-                <td>{customer.role}</td>
-                <td>
-                  <span
-                    className={`${styles.status} ${
-                      customer.isBlocked ? styles.blocked : styles.active
-                    }`}
-                  >
-                    {customer.isBlocked ? 'Заблокирован' : 'Активен'}
-                  </span>
-                </td>
-                <td>
-                  <Link
-                    href={`/admin/customers/${customer.id}`}
-                    className={styles.editLink}
-                  >
-                    Просмотр
-                  </Link>
+            {customers.length === 0 ? (
+              <tr>
+                <td colSpan={7} className={styles.empty}>
+                  Клиенты не найдены
                 </td>
               </tr>
-            ))}
+            ) : (
+              customers.map((customer) => (
+                <tr key={customer.id}>
+                  <td className={styles.id}>{customer.id.substring(0, 8)}...</td>
+                  <td>
+                    <div className={styles.customer}>
+                      <span className={styles.customerName}>
+                        {customer.firstName} {customer.lastName}
+                      </span>
+                    </div>
+                  </td>
+                  <td className={styles.email}>{customer.email}</td>
+                  <td>{customer.phone || '-'}</td>
+                  <td>{customer.role}</td>
+                  <td>
+                    <span
+                      className={styles.status}
+                      style={{
+                        background: customer.isBlocked ? '#fee2e215' : '#d1fae515',
+                        color: customer.isBlocked ? '#991b1b' : '#065f46',
+                      }}
+                    >
+                      {customer.isBlocked ? 'Заблокирован' : 'Активен'}
+                    </span>
+                  </td>
+                  <td>
+                    <Link
+                      href={`/admin/customers/${customer.id}`}
+                      className={styles.viewLink}
+                    >
+                      Редактировать
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
