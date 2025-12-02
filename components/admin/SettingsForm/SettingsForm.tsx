@@ -5,6 +5,7 @@ import { Button } from '@/components/atoms/Button/Button'
 import { Input } from '@/components/atoms/Input/Input'
 import { Select } from '@/components/atoms/Select/Select'
 import { HeroSliderManager } from './HeroSliderManager'
+import { FeaturedCategoriesManager } from './FeaturedCategoriesManager'
 import styles from './SettingsForm.module.scss'
 
 interface SettingsFormProps {
@@ -245,6 +246,13 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
         >
           Слайдер
         </button>
+        <button
+          type="button"
+          className={activeTab === 'featuredCategories' ? styles.activeTab : ''}
+          onClick={() => setActiveTab('featuredCategories')}
+        >
+          Карточки категорий
+        </button>
       </div>
 
       <div className={styles.tabContent}>
@@ -481,6 +489,10 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
 
         {activeTab === 'slider' && (
           <HeroSliderManager />
+        )}
+
+        {activeTab === 'featuredCategories' && (
+          <FeaturedCategoriesManager />
         )}
       </div>
 

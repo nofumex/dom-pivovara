@@ -67,6 +67,18 @@ model HeroImage {
   updatedAt  DateTime
 }
 
+model FeaturedCategoryTile {
+  id        String   @id
+  title     String
+  url       String
+  imageUrl  String
+  size      String   @default("medium")
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
 model Lead {
   id        String     @id
   name      String

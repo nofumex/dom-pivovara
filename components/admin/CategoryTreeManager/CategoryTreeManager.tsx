@@ -56,31 +56,50 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
 
   // Build tree structure
   const buildTree = (cats: Category[]): any[] => {
+    // Remove duplicates by id (keep first occurrence)
+    const uniqueCats = Array.from(
+      new Map(cats.map((cat) => [cat.id, cat])).values()
+    )
+
     const categoryMap = new Map<string, any>()
     const rootCategories: any[] = []
 
-    // First pass: create map with children array
-    cats.forEach((cat) => {
-      categoryMap.set(cat.id, { ...cat, children: cat.other_Category || [] })
+    // First pass: create map with empty children array
+    uniqueCats.forEach((cat) => {
+      categoryMap.set(cat.id, { ...cat, children: [] })
     })
 
-    // Second pass: build tree
-    cats.forEach((cat) => {
+    // Second pass: build tree based on parentId only
+    uniqueCats.forEach((cat) => {
       const category = categoryMap.get(cat.id)!
-      if (cat.parentId) {
-        const parent = categoryMap.get(cat.parentId)
-        if (parent) {
-          if (!parent.children) parent.children = []
+
+      if (cat.parentId && categoryMap.has(cat.parentId)) {
+        const parent = categoryMap.get(cat.parentId)!
+        // Only add if not already in children
+        if (!parent.children.some((child: any) => child.id === cat.id)) {
           parent.children.push(category)
-        } else {
-          rootCategories.push(category)
         }
       } else {
-        rootCategories.push(category)
+        // No parent or parent not found, treat as root
+        if (!rootCategories.some((root) => root.id === cat.id)) {
+          rootCategories.push(category)
+        }
       }
     })
 
-    return rootCategories.sort((a, b) => a.sortOrder - b.sortOrder)
+    // Sort root categories
+    rootCategories.sort((a, b) => a.sortOrder - b.sortOrder)
+    
+    // Recursively sort children
+    const sortChildren = (category: any) => {
+      if (category.children && category.children.length > 0) {
+        category.children.sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+        category.children.forEach(sortChildren)
+      }
+    }
+    rootCategories.forEach(sortChildren)
+
+    return rootCategories
   }
 
   const filteredCategories = searchQuery
@@ -94,9 +113,11 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
   const categoryTree = buildTree(filteredCategories)
 
   const renderCategory = (category: any, level: number = 0) => {
-    const hasChildren = (category.children && category.children.length > 0) || (category.other_Category && category.other_Category.length > 0)
+    // Normalize children to always be an array to avoid runtime errors
+    const children = Array.isArray(category.children) ? category.children : []
+    const hasChildren = children.length > 0
     const isExpanded = expandedCategories.has(category.id)
-    const indent = level * 24
+    const indent = level * 12
     const productCount = category._count?.Product || category._count?.products || 0
     const canDelete = !hasChildren && productCount === 0
 
@@ -165,12 +186,7 @@ export function CategoryTreeManager({ categories: initialCategories }: CategoryT
         </div>
         {hasChildren && isExpanded && (
           <div className={styles.children}>
-            {category.children
-              .sort((a, b) => a.sortOrder - b.sortOrder)
-              .map((child) => {
-                const fullChild = categories.find((c) => c.id === child.id)
-                return fullChild ? renderCategory(fullChild, level + 1) : null
-              })}
+            {children.map((child) => renderCategory(child, level + 1))}
           </div>
         )}
       </div>

@@ -35,3 +35,4 @@ Write-Host "If the database doesn't exist, create it manually:" -ForegroundColor
 Write-Host "  psql -U postgres -c 'CREATE DATABASE dom_pivovara;'" -ForegroundColor Gray
 Write-Host ""
 
+

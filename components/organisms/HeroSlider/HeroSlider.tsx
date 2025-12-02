@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import styles from './HeroSlider.module.scss'
 
 interface HeroImage {
@@ -111,10 +112,18 @@ export function HeroSlider() {
           key={slide.id}
           className={`${styles.slide} ${index === currentSlide ? styles.active : ''}`}
         >
-          <div
-            className={styles.background}
-            style={{ backgroundImage: `url(${slide.url})` }}
-          />
+          <div className={styles.background}>
+            <Image
+              src={slide.url}
+              alt={slide.alt || ''}
+              fill
+              quality={100}
+              unoptimized
+              priority={index === currentSlide}
+              style={{ objectFit: 'cover' }}
+              sizes="100vw"
+            />
+          </div>
           <div className={styles.overlay}></div>
           {index === currentSlide && (
             <div className={styles.content}>
@@ -149,14 +158,18 @@ export function HeroSlider() {
             onClick={goToPrevious}
             aria-label="Предыдущий слайд"
           >
-            ‹
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
           <button
             className={styles.arrowRight}
             onClick={goToNext}
             aria-label="Следующий слайд"
           >
-            ›
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 18L15 12L9 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </button>
 
           <div className={styles.dots}>

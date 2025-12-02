@@ -78,3 +78,4 @@ If you still see connection errors after generating Prisma Client:
    npm run db:generate
    ```
 
+

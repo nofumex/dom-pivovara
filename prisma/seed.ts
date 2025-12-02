@@ -546,6 +546,90 @@ async function main() {
   }
   console.log(`✅ Создано слайдов: ${heroSlides.length}`)
 
+  // Создание карточек категорий на главной
+  console.log('📌 Создание карточек категорий на главной...')
+  const featuredCategoryTiles = [
+    {
+      title: 'Пивоварение',
+      url: '/catalog/pivovareniye',
+      imageUrl:
+        'https://images.unsplash.com/photo-1608270586621-1a7b4abc5e2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&h=450&q=80',
+      size: 'large' as const,
+      order: 0,
+      isActive: true,
+    },
+    {
+      title: 'Самогоноварение',
+      url: '/catalog/samogonovarenie',
+      imageUrl:
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&h=450&q=80',
+      size: 'medium' as const,
+      order: 1,
+      isActive: true,
+    },
+    {
+      title: 'Виноделие',
+      url: '/catalog/vinodeliye',
+      imageUrl:
+        'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&h=450&q=80',
+      size: 'medium' as const,
+      order: 2,
+      isActive: true,
+    },
+    {
+      title: 'Казаны, мангалы, печи, посуда',
+      url: '/catalog/kazany',
+      imageUrl:
+        'https://images.unsplash.com/photo-1615937691194-96f162cb37b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&h=450&q=80',
+      size: 'small' as const,
+      order: 3,
+      isActive: true,
+    },
+    {
+      title: 'Бондарные изделия',
+      url: '/catalog/bondarnye',
+      imageUrl:
+        'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&h=450&q=80',
+      size: 'large' as const,
+      order: 4,
+      isActive: true,
+    },
+    {
+      title: 'Сыроделие',
+      url: '/catalog/syrodelie',
+      imageUrl:
+        'https://images.unsplash.com/photo-1588167865096-71c620227d92?ixlib=rb-4.0.3&auto=format&fit=crop&w=900&h=450&q=80',
+      size: 'small' as const,
+      order: 5,
+      isActive: true,
+    },
+  ]
+
+  for (let i = 0; i < featuredCategoryTiles.length; i++) {
+    const tile = featuredCategoryTiles[i]
+    await prisma.featuredCategoryTile.upsert({
+      where: {
+        // одна карточка на порядок
+        id: `featured-tile-${i + 1}`,
+      },
+      update: {
+        title: tile.title,
+        url: tile.url,
+        imageUrl: tile.imageUrl,
+        size: tile.size,
+        order: tile.order,
+        isActive: tile.isActive,
+        updatedAt: new Date(),
+      },
+      create: {
+        id: `featured-tile-${i + 1}`,
+        ...tile,
+        updatedAt: new Date(),
+      },
+    })
+  }
+  console.log(`✅ Создано карточек категорий: ${featuredCategoryTiles.length}`)
+
   console.log('🎉 Заполнение базы данных завершено!')
   console.log(`📊 Статистика:`)
   console.log(`   - Категорий: ${categoryMap.size}`)
