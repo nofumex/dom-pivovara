@@ -114,27 +114,23 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
           </div>
         )}
 
-        {products.length > 0 && (
-          <>
-            <FiltersPanel
-              onFilterChange={(newFilters) => {
-                setFilters(newFilters)
-              }}
-            />
-            <SortBar
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSortChange={(newSortBy, newSortOrder) => {
-                setSortBy(newSortBy)
-                setSortOrder(newSortOrder)
-              }}
-            />
-            {loading ? (
-              <div className={styles.loading}>Загрузка...</div>
-            ) : (
-              <ProductGrid products={products} />
-            )}
-          </>
+        <FiltersPanel
+          onFilterChange={(newFilters) => {
+            setFilters(newFilters)
+          }}
+        />
+        <SortBar
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={(newSortBy, newSortOrder) => {
+            setSortBy(newSortBy)
+            setSortOrder(newSortOrder)
+          }}
+        />
+        {loading ? (
+          <div className={styles.loading}>Загрузка...</div>
+        ) : (
+          <ProductGrid products={products} />
         )}
       </div>
     </main>

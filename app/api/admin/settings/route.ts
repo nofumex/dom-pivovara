@@ -4,37 +4,74 @@ import { verifyRole } from '@/lib/auth'
 import { UserRole, SettingType } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
 import { z } from 'zod'
+import { randomUUID } from 'crypto'
 
-const settingsSchema = z.object({
-  contactEmail: z.string().email().optional(),
-  contactPhone: z.string().optional(),
-  address: z.string().optional(),
-  minOrderTotal: z.number().optional(),
-  socialLinks: z.array(z.object({
-    label: z.string(),
-    url: z.string().url(),
-  })).optional(),
-  extraContacts: z.array(z.object({
-    title: z.string(),
-    values: z.array(z.string()),
-  })).optional(),
-  emailSettings: z.object({
-    smtpHost: z.string(),
-    smtpPort: z.number(),
-    smtpUser: z.string(),
-    smtpPassword: z.string(),
-    fromEmail: z.string().email(),
-    companyEmail: z.string().email(),
-  }).optional(),
-  popupEnabled: z.boolean().optional(),
-  popupTemplate: z.string().optional(),
-  popupTitle: z.string().optional(),
-  popupText: z.string().optional(),
-  popupImageUrl: z.string().optional(),
-  popupButtonLabel: z.string().optional(),
-  popupButtonUrl: z.string().optional(),
-  popupDelaySeconds: z.number().optional(),
-}).passthrough()
+// Разрешаем в optional-полях как корректные значения, так и пустые строки,
+// а числовые значения приводим из строк (как это делает админская форма)
+const optionalEmailSchema = z
+  .string()
+  .email()
+  .or(z.literal(''))
+  .optional()
+
+const optionalNumberSchema = z.coerce.number().optional()
+
+const settingsSchema = z
+  .object({
+    contactEmail: optionalEmailSchema,
+    contactPhone: z.string().optional(),
+    contactPhone2: z.string().optional(),
+    address: z.string().optional(),
+    workingHours: z.string().optional(),
+
+    minOrderTotal: optionalNumberSchema,
+    freeDeliveryThreshold: optionalNumberSchema,
+    deliveryPrice: optionalNumberSchema,
+
+    socialLinks: z
+      .array(
+        z.object({
+          label: z.string(),
+          // В UI по умолчанию URL может быть пустым, поэтому разрешаем '' и валидный URL
+          url: z.string().url().or(z.literal('')),
+        }),
+      )
+      .optional(),
+
+    extraContacts: z
+      .array(
+        z.object({
+          title: z.string(),
+          values: z.array(z.string()),
+        }),
+      )
+      .optional(),
+
+    emailSettings: z
+      .object({
+        smtpHost: z.string().optional(),
+        smtpPort: optionalNumberSchema,
+        smtpUser: z.string().optional(),
+        smtpPassword: z.string().optional(),
+        fromEmail: optionalEmailSchema,
+        fromName: z.string().optional(),
+        companyEmail: optionalEmailSchema,
+      })
+      .optional(),
+
+    popupEnabled: z.coerce.boolean().optional(),
+    popupTemplate: z.string().optional(),
+    popupTitle: z.string().optional(),
+    popupText: z.string().optional(),
+    popupImageUrl: z.string().optional(),
+    popupButtonLabel: z.string().optional(),
+    popupButtonUrl: z.string().optional(),
+    popupDelaySeconds: optionalNumberSchema,
+
+    // Интервал слайдера главного баннера
+    heroSliderInterval: optionalNumberSchema,
+  })
+  .passthrough()
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,7 +140,7 @@ export async function PUT(request: NextRequest) {
       await prisma.setting.upsert({
         where: { key },
         update: { value: stringValue, type },
-        create: { key, value: stringValue, type },
+        create: { id: randomUUID(), key, value: stringValue, type },
       })
     }
 
@@ -116,6 +153,9 @@ export async function PUT(request: NextRequest) {
     return errorResponse('Ошибка при обновлении настроек', 500)
   }
 }
+
+
+
 
 
 

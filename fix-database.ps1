@@ -36,3 +36,6 @@ Write-Host "  psql -U postgres -c 'CREATE DATABASE dom_pivovara;'" -ForegroundCo
 Write-Host ""
 
 
+
+
+

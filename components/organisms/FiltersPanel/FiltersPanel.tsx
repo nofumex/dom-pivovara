@@ -69,23 +69,20 @@ export function FiltersPanel({ onFilterChange }: FiltersPanelProps) {
 
   return (
     <div className={styles.panel}>
-      <div className={styles.priceFilter}>
-        <label className={styles.label}>Цена</label>
-        <div className={styles.priceDisplay}>
-          {formatPrice(priceRange[0])} — {formatPrice(priceRange[1])}
-        </div>
+      <div className={styles.priceRow}>
+        <span className={styles.label}>Цена</span>
         <div className={styles.priceInputs}>
           <input
             type="number"
-            placeholder="От"
+            placeholder="40"
             value={priceMin}
             onChange={handlePriceMinChange}
             className={styles.priceInput}
           />
-          <span>—</span>
+          <span className={styles.dash}>—</span>
           <input
             type="number"
-            placeholder="До"
+            placeholder="7225"
             value={priceMax}
             onChange={handlePriceMaxChange}
             className={styles.priceInput}
@@ -103,22 +100,13 @@ export function FiltersPanel({ onFilterChange }: FiltersPanelProps) {
         </div>
       </div>
 
-      <div className={styles.checkboxes}>
-        <div className={styles.sectionTitle}>Наши предложения</div>
-        <Checkbox
-          label="По акции (1)"
-          checked={onSale}
-          onChange={(e) => setOnSale(e.target.checked)}
-        />
-      </div>
-
-      <div className={styles.actions}>
+      <div className={styles.actionsRow}>
         <Button variant="primary" size="sm" onClick={handleApply}>
           Показать
         </Button>
-        <Button variant="link" size="sm" onClick={handleReset}>
-          Сбросить
-        </Button>
+        <button type="button" className={styles.resetButton} onClick={handleReset}>
+          × Сбросить
+        </button>
       </div>
     </div>
   )

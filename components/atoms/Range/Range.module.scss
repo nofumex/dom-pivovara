@@ -1,12 +1,12 @@
 .range {
   position: relative;
   width: 100%;
-  padding: 20px 0;
+  height: 40px;
 }
 
 .track {
   position: absolute;
-  top: 50%;
+  top: 10px;
   left: 0;
   right: 0;
   height: 4px;
@@ -25,7 +25,7 @@
 
 .input {
   position: absolute;
-  top: 50%;
+  top: 10px;
   left: 0;
   right: 0;
   width: 100%;
@@ -37,6 +37,7 @@
   -webkit-appearance: none;
   transform: translateY(-50%);
   z-index: 3;
+  pointer-events: none;
 
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -49,6 +50,7 @@
     border: 2px solid var(--color-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s;
+    pointer-events: auto;
 
     &:hover {
       transform: scale(1.1);
@@ -65,6 +67,7 @@
     border: 2px solid var(--color-white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s;
+    pointer-events: auto;
 
     &:hover {
       transform: scale(1.1);
@@ -79,12 +82,18 @@
 }
 
 .labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: var(--font-small-size);
+  font-size: 13px;
   color: var(--color-text);
 }
+
+
+
 
 
 

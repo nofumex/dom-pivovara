@@ -103,8 +103,6 @@ export function HeroSlider() {
     return null
   }
 
-  const currentSlideData = slides[currentSlide]
-
   return (
     <div className={styles.slider}>
       {slides.map((slide, index) => (
@@ -125,29 +123,27 @@ export function HeroSlider() {
             />
           </div>
           <div className={styles.overlay}></div>
-          {index === currentSlide && (
-            <div className={styles.content}>
-              <div className={styles.left}>
-                <div className={styles.textContent}>
-                  {slide.title && (
-                    <div className={styles.title}>{slide.title}</div>
-                  )}
-                  {slide.text && (
-                    <div className={styles.description}>{slide.text}</div>
-                  )}
-                  {slide.buttonText && slide.buttonUrl && (
-                    <div className={styles.buttons}>
-                      <Link href={slide.buttonUrl}>
-                        <button className={styles.buttonPrimary}>
-                          {slide.buttonText}
-                        </button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
+          <div className={styles.content}>
+            <div className={styles.left}>
+              <div className={styles.textContent}>
+                {slide.title && (
+                  <div className={styles.title}>{slide.title}</div>
+                )}
+                {slide.text && (
+                  <div className={styles.description}>{slide.text}</div>
+                )}
+                {slide.buttonText && slide.buttonUrl && (
+                  <div className={styles.buttons}>
+                    <Link href={slide.buttonUrl}>
+                      <button className={styles.buttonPrimary}>
+                        {slide.buttonText}
+                      </button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       ))}
 

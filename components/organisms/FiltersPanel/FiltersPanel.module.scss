@@ -1,99 +1,87 @@
 .panel {
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  align-items: flex-end;
-  padding: 20px;
-  background: var(--color-white);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 22px 22px;
   margin-bottom: 24px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
 }
 
-.priceFilter {
+.priceRow {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 300px;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .label {
-  font-size: var(--font-small-size);
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
-}
-
-.priceDisplay {
-  font-size: var(--font-base-size);
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: center;
-  padding: 8px;
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
+  min-width: 60px;
 }
 
 .priceInputs {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .priceInput {
   width: 120px;
-  height: 40px;
-  padding: 8px 12px;
+  height: 30px;
+  padding: 4px 10px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-base-size);
+  border-radius: 0;
+  font-size: 13px;
+  line-height: 1;
 }
 
-.range {
-  width: 100%;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  outline: none;
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: var(--color-primary-600);
-    border-radius: 50%;
-    cursor: pointer;
-  }
+.priceRange {
+  flex: 1 1 auto;
+  min-width: 260px;
+  padding-top: 4px;
 }
 
-.checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 200px;
+.dash {
+  margin: 0 4px;
+  color: var(--color-muted);
 }
 
 .sectionTitle {
-  font-size: var(--font-small-size);
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 8px;
 }
 
-.actions {
+.actionsRow {
   display: flex;
+  align-items: center;
   gap: 12px;
-  margin-left: auto;
+  margin-top: 8px;
+}
+
+.resetButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-primary-600);
+  }
 }
 
 @media (max-width: 767px) {
-  .panel {
-    flex-direction: column;
-    align-items: stretch;
+  .priceInputs {
+    width: 100%;
   }
 
-  .actions {
-    margin-left: 0;
-    width: 100%;
+  .priceInput {
+    flex: 1;
   }
 }
 

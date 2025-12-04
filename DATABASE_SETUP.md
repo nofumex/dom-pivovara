@@ -144,3 +144,6 @@ psql -U postgres -d dom_pivovara
 ```
 
 
+
+
+

@@ -3,14 +3,16 @@
 import styles from './RatingStars.module.scss'
 
 interface RatingStarsProps {
-  rating: number
+  rating: number | null | undefined
   size?: 'sm' | 'md' | 'lg'
   showText?: boolean
 }
 
 export function RatingStars({ rating, size = 'md', showText = true }: RatingStarsProps) {
+  const safeRating = typeof rating === 'number' && !Number.isNaN(rating) ? rating : 0
+
   // Округляем до ближайшего 0.5
-  const roundedRating = Math.round(rating * 2) / 2
+  const roundedRating = Math.round(safeRating * 2) / 2
   const fullStars = Math.floor(roundedRating)
   const hasHalfStar = roundedRating % 1 !== 0
 
@@ -53,12 +55,15 @@ export function RatingStars({ rating, size = 'md', showText = true }: RatingStar
       </div>
       {showText && (
         <span className={styles.text}>
-          {rating > 0 ? rating.toFixed(1) : 'Нет отзывов'}
+          {safeRating > 0 ? safeRating.toFixed(1) : 'Нет отзывов'}
         </span>
       )}
     </div>
   )
 }
+
+
+
 
 
 
