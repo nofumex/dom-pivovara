@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
-import { paginatedResponse, errorResponse } from '@/lib/response'
+import { paginatedResponse, errorResponse, successResponse } from '@/lib/response'
 import { serializeObject } from '@/lib/serialize'
 
 export async function GET(request: NextRequest) {
@@ -77,6 +77,61 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Admin orders GET error:', error)
     return errorResponse('Ошибка при получении заказов', 500)
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await verifyRole(request, [UserRole.ADMIN])
+    if (!user) {
+      return errorResponse('Не авторизован', 401)
+    }
+
+    const body = await request.json()
+    const { ids } = body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return errorResponse('Не указаны ID заказов для удаления', 400)
+    }
+
+    // Проверяем существование заказов
+    const orders = await prisma.order.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (orders.length === 0) {
+      return errorResponse('Заказы не найдены', 404)
+    }
+
+    const foundIds = orders.map((o) => o.id)
+    const notFoundIds = ids.filter((id: string) => !foundIds.includes(id))
+
+    // Удаляем заказы (OrderItem и OrderLog удалятся каскадно благодаря onDelete: Cascade)
+    await prisma.order.deleteMany({
+      where: {
+        id: {
+          in: foundIds,
+        },
+      },
+    })
+
+    const result = {
+      deleted: foundIds.length,
+      notFound: notFoundIds.length,
+      notFoundIds,
+    }
+
+    return successResponse(result, `Удалено заказов: ${foundIds.length}`)
+  } catch (error) {
+    console.error('Admin orders DELETE error:', error)
+    return errorResponse('Ошибка при удалении заказов', 500)
   }
 }
 

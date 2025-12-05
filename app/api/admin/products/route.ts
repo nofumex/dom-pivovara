@@ -97,6 +97,95 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await verifyRole(request, [UserRole.ADMIN])
+    if (!user) {
+      return errorResponse('Не авторизован', 401)
+    }
+
+    const body = await request.json()
+    const { ids } = body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return errorResponse('Не указаны ID товаров для удаления', 400)
+    }
+
+    // Проверяем существование товаров
+    const products = await prisma.product.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      select: {
+        id: true,
+      },
+    })
+
+    if (products.length === 0) {
+      return errorResponse('Товары не найдены', 404)
+    }
+
+    const foundIds = products.map((p) => p.id)
+    const notFoundIds = ids.filter((id: string) => !foundIds.includes(id))
+
+    // Проверяем, какие товары используются в заказах
+    const productsInOrders = await prisma.orderItem.findMany({
+      where: {
+        productId: {
+          in: foundIds,
+        },
+      },
+      select: {
+        productId: true,
+      },
+      distinct: ['productId'],
+    })
+
+    const productsInOrdersIds = new Set(productsInOrders.map((item) => item.productId))
+    const deletableIds = foundIds.filter((id) => !productsInOrdersIds.has(id))
+    const nonDeletableIds = foundIds.filter((id) => productsInOrdersIds.has(id))
+
+    // Удаляем только те товары, которые не используются в заказах
+    let deletedCount = 0
+    if (deletableIds.length > 0) {
+      await prisma.product.deleteMany({
+        where: {
+          id: {
+            in: deletableIds,
+          },
+        },
+      })
+      deletedCount = deletableIds.length
+    }
+
+    const result = {
+      deleted: deletedCount,
+      notFound: notFoundIds.length,
+      notFoundIds,
+      cannotDelete: nonDeletableIds.length,
+      cannotDeleteIds: nonDeletableIds,
+      reason: nonDeletableIds.length > 0 
+        ? 'Некоторые товары используются в заказах и не могут быть удалены'
+        : undefined,
+    }
+
+    let message = `Удалено товаров: ${deletedCount}`
+    if (nonDeletableIds.length > 0) {
+      message += `. Не удалось удалить ${nonDeletableIds.length} товар(ов) - используются в заказах`
+    }
+    if (notFoundIds.length > 0) {
+      message += `. Не найдено товаров: ${notFoundIds.length}`
+    }
+
+    return successResponse(result, message)
+  } catch (error) {
+    console.error('Admin products DELETE error:', error)
+    return errorResponse('Ошибка при удалении товаров', 500)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await verifyRole(request, [UserRole.ADMIN])

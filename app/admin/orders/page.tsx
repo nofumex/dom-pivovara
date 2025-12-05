@@ -22,6 +22,8 @@ interface Order {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -90,6 +92,69 @@ export default function AdminOrdersPage() {
     setPagination({ ...pagination, page: 1 })
   }
 
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrders((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId)
+      } else {
+        newSet.add(orderId)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedOrders.size === orders.length) {
+      setSelectedOrders(new Set())
+    } else {
+      setSelectedOrders(new Set(orders.map((o) => o.id)))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedOrders.size === 0) {
+      alert('Выберите заказы для удаления')
+      return
+    }
+
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedOrders.size} заказ(ов)? Это действие нельзя отменить.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/admin/orders', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedOrders),
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        let message = `Успешно удалено заказов: ${data.data.deleted}`
+        if (data.data.notFound > 0) {
+          message += `\n\nНе найдено заказов: ${data.data.notFound}`
+        }
+        alert(message)
+        setSelectedOrders(new Set())
+        fetchOrders()
+      } else {
+        alert(`Ошибка при удалении: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Error deleting orders:', error)
+      alert('Ошибка при удалении заказов')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       NEW: '#f97316',
@@ -120,6 +185,21 @@ export default function AdminOrdersPage() {
           <p className={styles.subtitle}>Список всех заказов магазина</p>
         </div>
       </div>
+
+      {selectedOrders.size > 0 && (
+        <div className={styles.selectionBar}>
+          <div className={styles.selectionInfo}>
+            Выбрано заказов: <strong>{selectedOrders.size}</strong>
+          </div>
+          <button
+            onClick={handleDeleteSelected}
+            disabled={isDeleting}
+            className={styles.deleteButton}
+          >
+            {isDeleting ? 'Удаление...' : `Удалить выбранные (${selectedOrders.size})`}
+          </button>
+        </div>
+      )}
 
       <div className={styles.filters}>
         <div className={styles.search}>
@@ -159,28 +239,44 @@ export default function AdminOrdersPage() {
       ) : (
         <>
       <div className={styles.tableWrapper}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Номер</th>
-              <th>Клиент</th>
-              <th>Email</th>
-              <th>Сумма</th>
-              <th>Статус</th>
-              <th>Дата</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.checkboxColumn}>
+                    <input
+                      type="checkbox"
+                      checked={orders.length > 0 && selectedOrders.size === orders.length}
+                      onChange={handleSelectAll}
+                      className={styles.checkbox}
+                    />
+                  </th>
+                  <th>Номер</th>
+                  <th>Клиент</th>
+                  <th>Email</th>
+                  <th>Сумма</th>
+                  <th>Статус</th>
+                  <th>Дата</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className={styles.empty}>
+                    <td colSpan={8} className={styles.empty}>
                       Заказы не найдены
                     </td>
                   </tr>
                 ) : (
                   orders.map((order) => (
-              <tr key={order.id}>
+              <tr key={order.id} className={selectedOrders.has(order.id) ? styles.selected : ''}>
+                      <td className={styles.checkboxColumn}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrders.has(order.id)}
+                          onChange={() => handleSelectOrder(order.id)}
+                          className={styles.checkbox}
+                        />
+                      </td>
                 <td>
                         <Link
                           href={`/admin/orders/${order.id}`}

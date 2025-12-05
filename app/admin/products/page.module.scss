@@ -11,6 +11,12 @@
   border-bottom: 1px solid #e2e8f0;
 }
 
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 .title {
   font-size: 2rem;
   font-weight: 700;
@@ -215,8 +221,103 @@
   color: #64748b;
 }
 
+.selectionBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.selectionInfo {
+  font-size: 0.9375rem;
+  color: #92400e;
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+.deleteButton {
+  padding: 0.625rem 1.25rem;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.deleteAllButton {
+  padding: 0.625rem 1.25rem;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.checkboxColumn {
+  width: 48px;
+  text-align: center;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #f97316;
+}
+
+.table tbody tr.selected {
+  background: #fef3c7;
+  border-left: 3px solid #f97316;
+}
+
 @media (max-width: 1024px) {
   .filters {
     grid-template-columns: 1fr;
+  }
+
+  .selectionBar {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .deleteButton {
+    width: 100%;
   }
 }

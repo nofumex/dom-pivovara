@@ -61,6 +61,73 @@ export async function saveUploadedFile(
   }
 }
 
+/**
+ * Загружает изображение по URL и сохраняет локально
+ */
+export async function downloadImageFromUrl(
+  imageUrl: string,
+  subfolder: string = ''
+): Promise<UploadResult> {
+  try {
+    // Загружаем изображение
+    const response = await fetch(imageUrl)
+    if (!response.ok) {
+      throw new Error(`Не удалось загрузить изображение: ${response.statusText}`)
+    }
+
+    const contentType = response.headers.get('content-type') || ''
+    if (!contentType.startsWith('image/')) {
+      throw new Error('URL не указывает на изображение')
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer())
+
+    // Проверка размера
+    if (buffer.length > MAX_FILE_SIZE) {
+      throw new Error(`Изображение слишком большое. Максимальный размер: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
+    }
+
+    // Create upload directory if it doesn't exist
+    const uploadPath = subfolder ? join(UPLOAD_DIR, subfolder) : UPLOAD_DIR
+    if (!existsSync(uploadPath)) {
+      await mkdir(uploadPath, { recursive: true })
+    }
+
+    // Определяем расширение из URL или content-type
+    const urlExtension = imageUrl.split('.').pop()?.toLowerCase() || 'jpg'
+    const extension = ['jpg', 'jpeg', 'png', 'webp'].includes(urlExtension) 
+      ? urlExtension 
+      : contentType.includes('png') ? 'png' 
+      : contentType.includes('webp') ? 'webp'
+      : 'jpg'
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 9)
+    const filename = `${timestamp}-${random}.${extension}`
+    const filepath = join(uploadPath, filename)
+
+    // Optimize image with sharp
+    const optimizedBuffer = await sharp(buffer)
+      .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer()
+
+    // Save file
+    await writeFile(filepath, optimizedBuffer)
+
+    // Return URL
+    const url = subfolder ? `/uploads/${subfolder}/${filename}` : `/uploads/${filename}`
+
+    return {
+      url,
+      filename,
+    }
+  } catch (error: any) {
+    throw new Error(`Ошибка при загрузке изображения ${imageUrl}: ${error.message}`)
+  }
+}
+
 
 
 

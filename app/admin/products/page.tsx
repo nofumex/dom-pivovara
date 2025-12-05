@@ -36,6 +36,9 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeletingAll, setIsDeletingAll] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     category: '',
@@ -137,6 +140,117 @@ export default function AdminProductsPage() {
     setPagination({ ...pagination, page: 1 })
   }
 
+  const handleSelectProduct = (productId: string) => {
+    setSelectedProducts((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(productId)) {
+        newSet.delete(productId)
+      } else {
+        newSet.add(productId)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedProducts.size === products.length) {
+      setSelectedProducts(new Set())
+    } else {
+      setSelectedProducts(new Set(products.map((p) => p.id)))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedProducts.size === 0) {
+      alert('Выберите товары для удаления')
+      return
+    }
+
+    if (!confirm(`Вы уверены, что хотите удалить ${selectedProducts.size} товар(ов)?`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/admin/products', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedProducts),
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        let message = `Успешно удалено товаров: ${data.data.deleted}`
+        if (data.data.cannotDelete > 0) {
+          message += `\n\nНе удалось удалить ${data.data.cannotDelete} товар(ов), так как они используются в заказах.`
+        }
+        if (data.data.notFound > 0) {
+          message += `\n\nНе найдено товаров: ${data.data.notFound}`
+        }
+        alert(message)
+        setSelectedProducts(new Set())
+        fetchProducts()
+      } else {
+        alert(`Ошибка при удалении: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Error deleting products:', error)
+      alert('Ошибка при удалении товаров')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    // Первое подтверждение
+    if (!confirm('ВНИМАНИЕ! Вы собираетесь удалить ВСЕ товары из базы данных. Это действие нельзя отменить. Продолжить?')) {
+      return
+    }
+
+    // Второе подтверждение для безопасности
+    const confirmText = 'УДАЛИТЬ ВСЕ'
+    const userInput = prompt(`Для подтверждения введите "${confirmText}":`)
+    
+    if (userInput !== confirmText) {
+      alert('Операция отменена. Текст подтверждения не совпадает.')
+      return
+    }
+
+    setIsDeletingAll(true)
+    try {
+      const response = await fetch('/api/admin/products/delete-all', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        let message = data.message || `Успешно удалено товаров: ${data.data.deleted} из ${data.data.total}`
+        if (data.data.cannotDelete > 0) {
+          message += `\n\nНе удалось удалить ${data.data.cannotDelete} товар(ов), так как они используются в заказах.`
+        }
+        alert(message)
+        setSelectedProducts(new Set())
+        fetchProducts()
+      } else {
+        alert(`Ошибка при удалении: ${data.error}`)
+      }
+    } catch (error) {
+      console.error('Error deleting all products:', error)
+      alert('Ошибка при удалении всех товаров')
+    } finally {
+      setIsDeletingAll(false)
+    }
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -144,10 +258,35 @@ export default function AdminProductsPage() {
           <h1 className={styles.title}>Управление товарами</h1>
           <p className={styles.subtitle}>Список всех товаров магазина</p>
         </div>
-        <Link href="/admin/products/create">
-          <Button variant="primary">+ Создать товар</Button>
-        </Link>
+        <div className={styles.headerActions}>
+          <button
+            onClick={handleDeleteAll}
+            disabled={isDeletingAll || loading || pagination.total === 0}
+            className={styles.deleteAllButton}
+            title="Удалить все товары"
+          >
+            {isDeletingAll ? 'Удаление...' : '🗑️ Удалить все'}
+          </button>
+          <Link href="/admin/products/create">
+            <Button variant="primary">+ Создать товар</Button>
+          </Link>
+        </div>
       </div>
+
+      {selectedProducts.size > 0 && (
+        <div className={styles.selectionBar}>
+          <div className={styles.selectionInfo}>
+            Выбрано товаров: <strong>{selectedProducts.size}</strong>
+          </div>
+          <button
+            onClick={handleDeleteSelected}
+            disabled={isDeleting}
+            className={styles.deleteButton}
+          >
+            {isDeleting ? 'Удаление...' : `Удалить выбранные (${selectedProducts.size})`}
+          </button>
+        </div>
+      )}
 
       <div className={styles.filters}>
         <div className={styles.search}>
@@ -209,6 +348,14 @@ export default function AdminProductsPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th className={styles.checkboxColumn}>
+                    <input
+                      type="checkbox"
+                      checked={products.length > 0 && selectedProducts.size === products.length}
+                      onChange={handleSelectAll}
+                      className={styles.checkbox}
+                    />
+                  </th>
                   <th>SKU</th>
                   <th>Название</th>
                   <th>Категория</th>
@@ -223,13 +370,21 @@ export default function AdminProductsPage() {
               <tbody>
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className={styles.empty}>
+                    <td colSpan={10} className={styles.empty}>
                       Товары не найдены
                     </td>
                   </tr>
                 ) : (
                   products.map((product) => (
-                    <tr key={product.id}>
+                    <tr key={product.id} className={selectedProducts.has(product.id) ? styles.selected : ''}>
+                      <td className={styles.checkboxColumn}>
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.has(product.id)}
+                          onChange={() => handleSelectProduct(product.id)}
+                          className={styles.checkbox}
+                        />
+                      </td>
                       <td className={styles.sku}>{product.sku}</td>
                       <td>
                         <Link

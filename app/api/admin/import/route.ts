@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
+import { normalizeImportData, detectImportFormat } from '@/lib/import-transformers'
+import { downloadImageFromUrl } from '@/lib/upload'
 import JSZip from 'jszip'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -16,12 +18,15 @@ interface ImportOptions {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[IMPORT] Начало импорта')
   try {
     const user = await verifyRole(request, [UserRole.ADMIN])
     if (!user) {
+      console.log('[IMPORT] Ошибка авторизации')
       return errorResponse('Не авторизован', 401)
     }
 
+    console.log('[IMPORT] Пользователь авторизован, получение файла...')
     const formData = await request.formData()
     const file = formData.get('file') as File
     const optionsJson = formData.get('options') as string
@@ -34,19 +39,30 @@ export async function POST(request: NextRequest) {
       ? JSON.parse(optionsJson)
       : { skipExisting: false, updateExisting: true, importMedia: true }
 
-    let data: any
+    let rawData: any
+    const imageIdMap = new Map<string, string>() // Map<imageId, filePath>
 
     // Parse file
     if (file.name.endsWith('.zip')) {
       const buffer = Buffer.from(await file.arrayBuffer())
       const zip = await JSZip.loadAsync(buffer)
-      const dataFile = zip.file('data.json')
-
+      
+      // Ищем файл данных (может быть data.json или export_catalog.json)
+      let dataFile = zip.file('data.json') || zip.file('export_catalog.json')
+      
       if (!dataFile) {
-        return errorResponse('Файл data.json не найден в архиве', 400)
+        // Пробуем найти любой JSON файл
+        const jsonFiles = Object.keys(zip.files).filter(name => name.endsWith('.json'))
+        if (jsonFiles.length > 0) {
+          dataFile = zip.file(jsonFiles[0])
+        }
       }
 
-      data = JSON.parse(await dataFile.async('string'))
+      if (!dataFile) {
+        return errorResponse('JSON файл не найден в архиве', 400)
+      }
+
+      rawData = JSON.parse(await dataFile.async('string'))
 
       // Import media if needed
       if (options.importMedia && zip.folder('media')) {
@@ -63,6 +79,10 @@ export async function POST(request: NextRequest) {
                 const fileBuffer = await file.async('nodebuffer')
                 const filePath = join(uploadsDir, filename)
                 await writeFile(filePath, fileBuffer)
+                
+                // Создаем маппинг для изображений (если имя файла совпадает с ID)
+                const imageId = filename.replace(/\.[^/.]+$/, '') // убираем расширение
+                imageIdMap.set(imageId, `/uploads/${filename}`)
               } catch (error) {
                 console.error(`Error importing media file ${filename}:`, error)
               }
@@ -72,14 +92,21 @@ export async function POST(request: NextRequest) {
       }
     } else if (file.name.endsWith('.json')) {
       const text = await file.text()
-      data = JSON.parse(text)
+      rawData = JSON.parse(text)
     } else {
       return errorResponse('Неподдерживаемый формат файла', 400)
     }
 
-    // Validate schema
-    if (!data.schemaVersion || !data.products || !data.categories) {
-      return errorResponse('Неверный формат данных', 400)
+    // Определяем формат и нормализуем данные
+    const format = detectImportFormat(rawData)
+    const data = normalizeImportData(rawData, imageIdMap)
+
+    // Validate normalized schema
+    if (!data.products || !Array.isArray(data.products)) {
+      return errorResponse('Неверный формат данных: отсутствует массив products', 400)
+    }
+    if (!data.categories || !Array.isArray(data.categories)) {
+      return errorResponse('Неверный формат данных: отсутствует массив categories', 400)
     }
 
     const result = {
@@ -97,14 +124,74 @@ export async function POST(request: NextRequest) {
       },
     }
 
-    // Import categories
-    for (const categoryData of data.categories || []) {
+    // Изображения используются по ссылкам без загрузки
+    // Если нужно загружать изображения, раскомментируйте код ниже
+    /*
+    if (options.importMedia) {
+      console.log(`[IMPORT] Начало загрузки изображений для ${data.products.length} товаров`)
+      const uploadsDir = join(process.cwd(), 'public', 'uploads')
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true })
+      }
+
+      // Обрабатываем изображения товаров
+      let processedImages = 0
+      for (const product of data.products) {
+        if (product.images && Array.isArray(product.images)) {
+          const downloadedImages: string[] = []
+          for (const imageUrl of product.images) {
+            if (typeof imageUrl === 'string') {
+              // Если это URL (начинается с http:// или https://), загружаем изображение
+              if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                try {
+                  const downloadResult = await downloadImageFromUrl(imageUrl)
+                  downloadedImages.push(downloadResult.url)
+                  result.processed.media++
+                  processedImages++
+                  if (processedImages % 10 === 0) {
+                    console.log(`[IMPORT] Загружено изображений: ${processedImages}`)
+                  }
+                } catch (error: any) {
+                  result.warnings.push(`Не удалось загрузить изображение ${imageUrl}: ${error.message}`)
+                  // Оставляем оригинальный URL как fallback
+                  downloadedImages.push(imageUrl)
+                }
+              } else {
+                // Если это локальный путь, оставляем как есть
+                downloadedImages.push(imageUrl)
+              }
+            }
+          }
+          // Обновляем массив изображений товара
+          product.images = downloadedImages
+        }
+      }
+      console.log(`[IMPORT] Загрузка изображений завершена. Всего загружено: ${result.processed.media}`)
+    }
+    */
+    console.log(`[IMPORT] Изображения используются по ссылкам без загрузки`)
+
+    // Import categories (two-pass: first create all, then update parentId)
+    console.log(`[IMPORT] Начало импорта категорий (${data.categories.length} шт.)`)
+    const categorySlugToId = new Map<string, string>() // Map<slug, id>
+    
+    // Sort categories: first create root categories (without parentId), then children
+    const sortedCategories = [...(data.categories || [])].sort((a, b) => {
+      // Root categories first (no parentId)
+      if (!a.parentId && b.parentId) return -1
+      if (a.parentId && !b.parentId) return 1
+      return 0
+    })
+    
+    // First pass: create/update categories without parentId
+    for (const categoryData of sortedCategories) {
       try {
         const existing = await prisma.category.findUnique({
           where: { slug: categoryData.slug },
         })
 
         if (existing) {
+          categorySlugToId.set(categoryData.slug, existing.id)
           if (options.skipExisting) {
             result.skipped.categories.push(categoryData.slug)
             continue
@@ -120,24 +207,27 @@ export async function POST(request: NextRequest) {
                 sortOrder: categoryData.sortOrder ?? 0,
                 seoTitle: categoryData.seoTitle,
                 seoDesc: categoryData.seoDesc,
+                updatedAt: new Date(),
               },
             })
             result.processed.categories++
           }
         } else {
-          await prisma.category.create({
+          const newCategory = await prisma.category.create({
             data: {
+              id: randomUUID(),
               name: categoryData.name,
               slug: categoryData.slug,
               description: categoryData.description,
               image: categoryData.image,
-              parentId: categoryData.parentId,
               isActive: categoryData.isActive ?? true,
               sortOrder: categoryData.sortOrder ?? 0,
               seoTitle: categoryData.seoTitle,
               seoDesc: categoryData.seoDesc,
+              updatedAt: new Date(),
             },
           })
+          categorySlugToId.set(categoryData.slug, newCategory.id)
           result.processed.categories++
         }
       } catch (error: any) {
@@ -145,7 +235,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Second pass: update parentId relationships
+    for (const categoryData of data.categories || []) {
+      if (!categoryData.parentId) continue // Skip if no parent
+
+      try {
+        const categoryId = categorySlugToId.get(categoryData.slug)
+        const parentId = categorySlugToId.get(categoryData.parentId)
+
+        if (!categoryId) {
+          result.warnings.push(`Категория ${categoryData.slug} не найдена для обновления parentId`)
+          continue
+        }
+
+        if (!parentId) {
+          result.warnings.push(`Родительская категория ${categoryData.parentId} не найдена для ${categoryData.slug}`)
+          continue
+        }
+
+        await prisma.category.update({
+          where: { id: categoryId },
+          data: { parentId },
+        })
+      } catch (error: any) {
+        result.warnings.push(`Ошибка при обновлении parentId для категории ${categoryData.slug}: ${error.message}`)
+      }
+    }
+
     // Import products
+    console.log(`[IMPORT] Начало импорта товаров (${data.products.length} шт.)`)
     for (const productData of data.products || []) {
       try {
         const existing = await prisma.product.findUnique({
@@ -159,18 +277,32 @@ export async function POST(request: NextRequest) {
           }
           if (options.updateExisting) {
             // Find category
-            const category = await prisma.category.findFirst({
-              where: {
-                OR: [
-                  { slug: productData.categoryObj?.slug },
-                  { name: productData.categoryObj?.name },
-                ],
-              },
-            })
+            let category = null
+            if (productData.categoryObj?.slug) {
+              category = await prisma.category.findFirst({
+                where: {
+                  OR: [
+                    { slug: productData.categoryObj.slug },
+                    { name: productData.categoryObj.name },
+                  ],
+                },
+              })
+            }
 
             if (!category) {
-              result.errors.push(`Категория не найдена для товара ${productData.sku}`)
-              continue
+              // Пробуем найти любую категорию как fallback
+              const fallbackCategory = await prisma.category.findFirst({
+                orderBy: { createdAt: 'asc' },
+              })
+              
+              if (fallbackCategory) {
+                console.log(`[IMPORT] Товар ${productData.sku} (обновление): категория не найдена, используется fallback категория "${fallbackCategory.name}"`)
+                result.warnings.push(`Товар ${productData.sku}: категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, использована категория "${fallbackCategory.name}"`)
+                category = fallbackCategory
+              } else {
+                result.errors.push(`Категория не найдена для товара ${productData.sku} (искали: ${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}). Нет категорий в базе для fallback.`)
+                continue
+              }
             }
 
             await prisma.product.update({
@@ -182,12 +314,11 @@ export async function POST(request: NextRequest) {
                 content: productData.content,
                 price: productData.price.toString(),
                 oldPrice: productData.oldPrice?.toString(),
-                stock: productData.stock,
+                stock: typeof productData.stock === 'string' ? parseInt(productData.stock, 10) || 0 : (typeof productData.stock === 'number' ? productData.stock : 0),
                 minOrder: productData.minOrder ?? 1,
                 weight: productData.weight?.toString(),
                 dimensions: productData.dimensions,
                 material: productData.material,
-                category: productData.category || 'ECONOMY',
                 tags: productData.tags || [],
                 images: productData.images || [],
                 isActive: productData.isActive ?? true,
@@ -235,18 +366,32 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Find category
-          const category = await prisma.category.findFirst({
-            where: {
-              OR: [
-                { slug: productData.categoryObj?.slug },
-                { name: productData.categoryObj?.name },
-              ],
-            },
-          })
+          let category = null
+          if (productData.categoryObj?.slug) {
+            category = await prisma.category.findFirst({
+              where: {
+                OR: [
+                  { slug: productData.categoryObj.slug },
+                  { name: productData.categoryObj.name },
+                ],
+              },
+            })
+          }
 
           if (!category) {
-            result.errors.push(`Категория не найдена для товара ${productData.sku}`)
-            continue
+            // Пробуем найти любую категорию как fallback
+            const fallbackCategory = await prisma.category.findFirst({
+              orderBy: { createdAt: 'asc' },
+            })
+            
+            if (fallbackCategory) {
+              console.log(`[IMPORT] Товар ${productData.sku}: категория не найдена, используется fallback категория "${fallbackCategory.name}"`)
+              result.warnings.push(`Товар ${productData.sku}: категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, использована категория "${fallbackCategory.name}"`)
+              category = fallbackCategory
+            } else {
+              result.errors.push(`Категория не найдена для товара ${productData.sku} (искали: ${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}). Нет категорий в базе для fallback.`)
+              continue
+            }
           }
 
           const product = await prisma.product.create({
@@ -259,7 +404,7 @@ export async function POST(request: NextRequest) {
               content: productData.content,
               price: productData.price.toString(),
               oldPrice: productData.oldPrice?.toString(),
-              stock: productData.stock,
+              stock: typeof productData.stock === 'string' ? parseInt(productData.stock, 10) || 0 : (typeof productData.stock === 'number' ? productData.stock : 0),
               minOrder: productData.minOrder ?? 1,
               weight: productData.weight?.toString(),
               dimensions: productData.dimensions,
@@ -320,9 +465,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log(`[IMPORT] Импорт завершен успешно. Обработано: товаров=${result.processed.products}, категорий=${result.processed.categories}, медиа=${result.processed.media}`)
     return successResponse(result, 'Импорт завершен')
   } catch (error: any) {
-    console.error('Import error:', error)
+    console.error('[IMPORT] Ошибка при импорте:', error)
     return errorResponse(`Ошибка при импорте: ${error.message}`, 500)
   }
 }

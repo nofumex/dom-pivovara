@@ -77,6 +77,9 @@ Desktop.ini
 *.temp
 .cache/
 
+# ZIP archives
+*.zip
+
 # Build artifacts
 *.map
 *.min.js

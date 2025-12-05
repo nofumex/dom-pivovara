@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import styles from './ImportExportManager.module.scss'
+import { ImportReport } from './ImportReport'
 
 export function ImportExportManager() {
   const [exportFormat, setExportFormat] = useState<'zip' | 'json' | 'xlsx'>('zip')
@@ -82,12 +83,11 @@ export function ImportExportManager() {
         body: formData,
       })
       const data = await response.json()
-      setImportResult(data.data)
       if (data.success) {
-        alert('Импорт завершен успешно!')
-        window.location.reload()
+        setImportResult(data.data)
       } else {
         alert('Ошибка при импорте: ' + data.error)
+        setImportResult(null)
       }
     } catch (error) {
       alert('Ошибка при импорте')
@@ -99,6 +99,22 @@ export function ImportExportManager() {
 
   return (
     <div className={styles.container}>
+      {isImporting && (
+        <div className={styles.importOverlay}>
+          <div className={styles.importProgress}>
+            <div className={styles.progressSpinner}>
+              <div className={styles.spinner}></div>
+            </div>
+            <h3 className={styles.progressTitle}>Импорт данных</h3>
+            <p className={styles.progressText}>
+              Пожалуйста, подождите. Идет обработка файла...
+            </p>
+            <div className={styles.progressBar}>
+              <div className={styles.progressBarFill}></div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Импорт / Экспорт данных</h1>
@@ -160,15 +176,44 @@ export function ImportExportManager() {
             <p className={styles.description}>
               Импортируйте данные из ZIP архива или JSON файла
             </p>
-            <div className={styles.fileInput}>
-              <input
-                type="file"
-                accept=".zip,.json"
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                className={styles.fileInputField}
-              />
+            <div className={styles.fileUpload}>
+              <label className={styles.uploadButton}>
+                <svg className={styles.uploadIcon} width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12V6M9 6L6 9M9 6L12 9M3 15H15C15.5523 15 16 14.5523 16 14V4C16 3.44772 15.5523 3 15 3H3C2.44772 3 2 3.44772 2 4V14C2 14.5523 2.44772 15 3 15Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>{importFile ? 'Изменить файл' : 'Выбрать файл'}</span>
+                <input
+                  type="file"
+                  accept=".zip,.json"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  className={styles.fileInput}
+                  disabled={isImporting}
+                />
+              </label>
               {importFile && (
-                <p className={styles.fileName}>{importFile.name}</p>
+                <div className={styles.fileInfo}>
+                  <svg className={styles.fileIcon} width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 4H18.6667L24 9.33333V26.6667C24 27.3739 23.719 28.0522 23.219 28.5522C22.7189 29.0523 22.0406 29.3333 21.3333 29.3333H10.6667C9.95942 29.3333 9.28115 29.0523 8.78105 28.5522C8.28095 28.0522 8 27.3739 8 26.6667V5.33333C8 4.62609 8.28095 3.94781 8.78105 3.44772C9.28115 2.94762 9.95942 2.66667 10.6667 2.66667H8V4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18.6667 2.66667V9.33333H24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <div className={styles.fileDetails}>
+                    <div className={styles.fileName}>{importFile.name}</div>
+                    <div className={styles.fileSize}>
+                      {(importFile.size / 1024 / 1024).toFixed(2)} MB
+                    </div>
+                  </div>
+                  <button
+                    className={styles.removeFile}
+                    onClick={() => setImportFile(null)}
+                    disabled={isImporting}
+                    type="button"
+                    aria-label="Удалить файл"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
               )}
             </div>
             <div className={styles.importOptions}>
@@ -226,7 +271,23 @@ export function ImportExportManager() {
                 }`}
               >
                 <h3>Результат валидации:</h3>
-                <p>Валидность: {validationResult.valid ? '✓ Да' : '✗ Нет'}</p>
+                <p className={styles.validationStatus}>
+                  Валидность: {validationResult.valid ? (
+                    <span className={styles.validIcon}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13.3333 4L6 11.3333L2.66667 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Да
+                    </span>
+                  ) : (
+                    <span className={styles.invalidIcon}>
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Нет
+                    </span>
+                  )}
+                </p>
                 {validationResult.stats && (
                   <div>
                     <p>Товары: {validationResult.stats.products}</p>
@@ -246,26 +307,10 @@ export function ImportExportManager() {
               </div>
             )}
             {importResult && (
-              <div className={styles.result}>
-                <h3>Результат импорта:</h3>
-                {importResult.processed && (
-                  <div>
-                    <p>Обработано товаров: {importResult.processed.products}</p>
-                    <p>Обработано категорий: {importResult.processed.categories}</p>
-                    <p>Обработано медиа: {importResult.processed.media}</p>
-                  </div>
-                )}
-                {importResult.errors && importResult.errors.length > 0 && (
-                  <div>
-                    <strong>Ошибки:</strong>
-                    <ul>
-                      {importResult.errors.map((error: string, i: number) => (
-                        <li key={i}>{error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <ImportReport 
+                result={importResult} 
+                onClose={() => setImportResult(null)} 
+              />
             )}
           </div>
         </div>
