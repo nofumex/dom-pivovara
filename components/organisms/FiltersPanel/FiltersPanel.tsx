@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import React from 'react'
 import { Button } from '@/components/atoms/Button/Button'
 import { Checkbox } from '@/components/atoms/Checkbox/Checkbox'
 import { Range } from '@/components/atoms/Range/Range'
@@ -13,13 +14,21 @@ interface FiltersPanelProps {
     priceMax: number
     onSale: boolean
   }) => void
+  maxPrice?: number // Максимальная цена товаров на странице
 }
 
-export function FiltersPanel({ onFilterChange }: FiltersPanelProps) {
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
+export function FiltersPanel({ onFilterChange, maxPrice = 100000 }: FiltersPanelProps) {
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice])
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
   const [onSale, setOnSale] = useState(false)
+  
+  // Обновляем диапазон при изменении maxPrice
+  React.useEffect(() => {
+    if (maxPrice > 0) {
+      setPriceRange([0, maxPrice])
+    }
+  }, [maxPrice])
 
   const handlePriceRangeChange = (value: [number, number]) => {
     setPriceRange(value)
@@ -36,7 +45,7 @@ export function FiltersPanel({ onFilterChange }: FiltersPanelProps) {
   }
 
   const handlePriceMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 100000
+    const value = parseInt(e.target.value) || maxPrice
     setPriceMax(e.target.value)
     if (value >= priceRange[0]) {
       setPriceRange([priceRange[0], value])
@@ -54,14 +63,14 @@ export function FiltersPanel({ onFilterChange }: FiltersPanelProps) {
   }
 
   const handleReset = () => {
-    setPriceRange([0, 100000])
+    setPriceRange([0, maxPrice])
     setPriceMin('')
     setPriceMax('')
     setOnSale(false)
     if (onFilterChange) {
       onFilterChange({
         priceMin: 0,
-        priceMax: 100000,
+        priceMax: maxPrice,
         onSale: false,
       })
     }
@@ -91,10 +100,10 @@ export function FiltersPanel({ onFilterChange }: FiltersPanelProps) {
         <div className={styles.priceRange}>
           <Range
             min={0}
-            max={100000}
+            max={maxPrice}
             value={priceRange}
             onChange={handlePriceRangeChange}
-            step={100}
+            step={Math.max(1, Math.floor(maxPrice / 1000))}
             formatValue={(v) => formatPrice(v)}
           />
         </div>

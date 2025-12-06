@@ -82,17 +82,37 @@ export async function POST(request: NextRequest) {
 
     // Get products and calculate totals
     const productIds = validated.items.map((item) => item.productId)
-    const products = await prisma.product.findMany({
+    
+    // Сначала получаем все товары без фильтров, чтобы понять, какие именно не найдены
+    const allProducts = await prisma.product.findMany({
       where: {
         id: { in: productIds },
-        isActive: true,
-        isInStock: true,
       },
     })
 
-    if (products.length !== productIds.length) {
-      return errorResponse('Некоторые товары не найдены или недоступны', 400)
+    // Проверяем, все ли товары найдены
+    const foundProductIds = new Set(allProducts.map(p => p.id))
+    const missingProductIds = productIds.filter(id => !foundProductIds.has(id))
+    
+    if (missingProductIds.length > 0) {
+      return errorResponse(
+        `Товары с ID ${missingProductIds.join(', ')} не найдены в базе данных`,
+        400
+      )
     }
+
+    // Проверяем активность товаров (неактивные товары не должны быть в корзине, но проверяем на всякий случай)
+    const inactiveProducts = allProducts.filter(p => !p.isActive)
+    
+    if (inactiveProducts.length > 0) {
+      const inactiveTitles = inactiveProducts.map(p => p.title).join(', ')
+      console.warn(`Попытка заказать неактивные товары: ${inactiveTitles}`)
+      // Не блокируем заказ, но логируем предупреждение
+    }
+
+    // Проверяем наличие на складе (isInStock может быть false, но товар все равно может быть доступен)
+    // Проверяем только реальное количество на складе (stock)
+    const products = allProducts
 
     let subtotal = 0
     const orderItems = []
@@ -103,8 +123,9 @@ export async function POST(request: NextRequest) {
         return errorResponse(`Товар ${item.productId} не найден`, 400)
       }
 
+      // Проверяем только реальное количество на складе, а не флаг isInStock
       if (product.stock < item.quantity) {
-        return errorResponse(`Недостаточно товара ${product.title}`, 400)
+        return errorResponse(`Недостаточно товара "${product.title}" на складе. Доступно: ${product.stock}, запрошено: ${item.quantity}`, 400)
       }
 
       const price = parseFloat(product.price.toString())
@@ -122,8 +143,46 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const deliveryCost = validated.deliveryType === 'PICKUP' ? 0 : 500 // Пример стоимости доставки
-    const discount = 0 // Можно добавить логику промокодов
+    const deliveryCost = validated.deliveryType === 'PICKUP' ? 0 : 300
+    
+    // Применяем купон, если указан
+    let discount = 0
+    let couponId: string | undefined = undefined
+    if (validated.promoCode) {
+      const coupon = await prisma.coupon.findUnique({
+        where: { code: validated.promoCode.toUpperCase() },
+      })
+
+      if (coupon && coupon.isActive) {
+        const now = new Date()
+        const isValidDate = 
+          (!coupon.validFrom || now >= coupon.validFrom) &&
+          (!coupon.validUntil || now <= coupon.validUntil)
+        const isValidUsage = !coupon.usageLimit || coupon.usedCount < coupon.usageLimit
+        const isValidAmount = !coupon.minAmount || subtotal >= parseFloat(coupon.minAmount.toString())
+
+        if (isValidDate && isValidUsage && isValidAmount) {
+          if (coupon.type === 'PERCENTAGE') {
+            discount = (subtotal * parseFloat(coupon.value.toString())) / 100
+            if (coupon.maxDiscount) {
+              discount = Math.min(discount, parseFloat(coupon.maxDiscount.toString()))
+            }
+          } else if (coupon.type === 'FIXED') {
+            discount = parseFloat(coupon.value.toString())
+            discount = Math.min(discount, subtotal)
+          }
+          discount = Math.round(discount * 100) / 100
+          couponId = coupon.id
+
+          // Увеличиваем счетчик использований
+          await prisma.coupon.update({
+            where: { id: coupon.id },
+            data: { usedCount: { increment: 1 } },
+          })
+        }
+      }
+    }
+    
     const total = subtotal + deliveryCost - discount
 
     // Для неавторизованных пользователей создаем или находим гостевого пользователя
@@ -238,7 +297,9 @@ export async function POST(request: NextRequest) {
     return successResponse({ order, orderNumber: order.orderNumber }, 'Заказ создан успешно')
   } catch (error: any) {
     if (error.name === 'ZodError') {
-      return errorResponse('Ошибка валидации', 400, error.errors[0]?.message)
+      console.error('Validation error:', error.errors)
+      const errorMessage = error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ')
+      return errorResponse('Ошибка валидации', 400, errorMessage)
     }
     console.error('Orders POST error:', error)
     return errorResponse('Ошибка при создании заказа', 500)

@@ -87,11 +87,32 @@ export default function CartPage() {
                 {items.map((item) => (
                   <div key={item.id} className={styles.item}>
                     <div className={styles.itemImage}>
-                      {item.product.images && item.product.images.length > 0 ? (
-                        <img src={item.product.images[0]} alt={item.product.title} />
-                      ) : (
-                        <div className={styles.placeholderImage} />
-                      )}
+                      {item.product.images && 
+                       item.product.images.length > 0 && 
+                       item.product.images[0] && 
+                       !item.product.images[0].includes('placeholder') &&
+                       item.product.images[0].trim() !== '' ? (
+                        <img 
+                          src={item.product.images[0]} 
+                          alt={item.product.title}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const placeholder = target.parentElement?.querySelector(`.${styles.placeholderImage}`) as HTMLDivElement
+                            if (placeholder) placeholder.style.display = 'block'
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={styles.placeholderImage} 
+                        style={{ 
+                          display: (item.product.images && 
+                                   item.product.images.length > 0 && 
+                                   item.product.images[0] && 
+                                   !item.product.images[0].includes('placeholder') &&
+                                   item.product.images[0].trim() !== '') ? 'none' : 'block' 
+                        }} 
+                      />
                     </div>
                     <div className={styles.itemInfo}>
                       <h3 className={styles.itemTitle}>{item.product.title}</h3>
@@ -134,12 +155,14 @@ export default function CartPage() {
             </div>
 
             <div className={styles.actions}>
-              <Link href="/catalog">
-                <Button variant="outline">Продолжить покупки</Button>
-              </Link>
               <Button variant="primary" onClick={handleOrder}>
-                Полноценное оформление заказа
+                Оформить заказ
               </Button>
+            </div>
+            <div className={styles.continueShopping}>
+              <Link href="/catalog">
+                <span className={styles.continueLink}>Продолжить покупки</span>
+              </Link>
             </div>
           </div>
         )}

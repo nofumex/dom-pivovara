@@ -19,10 +19,39 @@ export default function ContactsPage() {
     email: '',
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement form submission
-    console.log('Form submitted:', formData)
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          phone: formData.phone || undefined,
+          email: formData.email || undefined,
+          message: formData.message,
+          source: 'contact',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        alert('Сообщение отправлено успешно!')
+        handleReset()
+      } else {
+        alert(data.error || 'Ошибка при отправке сообщения')
+      }
+    } catch (error) {
+      console.error('Error submitting contact form:', error)
+      alert('Ошибка при отправке сообщения')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleReset = () => {
@@ -153,8 +182,12 @@ export default function ContactsPage() {
               <p className={styles.requiredNote}>* обязательные поля</p>
 
               <div className={styles.formActions}>
-                <Button type="submit" variant="primary">Отправить</Button>
-                <Button type="button" variant="outline" onClick={handleReset}>Сбросить</Button>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Отправка...' : 'Отправить'}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
+                  Сбросить
+                </Button>
               </div>
             </form>
           </div>

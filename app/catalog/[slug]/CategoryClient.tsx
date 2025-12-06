@@ -23,13 +23,47 @@ interface CategoryClientProps {
 export function CategoryClient({ category, initialProducts }: CategoryClientProps) {
   const [products, setProducts] = useState(initialProducts)
   const [loading, setLoading] = useState(false)
+  
+  // Вычисляем максимальную цену из товаров на странице
+  const calculateMaxPrice = (productsList: any[]) => {
+    if (!productsList || productsList.length === 0) return 1000
+    const prices = productsList
+      .map((p) => parseFloat(p.price) || 0)
+      .filter((price) => price > 0)
+    return prices.length > 0 ? Math.max(...prices) : 1000
+  }
+  
+  // Вычисляем начальную максимальную цену
+  const initialMaxPrice = calculateMaxPrice(initialProducts)
+  const [maxPrice, setMaxPrice] = useState(initialMaxPrice)
+  
   const [filters, setFilters] = useState({
     priceMin: 0,
-    priceMax: 100000,
+    priceMax: initialMaxPrice,
     onSale: false,
   })
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  
+  // Обновляем максимальную цену при изменении списка товаров
+  useEffect(() => {
+    const newMaxPrice = calculateMaxPrice(products)
+    if (newMaxPrice > 0) {
+      setMaxPrice((prevMaxPrice) => {
+        if (newMaxPrice !== prevMaxPrice) {
+          // Обновляем фильтр, если текущий максимум больше новой максимальной цены
+          setFilters((prevFilters) => {
+            if (prevFilters.priceMax > newMaxPrice) {
+              return { ...prevFilters, priceMax: newMaxPrice }
+            }
+            return prevFilters
+          })
+          return newMaxPrice
+        }
+        return prevMaxPrice
+      })
+    }
+  }, [products])
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -46,7 +80,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         if (filters.priceMin > 0) {
           params.append('priceMin', filters.priceMin.toString())
         }
-        if (filters.priceMax < 100000) {
+        if (filters.priceMax < maxPrice) {
           params.append('priceMax', filters.priceMax.toString())
         }
         if (filters.onSale) {
@@ -115,6 +149,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         )}
 
         <FiltersPanel
+          maxPrice={maxPrice}
           onFilterChange={(newFilters) => {
             setFilters(newFilters)
           }}

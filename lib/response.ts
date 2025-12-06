@@ -30,7 +30,7 @@ export function errorResponse(
     {
       success: false,
       error,
-      ...(message && { message }),
+      ...(message && { message, details: message }),
     },
     { status }
   )

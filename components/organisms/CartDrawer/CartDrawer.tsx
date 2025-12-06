@@ -62,12 +62,35 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div className={styles.items}>
                 {items.map((item) => (
                   <div key={item.id} className={styles.item}>
-                    <div
-                      className={styles.itemImage}
-                      style={{
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      }}
-                    />
+                    <div className={styles.itemImage}>
+                      {item.product.images && 
+                       item.product.images.length > 0 && 
+                       item.product.images[0] && 
+                       !item.product.images[0].includes('placeholder') &&
+                       item.product.images[0].trim() !== '' ? (
+                        <img 
+                          src={item.product.images[0]} 
+                          alt={item.product.title}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const placeholder = target.parentElement?.querySelector(`.${styles.placeholderImage}`) as HTMLDivElement
+                            if (placeholder) placeholder.style.display = 'block'
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={styles.placeholderImage}
+                        style={{ 
+                          display: (item.product.images && 
+                                   item.product.images.length > 0 && 
+                                   item.product.images[0] && 
+                                   !item.product.images[0].includes('placeholder') &&
+                                   item.product.images[0].trim() !== '') ? 'none' : 'block',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        }}
+                      />
+                    </div>
                     <div className={styles.itemInfo}>
                       <h4 className={styles.itemTitle}>{item.product.title}</h4>
                       <p className={styles.itemPrice}>{formatPrice(item.price)}</p>
@@ -116,15 +139,17 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
 
               <div className={styles.actions}>
-                <Button variant="outline" onClick={onClose}>
-                  Продолжить покупки
+                <Button variant="primary" onClick={handleCheckout}>
+                  Оформить заказ
                 </Button>
                 <Button variant="outline" onClick={handleGoToCart}>
                   Перейти в корзину
                 </Button>
-                <Button variant="primary" onClick={handleCheckout}>
-                  Полноценное оформление заказа
-                </Button>
+              </div>
+              <div className={styles.continueShopping}>
+                <button onClick={onClose} className={styles.continueLink}>
+                  Продолжить покупки
+                </button>
               </div>
             </>
           )}

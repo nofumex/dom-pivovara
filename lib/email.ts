@@ -173,6 +173,57 @@ export async function sendNewOrderNotificationEmail(
   )
 }
 
+export async function sendNewLeadNotificationEmail(
+  leadSource: string,
+  name: string,
+  phone?: string,
+  email?: string,
+  message?: string
+): Promise<boolean> {
+  const settings = await getEmailSettings()
+  if (!settings) {
+    return false
+  }
+
+  const sourceLabels: Record<string, string> = {
+    'callback': 'Заказ звонка',
+    'cheaper': 'Нашли дешевле',
+    'quick-buy': 'Быстрая покупка',
+    'contact': 'Обратная связь',
+  }
+
+  const sourceLabel = sourceLabels[leadSource] || leadSource
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Новая заявка: ${sourceLabel}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #e74c3c;">Новая заявка: ${sourceLabel}</h1>
+          <h2>Данные клиента:</h2>
+          <ul>
+            <li><strong>Имя:</strong> ${name}</li>
+            ${phone ? `<li><strong>Телефон:</strong> ${phone}</li>` : ''}
+            ${email ? `<li><strong>Email:</strong> ${email}</li>` : ''}
+            ${message ? `<li><strong>Сообщение:</strong><br>${message.replace(/\n/g, '<br>')}</li>` : ''}
+          </ul>
+          <p>Пожалуйста, обработайте заявку в админ-панели.</p>
+        </div>
+      </body>
+    </html>
+  `
+
+  return sendEmail(
+    settings.companyEmail,
+    `Новая заявка: ${sourceLabel}`,
+    html
+  )
+}
+
 
 
 

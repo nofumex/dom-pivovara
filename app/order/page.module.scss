@@ -125,8 +125,34 @@
 
 .orderItem {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.orderItemImage {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg-secondary);
+  position: relative;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.placeholderImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .orderItemInfo {
@@ -177,13 +203,97 @@
 .confirmation {
   display: flex;
   flex-direction: column;
+  gap: 24px;
+}
+
+.confirmationSection {
+  background: var(--color-bg-secondary);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.confirmationSectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--color-text-primary);
+}
+
+.confirmationDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.confirmationRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.confirmationLabel {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  min-width: 150px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .couponSection {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--color-border);
+}
+
+.couponInputWrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.couponInputContainer {
+  flex: 1;
+  min-width: 0;
+}
+
+.couponMessages {
+  min-height: 20px;
+  margin-top: 4px;
+}
+
+.couponError {
+  color: #ef4444;
+  font-size: 12px;
+  margin: 0;
+}
+
+.couponSuccess {
+  color: #22c55e;
+  font-size: 12px;
+  margin: 0;
+}
+
+.couponButton {
+  flex-shrink: 0;
+  margin-top: 24px; /* Выравниваем с полем ввода (label + input) */
 }
 
 @media (max-width: 1024px) {

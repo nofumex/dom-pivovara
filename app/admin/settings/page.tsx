@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { getAuthUserWithRefresh } from '@/lib/auth-helpers'
 import { redirect } from 'next/navigation'
 import { SettingsForm } from '@/components/admin/SettingsForm/SettingsForm'
+import { CouponsManager } from '@/components/admin/CouponsManager/CouponsManager'
 
 export default async function AdminSettingsPage() {
   const { user } = await getAuthUserWithRefresh()
@@ -22,6 +23,7 @@ export default async function AdminSettingsPage() {
         Настройки
       </h1>
       <SettingsForm settings={settingsMap} />
+      <CouponsManager />
     </div>
   )
 }

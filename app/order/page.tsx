@@ -9,7 +9,7 @@ import { Input } from '@/components/atoms/Input/Input'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import styles from './page.module.scss'
 
-type DeliveryType = 'PICKUP' | 'COURIER' | 'TRANSPORT'
+type DeliveryType = 'PICKUP' | 'PICKUP_SEMAFORNAYA' | 'PICKUP_MOLOKOVA' | 'COURIER' | 'TRANSPORT'
 type PaymentMethod = 'CARD' | 'CASH_COURIER' | 'CASH_PICKUP'
 
 interface OrderFormData {
@@ -21,6 +21,7 @@ interface OrderFormData {
   // Шаг 2: Доставка
   deliveryType: DeliveryType
   deliveryAddress: string
+  pickupLocation?: string // Пункт самовывоза
   
   // Шаг 3: Оплата
   paymentMethod: PaymentMethod
@@ -39,6 +40,7 @@ interface OrderFormData {
 
 export default function OrderPage() {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const cartItems = useCartStore((state) => state.items)
   const getTotalPrice = useCartStore((state) => state.getTotalPrice)
   const clearCart = useCartStore((state) => state.clearCart)
@@ -51,6 +53,7 @@ export default function OrderPage() {
     zipCode: '',
     deliveryType: 'COURIER',
     deliveryAddress: '',
+    pickupLocation: undefined,
     paymentMethod: 'CARD',
     firstName: '',
     lastName: '',
@@ -61,19 +64,72 @@ export default function OrderPage() {
     couponCode: '',
   })
 
-  const subtotal = getTotalPrice()
-  const deliveryCost = formData.deliveryType === 'PICKUP' ? 0 : 300
-  const discount = 0 // TODO: реализовать купоны
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
+  const [couponError, setCouponError] = useState<string>('')
+
+  const subtotal = mounted ? getTotalPrice() : 0
+  const deliveryCost = formData.deliveryType === 'PICKUP' || formData.deliveryType === 'PICKUP_SEMAFORNAYA' || formData.deliveryType === 'PICKUP_MOLOKOVA' ? 0 : 300
+  const discount = appliedCoupon ? appliedCoupon.discount : 0
   const total = subtotal + deliveryCost - discount
 
   useEffect(() => {
-    if (cartItems.length === 0) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && cartItems.length === 0) {
       router.push('/cart')
     }
-  }, [cartItems, router])
+  }, [mounted, cartItems, router])
 
   const updateFormData = (field: keyof OrderFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleApplyCoupon = async () => {
+    if (!formData.couponCode.trim()) {
+      setCouponError('Введите код купона')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: formData.couponCode,
+          amount: subtotal + deliveryCost,
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setAppliedCoupon({
+          code: data.data.coupon.code,
+          discount: data.data.discount,
+        })
+        setCouponError('')
+      } else {
+        setAppliedCoupon(null)
+        // Более понятные сообщения об ошибках
+        if (data.error?.includes('не найден')) {
+          setCouponError('Купон с таким кодом не найден')
+        } else if (data.error?.includes('неактивен')) {
+          setCouponError('Этот купон неактивен')
+        } else if (data.error?.includes('истек')) {
+          setCouponError('Срок действия купона истек')
+        } else if (data.error?.includes('исчерпан')) {
+          setCouponError('Лимит использований купона исчерпан')
+        } else if (data.error?.includes('Минимальная сумма')) {
+          setCouponError(data.error)
+        } else {
+          setCouponError(data.error || 'Купон не найден')
+        }
+      }
+    } catch (error) {
+      console.error('Error applying coupon:', error)
+      setCouponError('Купон с таким кодом не найден')
+    }
   }
 
   const handleNext = () => {
@@ -100,6 +156,22 @@ export default function OrderPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
+      // Преобразуем deliveryType перед отправкой
+      let deliveryType: 'PICKUP' | 'COURIER' | 'TRANSPORT' = 'PICKUP'
+      let pickupNote = ''
+      
+      if (formData.deliveryType === 'PICKUP_SEMAFORNAYA') {
+        deliveryType = 'PICKUP'
+        pickupNote = '\nПункт самовывоза: Семафорная 271, стр. 7'
+      } else if (formData.deliveryType === 'PICKUP_MOLOKOVA') {
+        deliveryType = 'PICKUP'
+        pickupNote = '\nПункт самовывоза: Молокова 17'
+      } else if (formData.deliveryType === 'COURIER') {
+        deliveryType = 'COURIER'
+      } else if (formData.deliveryType === 'TRANSPORT') {
+        deliveryType = 'TRANSPORT'
+      }
+
       const orderData = {
         items: cartItems.map((item) => ({
           productId: item.productId,
@@ -113,9 +185,9 @@ export default function OrderPage() {
         email: formData.email,
         phone: formData.phone,
         company: formData.payerType === 'LEGAL' ? formData.location : undefined,
-        deliveryType: formData.deliveryType,
-        notes: formData.notes,
-        promoCode: formData.couponCode || undefined,
+        deliveryType: deliveryType,
+        notes: (formData.notes || '') + pickupNote,
+        promoCode: appliedCoupon ? appliedCoupon.code : formData.couponCode || undefined,
       }
 
       const response = await fetch('/api/orders', {
@@ -130,7 +202,9 @@ export default function OrderPage() {
         clearCart()
         router.push(`/order/success?orderNumber=${data.data.orderNumber}`)
       } else {
-        alert(data.error || 'Ошибка при оформлении заказа')
+        console.error('Order submission error:', data)
+        const errorMessage = data.details || data.error || 'Ошибка при оформлении заказа'
+        alert(errorMessage)
       }
     } catch (error) {
       console.error('Order submission error:', error)
@@ -228,8 +302,8 @@ export default function OrderPage() {
                     <input
                       type="radio"
                       name="deliveryType"
-                      value="PICKUP"
-                      checked={formData.deliveryType === 'PICKUP'}
+                      value="PICKUP_SEMAFORNAYA"
+                      checked={formData.deliveryType === 'PICKUP_SEMAFORNAYA'}
                       onChange={(e) => updateFormData('deliveryType', e.target.value as DeliveryType)}
                     />
                     <div>
@@ -241,8 +315,8 @@ export default function OrderPage() {
                     <input
                       type="radio"
                       name="deliveryType"
-                      value="PICKUP"
-                      checked={formData.deliveryType === 'PICKUP'}
+                      value="PICKUP_MOLOKOVA"
+                      checked={formData.deliveryType === 'PICKUP_MOLOKOVA'}
                       onChange={(e) => updateFormData('deliveryType', e.target.value as DeliveryType)}
                     />
                     <div>
@@ -354,18 +428,106 @@ export default function OrderPage() {
                 <h2 className={styles.stepTitle}>Подтверждение заказа</h2>
                 <div className={styles.confirmation}>
                   <p>Проверьте данные заказа перед оформлением</p>
-                  <div className={styles.orderSummary}>
-                    <div className={styles.summaryRow}>
-                      <span>Товаров на:</span>
-                      <span>{formatPrice(subtotal)}</span>
+                  
+                  <div className={styles.confirmationSection}>
+                    <h3 className={styles.confirmationSectionTitle}>Данные покупателя</h3>
+                    <div className={styles.confirmationDetails}>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Тип плательщика:</span>
+                        <span>{formData.payerType === 'INDIVIDUAL' ? 'Физическое лицо' : 'Юридическое лицо'}</span>
+                      </div>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Имя:</span>
+                        <span>{formData.firstName}</span>
+                      </div>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Фамилия:</span>
+                        <span>{formData.lastName}</span>
+                      </div>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Email:</span>
+                        <span>{formData.email}</span>
+                      </div>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Телефон:</span>
+                        <span>{formData.phone}</span>
+                      </div>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Местоположение:</span>
+                        <span>{formData.location}</span>
+                      </div>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Индекс:</span>
+                        <span>{formData.zipCode}</span>
+                      </div>
+                      {formData.address && (
+                        <div className={styles.confirmationRow}>
+                          <span className={styles.confirmationLabel}>Адрес доставки:</span>
+                          <span>{formData.address}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className={styles.summaryRow}>
-                      <span>Доставка:</span>
-                      <span>{formatPrice(deliveryCost)}</span>
+                  </div>
+
+                  <div className={styles.confirmationSection}>
+                    <h3 className={styles.confirmationSectionTitle}>Способ доставки</h3>
+                    <div className={styles.confirmationDetails}>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Тип доставки:</span>
+                        <span>
+                          {formData.deliveryType === 'COURIER' && 'Доставка курьером (300 ₽)'}
+                          {formData.deliveryType === 'PICKUP_SEMAFORNAYA' && 'Самовывоз: Семафорная 271, стр. 7 (0 ₽)'}
+                          {formData.deliveryType === 'PICKUP_MOLOKOVA' && 'Самовывоз: Молокова 17 (0 ₽)'}
+                          {formData.deliveryType === 'TRANSPORT' && 'Транспортная компания'}
+                        </span>
+                      </div>
                     </div>
-                    <div className={styles.summaryRow}>
-                      <span>Итого:</span>
-                      <span className={styles.total}>{formatPrice(total)}</span>
+                  </div>
+
+                  <div className={styles.confirmationSection}>
+                    <h3 className={styles.confirmationSectionTitle}>Способ оплаты</h3>
+                    <div className={styles.confirmationDetails}>
+                      <div className={styles.confirmationRow}>
+                        <span className={styles.confirmationLabel}>Метод оплаты:</span>
+                        <span>
+                          {formData.paymentMethod === 'CARD' && 'Банковские карты'}
+                          {formData.paymentMethod === 'CASH_COURIER' && 'Наличные курьеру'}
+                          {formData.paymentMethod === 'CASH_PICKUP' && 'Наличный расчет'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.notes && (
+                    <div className={styles.confirmationSection}>
+                      <h3 className={styles.confirmationSectionTitle}>Комментарии к заказу</h3>
+                      <div className={styles.confirmationDetails}>
+                        <p>{formData.notes}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.confirmationSection}>
+                    <h3 className={styles.confirmationSectionTitle}>Итоговая сумма</h3>
+                    <div className={styles.orderSummary}>
+                      <div className={styles.summaryRow}>
+                        <span>Товаров на:</span>
+                        <span>{formatPrice(subtotal)}</span>
+                      </div>
+                      <div className={styles.summaryRow}>
+                        <span>Доставка:</span>
+                        <span>{formatPrice(deliveryCost)}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className={styles.summaryRow}>
+                          <span>Скидка:</span>
+                          <span>-{formatPrice(discount)}</span>
+                        </div>
+                      )}
+                      <div className={styles.summaryRow}>
+                        <span>Итого:</span>
+                        <span className={styles.total}>{formatPrice(total)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -396,6 +558,34 @@ export default function OrderPage() {
               <div className={styles.orderItems}>
                 {cartItems.map((item) => (
                   <div key={item.id} className={styles.orderItem}>
+                    <div className={styles.orderItemImage}>
+                      {item.product.images && 
+                       item.product.images.length > 0 && 
+                       item.product.images[0] && 
+                       !item.product.images[0].includes('placeholder') &&
+                       item.product.images[0].trim() !== '' ? (
+                        <img 
+                          src={item.product.images[0]} 
+                          alt={item.product.title}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const placeholder = target.parentElement?.querySelector(`.${styles.placeholderImage}`) as HTMLDivElement
+                            if (placeholder) placeholder.style.display = 'block'
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={styles.placeholderImage} 
+                        style={{ 
+                          display: (item.product.images && 
+                                   item.product.images.length > 0 && 
+                                   item.product.images[0] && 
+                                   !item.product.images[0].includes('placeholder') &&
+                                   item.product.images[0].trim() !== '') ? 'none' : 'block' 
+                        }} 
+                      />
+                    </div>
                     <div className={styles.orderItemInfo}>
                       <span className={styles.orderItemName}>{item.product.title}</span>
                       <div className={styles.orderItemDetails}>
@@ -426,12 +616,42 @@ export default function OrderPage() {
               </div>
               {currentStep === 5 && (
                 <div className={styles.couponSection}>
-                  <Input
-                    label="Применить купон:"
-                    value={formData.couponCode}
-                    onChange={(e) => updateFormData('couponCode', e.target.value)}
-                    placeholder="Введите код купона"
-                  />
+                  <div className={styles.couponInputWrapper}>
+                    <div className={styles.couponInputContainer}>
+                      <Input
+                        label="Применить купон:"
+                        value={formData.couponCode}
+                        onChange={(e) => {
+                          updateFormData('couponCode', e.target.value)
+                          setCouponError('')
+                          setAppliedCoupon(null)
+                        }}
+                        placeholder="Введите код купона"
+                        disabled={!!appliedCoupon}
+                      />
+                      <div className={styles.couponMessages}>
+                        {couponError && (
+                          <p className={styles.couponError}>
+                            {couponError}
+                          </p>
+                        )}
+                        {appliedCoupon && (
+                          <p className={styles.couponSuccess}>
+                            Купон {appliedCoupon.code} применен! Скидка: {formatPrice(appliedCoupon.discount)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleApplyCoupon}
+                      disabled={!!appliedCoupon || !formData.couponCode.trim()}
+                      className={styles.couponButton}
+                    >
+                      {appliedCoupon ? 'Применен' : 'Применить'}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
