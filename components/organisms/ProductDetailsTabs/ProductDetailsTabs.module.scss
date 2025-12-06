@@ -47,6 +47,27 @@
   font-size: var(--font-base-size);
   line-height: var(--font-base-line-height);
   color: var(--color-text);
+
+  // Стили для HTML контента (дочерние элементы через dangerouslySetInnerHTML)
+  p {
+    margin: 0 0 16px 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  span {
+    color: inherit;
+  }
+
+  b, strong {
+    font-weight: 600;
+  }
+
+  br {
+    line-height: 1.5;
+  }
 }
 
 .reviews {
@@ -171,6 +192,7 @@
     }
   }
 }
+
 
 
 

@@ -3,6 +3,28 @@ import { prisma } from '@/lib/db'
 import { paginatedResponse, errorResponse } from '@/lib/response'
 import { ProductVisibility, StockStatus } from '@prisma/client'
 
+// Рекурсивная функция для получения всех дочерних категорий
+async function getAllChildCategoryIds(categoryId: string): Promise<string[]> {
+  const childCategories = await prisma.category.findMany({
+    where: {
+      parentId: categoryId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+    },
+  })
+
+  const allIds = [categoryId]
+  
+  for (const child of childCategories) {
+    const nestedIds = await getAllChildCategoryIds(child.id)
+    allIds.push(...nestedIds)
+  }
+
+  return allIds
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -33,8 +55,24 @@ export async function GET(request: NextRequest) {
     }
 
     if (category) {
-      where.Category = {
-        slug: category,
+      // Находим категорию по slug
+      const categoryRecord = await prisma.category.findUnique({
+        where: { slug: category },
+        select: { id: true },
+      })
+
+      if (categoryRecord) {
+        // Получаем все ID категорий (сама категория + все дочерние)
+        const allCategoryIds = await getAllChildCategoryIds(categoryRecord.id)
+        
+        where.categoryId = {
+          in: allCategoryIds,
+        }
+      } else {
+        // Если категория не найдена, возвращаем пустой результат
+        where.categoryId = {
+          in: [],
+        }
       }
     }
 

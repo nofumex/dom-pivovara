@@ -334,7 +334,16 @@
   height: 100%;
   background: linear-gradient(90deg, #f97316, #fb923c);
   border-radius: 4px;
-  width: 100%;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.progressPercent {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-align: center;
 }
 
 .importOptions {
@@ -360,6 +369,25 @@
     height: 18px;
     cursor: pointer;
   }
+
+  input[type='checkbox']:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.warning {
+    padding: 0.75rem;
+    background: #fef3c7;
+    border: 2px solid #fbbf24;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.warningText {
+  color: #d97706;
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 
 .importActions {
@@ -482,6 +510,7 @@
     grid-template-columns: 1fr;
   }
 }
+
 
 
 

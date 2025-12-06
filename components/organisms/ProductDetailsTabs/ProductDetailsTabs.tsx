@@ -50,9 +50,12 @@ export function ProductDetailsTabs({ product }: ProductDetailsTabsProps) {
 
       <div className={styles.tabContent}>
         {activeTab === 'description' && (
-          <div className={styles.content}>
-            <p>{product.description || product.content || 'Описание товара отсутствует.'}</p>
-          </div>
+          <div 
+            className={styles.content}
+            dangerouslySetInnerHTML={{ 
+              __html: product.description || product.content || 'Описание товара отсутствует.' 
+            }}
+          />
         )}
 
         {activeTab === 'reviews' && (

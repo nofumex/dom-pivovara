@@ -4,13 +4,67 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { SidebarSections } from '../SidebarSections/SidebarSections'
-import { allCategories, getPlaceholderImage } from '@/lib/catalogData'
+import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './CatalogSidebar.module.scss'
 
-export function CatalogSidebar() {
+interface SubSubcategory {
+  name: string
+  slug: string
+}
+
+interface Subcategory {
+  name: string
+  slug: string
+  count?: number
+  subSubcategories?: SubSubcategory[]
+}
+
+interface Category {
+  name: string
+  slug: string
+  subcategories: Subcategory[]
+}
+
+interface CatalogSidebarProps {
+  categories?: Category[]
+}
+
+export function CatalogSidebar({ categories: initialCategories }: CatalogSidebarProps) {
+  const [categories, setCategories] = useState<Category[]>(initialCategories || [])
+  
+  // Если категории не переданы, загружаем их через API
+  useEffect(() => {
+    if (!initialCategories || initialCategories.length === 0) {
+      fetch('/api/categories?includeProducts=true')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            // Преобразуем структуру данных из API в формат для сайдбара
+            const transformedCategories = data.data.map((category: any) => ({
+              name: category.name,
+              slug: category.slug,
+              subcategories: (category.other_Category || []).map((sub: any) => ({
+                name: sub.name,
+                slug: sub.slug,
+                count: sub._count?.Product || 0,
+                subSubcategories: (sub.other_Category || []).map((subSub: any) => ({
+                  name: subSub.name,
+                  slug: subSub.slug,
+                })),
+              })),
+            }))
+            setCategories(transformedCategories)
+          }
+        })
+        .catch(err => console.error('Failed to load categories:', err))
+    } else {
+      setCategories(initialCategories)
+    }
+  }, [initialCategories])
   const pathname = usePathname()
   const isHomePage = pathname === '/'
   const isCatalogRoute = pathname.startsWith('/catalog')
+  const isProductRoute = pathname.startsWith('/product')
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null)
   const [isCatalogHovered, setIsCatalogHovered] = useState(false)
   const isSidebarHoveredRef = useRef(false)
@@ -18,7 +72,7 @@ export function CatalogSidebar() {
   
   // Определяем активную категорию по pathname
   const getActiveCategorySlug = () => {
-    if (!isCatalogRoute) return null
+    if (!isCatalogRoute && !isProductRoute) return null
     const pathParts = pathname.split('/').filter(Boolean)
     if (pathParts.length >= 2 && pathParts[0] === 'catalog') {
       return pathParts[1] // slug категории
@@ -35,17 +89,17 @@ export function CatalogSidebar() {
   
   // Функция для проверки и закрытия сайдбара
   const checkAndCloseSidebar = useCallback(() => {
-    if (!isHomePage && !isCatalogRoute) {
+    if (!isHomePage && !isCatalogRoute && !isProductRoute) {
       // Закрываем только если курсор не находится ни в сайдбаре, ни в панели подкатегорий
       if (!isSidebarHoveredRef.current && !isSubcategoriesPanelHoveredRef.current) {
         setIsCatalogHovered(false)
       }
     }
-  }, [isHomePage, isCatalogRoute])
+  }, [isHomePage, isCatalogRoute, isProductRoute])
 
   useEffect(() => {
-    // На главной странице и всех страницах каталога всегда показываем сайдбар
-    if (isHomePage || isCatalogRoute) {
+    // На главной странице, всех страницах каталога и страницах товаров всегда показываем сайдбар
+    if (isHomePage || isCatalogRoute || isProductRoute) {
       setIsCatalogHovered(true)
       return
     }
@@ -69,9 +123,9 @@ export function CatalogSidebar() {
       catalogButton.removeEventListener('mouseenter', handleCatalogButtonEnter)
       catalogButton.removeEventListener('mouseleave', handleCatalogButtonLeave)
     }
-  }, [isHomePage, isCatalogRoute, openSidebar, checkAndCloseSidebar])
+  }, [isHomePage, isCatalogRoute, isProductRoute, openSidebar, checkAndCloseSidebar])
 
-  const showCategories = isHomePage || isCatalogRoute || isCatalogHovered
+  const showCategories = isHomePage || isCatalogRoute || isProductRoute || isCatalogHovered
 
   const handleSidebarEnter = () => {
     isSidebarHoveredRef.current = true
@@ -95,7 +149,7 @@ export function CatalogSidebar() {
           >
             <div className={styles.content}>
               <div className={styles.list}>
-                {allCategories.map((category) => (
+                {categories.map((category) => (
                   <div
                     key={category.slug}
                     className={styles.categoryItem}

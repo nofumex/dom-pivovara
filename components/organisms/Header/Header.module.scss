@@ -6,7 +6,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow: visible;
   margin: 0;
   padding: 0;
   --header-top-height: 120px;
@@ -24,6 +24,8 @@
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+  overflow: visible;
 }
 
 .logo {
@@ -65,13 +67,17 @@
   letter-spacing: -0.5px;
 }
 
-.search {
+.searchWrapper {
   flex: 1;
   max-width: 540px;
   position: relative;
   margin: 0 auto;
   margin-left: 60px;
   margin-right: 60px;
+}
+
+.search {
+  position: relative;
 }
 
 .searchInput {
@@ -268,15 +274,125 @@
 }
 
 
+.autocomplete {
+  position: fixed;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.autocompleteLoading {
+  padding: 20px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.autocompleteItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f8f8f8;
+  }
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.autocompleteImage {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f5f5f5;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.autocompleteContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.autocompleteTitle {
+  font-size: 14px;
+  color: var(--color-text);
+  margin-bottom: 4px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.autocompletePrice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.autocompleteOldPrice {
+  font-size: 12px;
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.autocompleteCurrentPrice {
+  font-size: 16px;
+  color: var(--color-primary-600);
+}
+
+.autocompleteAllResults {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  background-color: #f8f8f8;
+  color: var(--color-primary-600);
+  font-weight: 600;
+  font-size: 14px;
+  border-top: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+
+  svg {
+    color: var(--color-primary-600);
+  }
+}
+
 @media (max-width: 1023px) {
   .top {
     flex-wrap: wrap;
   }
 
-  .search {
+  .searchWrapper {
     max-width: 100%;
     order: 3;
     width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .nav {

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { getCategoryProductCount } from '@/lib/categoryUtils'
 import { CategoryClient } from '../CategoryClient'
 
 export default async function SubcategoryPage({
@@ -33,18 +34,6 @@ export default async function SubcategoryPage({
         orderBy: {
           sortOrder: 'asc',
         },
-        include: {
-          _count: {
-            select: {
-              Product: {
-                where: {
-                  isActive: true,
-                  visibility: 'VISIBLE',
-                },
-              },
-            },
-          },
-        },
       },
     },
   })
@@ -53,17 +42,22 @@ export default async function SubcategoryPage({
     notFound()
   }
 
+  // Подсчитываем товары для каждой подкатегории с учетом дочерних категорий
+  const childrenWithCounts = await Promise.all(
+    targetCategory.other_Category.map(async (child) => ({
+      id: child.id,
+      name: child.name,
+      slug: child.slug,
+      count: await getCategoryProductCount(child.id),
+    }))
+  )
+
   const categoryData = {
     id: targetCategory.id,
     name: targetCategory.name,
     slug: targetCategory.slug,
     parent: targetCategory.Category,
-    children: targetCategory.other_Category.map((child) => ({
-      id: child.id,
-      name: child.name,
-      slug: child.slug,
-      count: child._count.Product,
-    })),
+    children: childrenWithCounts,
   }
 
   return <CategoryClient category={categoryData} initialProducts={[]} />

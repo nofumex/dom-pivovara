@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { prisma } from '@/lib/db'
+import { getCategoryProductCount } from '@/lib/categoryUtils'
 import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
@@ -24,28 +25,6 @@ export default async function CatalogPage() {
         orderBy: {
           sortOrder: 'asc',
         },
-        include: {
-          _count: {
-            select: {
-              Product: {
-                where: {
-                  isActive: true,
-                  visibility: 'VISIBLE',
-                },
-              },
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          Product: {
-            where: {
-              isActive: true,
-              visibility: 'VISIBLE',
-            },
-          },
-        },
       },
     },
     orderBy: {
@@ -53,13 +32,26 @@ export default async function CatalogPage() {
     },
   })
 
+  // Подсчитываем товары для каждой подкатегории с учетом дочерних категорий
+  const categoriesWithCounts = await Promise.all(
+    categories.map(async (category) => ({
+      ...category,
+      subcategoriesWithCounts: await Promise.all(
+        category.other_Category.map(async (subcategory) => ({
+          ...subcategory,
+          productCount: await getCategoryProductCount(subcategory.id),
+        }))
+      ),
+    }))
+  )
+
   return (
     <main>
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
         <h1 className={styles.title}>Каталог</h1>
         <div className={styles.grid}>
-          {categories.map((category) => (
+          {categoriesWithCounts.map((category) => (
             <div key={category.slug} className={styles.card}>
             <Link
               href={`/catalog/${category.slug}`}
@@ -74,9 +66,9 @@ export default async function CatalogPage() {
                 <h2 className={styles.cardTitle}>{category.name}</h2>
                 </div>
               </Link>
-              {category.other_Category.length > 0 && (
+              {category.subcategoriesWithCounts.length > 0 && (
                 <div className={styles.subcategories}>
-                  {category.other_Category.map((subcategory) => (
+                  {category.subcategoriesWithCounts.map((subcategory) => (
                     <Link
                       key={subcategory.slug}
                       href={`/catalog/${category.slug}/${subcategory.slug}`}
@@ -85,9 +77,9 @@ export default async function CatalogPage() {
                       <span className={styles.subcategoryName}>
                         {subcategory.name}
                       </span>
-                      {subcategory._count.Product > 0 && (
+                      {subcategory.productCount > 0 && (
                         <span className={styles.subcategoryCount}>
-                          {subcategory._count.Product}
+                          {subcategory.productCount}
                         </span>
                       )}
                     </Link>

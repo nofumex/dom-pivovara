@@ -138,8 +138,10 @@ const PROPERTY_MAPPING: Record<string, keyof StandardProduct> = {
 function transformSection(section: ExportCatalogSection, sectionIdMap: Map<string, string>): StandardCategory {
   const slug = section.CODE || `section-${section.ID}`
   // parentId будет slug родительской категории, который потом будет преобразован в ID при импорте
-  const parentSlug = section.IBLOCK_SECTION_ID && sectionIdMap.has(section.IBLOCK_SECTION_ID)
-    ? sectionIdMap.get(section.IBLOCK_SECTION_ID)
+  // Конвертируем IBLOCK_SECTION_ID в строку для поиска в Map
+  const parentSectionId = section.IBLOCK_SECTION_ID ? String(section.IBLOCK_SECTION_ID) : null
+  const parentSlug = parentSectionId && sectionIdMap.has(parentSectionId)
+    ? sectionIdMap.get(parentSectionId)
     : undefined
 
   return {
@@ -215,8 +217,29 @@ function transformProduct(
   }
 
   // Определение категории
-  const categoryId = sectionIdMap.get(product.IBLOCK_SECTION_ID)
+  // Конвертируем IBLOCK_SECTION_ID в строку для поиска в Map
+  // Обрабатываем null, undefined, пустую строку, число и строку
+  let sectionId: string | null = null
+  if (product.IBLOCK_SECTION_ID !== null && product.IBLOCK_SECTION_ID !== undefined && product.IBLOCK_SECTION_ID !== '') {
+    sectionId = String(product.IBLOCK_SECTION_ID).trim()
+  }
+  
+  const categoryId = sectionId ? sectionIdMap.get(sectionId) : undefined
   const categoryObj = categoryId ? { slug: categoryId } : undefined
+  
+  // Логирование для отладки (только первые несколько случаев)
+  if (!categoryObj && sectionId) {
+    // Проверяем, есть ли секция в мапе
+    if (!sectionIdMap.has(sectionId)) {
+      // Логируем только первые 5 случаев, чтобы не засорять логи
+      const logKey = `missing_section_${sectionId}`
+      if (!(globalThis as any)[logKey]) {
+        (globalThis as any)[logKey] = true
+        console.warn(`[TRANSFORM] Секция с ID "${sectionId}" не найдена в sectionIdMap для товара ${product.ID} (${product.NAME})`)
+        console.warn(`[TRANSFORM] Доступные ID в sectionIdMap: ${Array.from(sectionIdMap.keys()).slice(0, 10).join(', ')}...`)
+      }
+    }
+  }
 
   // Генерация slug из CODE или NAME
   const slug = product.CODE || product.ID || product.NAME.toLowerCase().replace(/\s+/g, '-')
@@ -297,6 +320,8 @@ export function transformExportCatalogData(
 
   // Сначала обрабатываем разделы, создавая маппинг ID -> slug
   if (data.sections && Array.isArray(data.sections)) {
+    console.log(`[TRANSFORM] Найдено ${data.sections.length} секций для обработки`)
+    
     // Сортируем разделы по DEPTH_LEVEL для правильной обработки иерархии
     const sortedSections = [...data.sections].sort((a, b) => {
       const depthA = a.DEPTH_LEVEL || 0
@@ -306,21 +331,52 @@ export function transformExportCatalogData(
 
     for (const section of sortedSections) {
       const transformed = transformSection(section, sectionIdMap)
-      sectionIdMap.set(section.ID, transformed.slug)
+      // Убеждаемся, что ключ всегда строка
+      const sectionIdKey = String(section.ID)
+      sectionIdMap.set(sectionIdKey, transformed.slug)
       categories.push(transformed)
     }
+    
+    console.log(`[TRANSFORM] Обработано ${categories.length} категорий, создано ${sectionIdMap.size} записей в маппинге`)
+    console.log(`[TRANSFORM] Примеры ID в маппинге: ${Array.from(sectionIdMap.keys()).slice(0, 10).join(', ')}`)
+  } else {
+    console.warn(`[TRANSFORM] Секции не найдены или не являются массивом`)
   }
 
   // Затем обрабатываем товары
   if (data.products && Array.isArray(data.products)) {
+    console.log(`[TRANSFORM] Найдено ${data.products.length} товаров для обработки`)
+    
+    let productsWithoutCategory = 0
+    let productsWithCategory = 0
+    const missingSectionIds = new Set<string>()
+    
     for (const product of data.products) {
       try {
         const transformed = transformProduct(product, sectionIdMap, imageIdMap)
+        if (!transformed.categoryObj) {
+          productsWithoutCategory++
+          const sectionId = product.IBLOCK_SECTION_ID ? String(product.IBLOCK_SECTION_ID) : 'null/empty'
+          missingSectionIds.add(sectionId)
+          
+          if (productsWithoutCategory <= 10) {
+            console.warn(`[TRANSFORM] Товар ${product.ID} (${product.NAME}) не нашел категорию. IBLOCK_SECTION_ID=${sectionId}`)
+          }
+        } else {
+          productsWithCategory++
+        }
         products.push(transformed)
       } catch (error) {
         console.error(`Ошибка при преобразовании товара ${product.ID}:`, error)
       }
     }
+    
+    console.log(`[TRANSFORM] Обработано товаров: ${products.length}, с категорией: ${productsWithCategory}, без категории: ${productsWithoutCategory}`)
+    if (missingSectionIds.size > 0) {
+      console.warn(`[TRANSFORM] Уникальных отсутствующих IBLOCK_SECTION_ID: ${Array.from(missingSectionIds).slice(0, 20).join(', ')}`)
+    }
+  } else {
+    console.warn(`[TRANSFORM] Товары не найдены или не являются массивом`)
   }
 
   return {

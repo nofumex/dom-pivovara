@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { Header } from '@/components/organisms/Header/Header'
 import { Footer } from '@/components/organisms/Footer/Footer'
 import { RightDock } from '@/components/organisms/RightDock/RightDock'
-import { CatalogSidebar } from '@/components/organisms/CatalogSidebar/CatalogSidebar'
+import { CatalogSidebarServer } from '@/components/organisms/CatalogSidebar/CatalogSidebarServer'
 import { PageWrapper } from '@/components/organisms/PageWrapper/PageWrapper'
 import { ScrollToTop } from '@/components/atoms/ScrollToTop/ScrollToTop'
 import { AuthSync } from '@/components/AuthSync/AuthSync'
@@ -48,7 +48,7 @@ export default async function RootLayout({
         <AuthSync />
         <Header />
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-          <CatalogSidebar />
+          <CatalogSidebarServer />
           <PageWrapper>
             {children}
           </PageWrapper>

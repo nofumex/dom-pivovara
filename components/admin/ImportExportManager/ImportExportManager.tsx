@@ -11,11 +11,13 @@ export function ImportExportManager() {
     skipExisting: false,
     updateExisting: true,
     importMedia: true,
+    replaceAll: false, // Полная замена каталога
   })
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<any>(null)
   const [validationResult, setValidationResult] = useState<any>(null)
+  const [importProgress, setImportProgress] = useState({ progress: 0, message: 'Инициализация...' })
 
   const handleExport = async () => {
     setIsExporting(true)
@@ -71,6 +73,7 @@ export function ImportExportManager() {
 
     setIsImporting(true)
     setImportResult(null)
+    setImportProgress({ progress: 0, message: 'Инициализация...' })
 
     const formData = new FormData()
     formData.append('file', importFile)
@@ -82,17 +85,62 @@ export function ImportExportManager() {
         credentials: 'include',
         body: formData,
       })
-      const data = await response.json()
-      if (data.success) {
-        setImportResult(data.data)
-      } else {
-        alert('Ошибка при импорте: ' + data.error)
-        setImportResult(null)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      if (!reader) {
+        throw new Error('Не удалось получить поток данных')
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              if (data.error) {
+                alert('Ошибка при импорте: ' + data.error)
+                setIsImporting(false)
+                return
+              }
+
+              if (data.progress !== undefined) {
+                setImportProgress({
+                  progress: data.progress,
+                  message: data.message || 'Обработка...',
+                })
+              }
+
+              if (data.success && data.data) {
+                setImportResult(data.data)
+                setIsImporting(false)
+                return
+              }
+            } catch (e) {
+              console.error('Ошибка парсинга SSE данных:', e)
+            }
+          }
+        }
       }
     } catch (error) {
       alert('Ошибка при импорте')
       console.error(error)
-    } finally {
       setIsImporting(false)
     }
   }
@@ -102,15 +150,23 @@ export function ImportExportManager() {
       {isImporting && (
         <div className={styles.importOverlay}>
           <div className={styles.importProgress}>
-            <div className={styles.progressSpinner}>
-              <div className={styles.spinner}></div>
-            </div>
+            {importProgress.progress < 100 && (
+              <div className={styles.progressSpinner}>
+                <div className={styles.spinner}></div>
+              </div>
+            )}
             <h3 className={styles.progressTitle}>Импорт данных</h3>
             <p className={styles.progressText}>
-              Пожалуйста, подождите. Идет обработка файла...
+              {importProgress.message}
             </p>
             <div className={styles.progressBar}>
-              <div className={styles.progressBarFill}></div>
+              <div 
+                className={styles.progressBarFill}
+                style={{ width: `${importProgress.progress}%` }}
+              ></div>
+            </div>
+            <div className={styles.progressPercent}>
+              {Math.round(importProgress.progress)}%
             </div>
           </div>
         </div>
@@ -217,6 +273,30 @@ export function ImportExportManager() {
               )}
             </div>
             <div className={styles.importOptions}>
+              <label className={`${styles.optionLabel} ${importOptions.replaceAll ? styles.warning : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={importOptions.replaceAll}
+                  onChange={(e) => {
+                    const replaceAll = e.target.checked
+                    setImportOptions({ 
+                      ...importOptions, 
+                      replaceAll,
+                      // При включении replaceAll отключаем другие опции
+                      skipExisting: replaceAll ? false : importOptions.skipExisting,
+                      updateExisting: replaceAll ? false : importOptions.updateExisting,
+                    })
+                  }}
+                />
+                <span>
+                  <strong>Полная замена каталога</strong>
+                  {importOptions.replaceAll && (
+                    <span className={styles.warningText}>
+                      {' '}(ВНИМАНИЕ: Удалит все существующие категории и товары!)
+                    </span>
+                  )}
+                </span>
+              </label>
               <label className={styles.optionLabel}>
                 <input
                   type="checkbox"
@@ -224,6 +304,7 @@ export function ImportExportManager() {
                   onChange={(e) =>
                     setImportOptions({ ...importOptions, skipExisting: e.target.checked })
                   }
+                  disabled={importOptions.replaceAll}
                 />
                 <span>Пропускать существующие записи</span>
               </label>
@@ -234,6 +315,7 @@ export function ImportExportManager() {
                   onChange={(e) =>
                     setImportOptions({ ...importOptions, updateExisting: e.target.checked })
                   }
+                  disabled={importOptions.replaceAll}
                 />
                 <span>Обновлять существующие записи</span>
               </label>

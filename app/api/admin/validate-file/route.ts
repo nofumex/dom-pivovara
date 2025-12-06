@@ -153,7 +153,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const format = detectImportFormat(data)
       const stats = {
         products: data.products?.length || 0,
         categories: format === 'export_catalog' 
@@ -186,6 +185,7 @@ export async function POST(request: NextRequest) {
     return errorResponse('Ошибка при валидации файла', 500)
   }
 }
+
 
 
 

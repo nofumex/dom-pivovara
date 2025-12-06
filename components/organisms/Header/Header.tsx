@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CallbackModal } from '@/components/molecules/CallbackModal/CallbackModal'
@@ -27,16 +27,146 @@ const allCategories = [
   { name: 'Литература', slug: 'literatura' },
 ]
 
+interface AutocompleteProduct {
+  id: string
+  title: string
+  slug: string
+  price: number
+  oldPrice: number | null
+  image: string | null
+  currency: string
+}
+
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [autocompleteProducts, setAutocompleteProducts] = useState<AutocompleteProduct[]>([])
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
+  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0, width: 0 })
   const router = useRouter()
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchWrapperRef = useRef<HTMLDivElement>(null)
+  const autocompleteRef = useRef<HTMLDivElement>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Функция для поиска товаров с debounce
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    if (searchQuery.trim().length < 2) {
+      setAutocompleteProducts([])
+      setIsAutocompleteOpen(false)
+      return
+    }
+
+    setIsLoading(true)
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search/autocomplete?q=${encodeURIComponent(searchQuery.trim())}`)
+        const data = await response.json()
+        setAutocompleteProducts(data.products || [])
+        setIsAutocompleteOpen(data.products && data.products.length > 0)
+      } catch (error) {
+        console.error('Error fetching autocomplete:', error)
+        setAutocompleteProducts([])
+        setIsAutocompleteOpen(false)
+      } finally {
+        setIsLoading(false)
+      }
+    }, 300) // Debounce 300ms
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [searchQuery])
+
+  // Обновляем позицию выпадающего списка
+  useEffect(() => {
+    const updatePosition = () => {
+      if (searchWrapperRef.current) {
+        const rect = searchWrapperRef.current.getBoundingClientRect()
+        setAutocompletePosition({
+          top: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+        })
+      }
+    }
+
+    if (isAutocompleteOpen) {
+      updatePosition()
+      const handleScroll = () => updatePosition()
+      const handleResize = () => updatePosition()
+      
+      window.addEventListener('scroll', handleScroll, true)
+      window.addEventListener('resize', handleResize)
+      
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true)
+        window.removeEventListener('resize', handleResize)
+      }
+    }
+  }, [isAutocompleteOpen])
+
+  // Закрываем автодополнение при клике вне компонента
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        autocompleteRef.current &&
+        !autocompleteRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node) &&
+        searchWrapperRef.current &&
+        !searchWrapperRef.current.contains(event.target as Node)
+      ) {
+        setIsAutocompleteOpen(false)
+      }
+    }
+
+    if (isAutocompleteOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isAutocompleteOpen])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    setIsAutocompleteOpen(false)
     if (searchQuery.trim()) {
       router.push(`/search?query=${encodeURIComponent(searchQuery.trim())}`)
     }
+  }
+
+  const handleProductClick = (slug: string) => {
+    setIsAutocompleteOpen(false)
+    setSearchQuery('')
+    router.push(`/product/${slug}`)
+  }
+
+  const handleShowAllResults = () => {
+    setIsAutocompleteOpen(false)
+    if (searchQuery.trim()) {
+      router.push(`/search?query=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }
+
+  const formatPrice = (price: number, currency: string = 'RUB') => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })
+      .format(price)
+      .replace(/\s/g, ' ')
   }
 
   return (
@@ -53,21 +183,94 @@ export function Header() {
             </div>
             <h1 className={styles.logoText}>ДомПивовар</h1>
           </Link>
-          <form className={styles.search} onSubmit={handleSearch}>
-            <input
-              type="text"
-              placeholder="Поиск по товарам"
-              className={styles.searchInput}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <button type="submit" className={styles.searchButton} aria-label="Поиск">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
-                <path d="m20 20-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-          </form>
+          <div ref={searchWrapperRef} className={styles.searchWrapper}>
+            <form className={styles.search} onSubmit={handleSearch}>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Поиск по товарам"
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  if (e.target.value.trim().length >= 2) {
+                    setIsAutocompleteOpen(true)
+                  }
+                }}
+                onFocus={() => {
+                  if (autocompleteProducts.length > 0) {
+                    setIsAutocompleteOpen(true)
+                  }
+                }}
+              />
+              <button type="submit" className={styles.searchButton} aria-label="Поиск">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/>
+                  <path d="m20 20-4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+          {isAutocompleteOpen && (
+            <div
+              ref={autocompleteRef}
+              className={styles.autocomplete}
+              style={{
+                top: `${autocompletePosition.top}px`,
+                left: `${autocompletePosition.left}px`,
+                width: `${autocompletePosition.width}px`,
+              }}
+            >
+              {isLoading ? (
+                <div className={styles.autocompleteLoading}>Загрузка...</div>
+              ) : autocompleteProducts.length > 0 ? (
+                <>
+                  {autocompleteProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className={styles.autocompleteItem}
+                      onClick={() => handleProductClick(product.slug)}
+                    >
+                      {product.image && (
+                        <div className={styles.autocompleteImage}>
+                          <img
+                            src={product.image}
+                            alt={product.title}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.src = `https://picsum.photos/seed/${product.id}/60/60`
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className={styles.autocompleteContent}>
+                        <div className={styles.autocompleteTitle}>{product.title}</div>
+                        <div className={styles.autocompletePrice}>
+                          {product.oldPrice && (
+                            <span className={styles.autocompleteOldPrice}>
+                              {formatPrice(product.oldPrice, product.currency)}
+                            </span>
+                          )}
+                          <span className={styles.autocompleteCurrentPrice}>
+                            {formatPrice(product.price, product.currency)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div
+                    className={styles.autocompleteAllResults}
+                    onClick={handleShowAllResults}
+                  >
+                    Все результаты
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
           <div className={styles.phone}>
             <div className={styles.phoneIcon}>
               <PhoneIcon />
