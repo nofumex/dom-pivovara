@@ -10,11 +10,13 @@ import styles from './CatalogSidebar.module.scss'
 interface SubSubcategory {
   name: string
   slug: string
+  image?: string
 }
 
 interface Subcategory {
   name: string
   slug: string
+  image?: string
   count?: number
   subSubcategories?: SubSubcategory[]
 }
@@ -22,6 +24,7 @@ interface Subcategory {
 interface Category {
   name: string
   slug: string
+  image?: string
   subcategories: Subcategory[]
 }
 
@@ -31,6 +34,8 @@ interface CatalogSidebarProps {
 
 export function CatalogSidebar({ categories: initialCategories }: CatalogSidebarProps) {
   const [categories, setCategories] = useState<Category[]>(initialCategories || [])
+  const [isPanelLeaving, setIsPanelLeaving] = useState(false)
+  const leaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Если категории не переданы, загружаем их через API
   useEffect(() => {
@@ -40,19 +45,41 @@ export function CatalogSidebar({ categories: initialCategories }: CatalogSidebar
         .then(data => {
           if (data.success && data.data) {
             // Преобразуем структуру данных из API в формат для сайдбара
-            const transformedCategories = data.data.map((category: any) => ({
-              name: category.name,
-              slug: category.slug,
-              subcategories: (category.other_Category || []).map((sub: any) => ({
-                name: sub.name,
-                slug: sub.slug,
-                count: sub._count?.Product || 0,
-                subSubcategories: (sub.other_Category || []).map((subSub: any) => ({
-                  name: subSub.name,
-                  slug: subSub.slug,
-                })),
-              })),
-            }))
+            const transformedCategories = data.data.map((category: any) => {
+              const subcategories = (category.other_Category || []).map((sub: any) => {
+                // Нормализуем изображение: убираем пустые строки и null
+                const subImage = sub.image && typeof sub.image === 'string' && sub.image.trim() !== '' ? sub.image : null
+                
+                // Временное логирование для отладки
+                if (subImage) {
+                  console.log(`✅ [CatalogSidebar] Подкатегория "${sub.name}" имеет изображение:`, subImage)
+                } else {
+                  console.warn(`⚠️ [CatalogSidebar] Подкатегория "${sub.name}" НЕ имеет изображения. sub.image =`, sub.image, 'raw sub:', sub)
+                }
+                
+                return {
+                  name: sub.name,
+                  slug: sub.slug,
+                  image: subImage, // Изображение подкатегории (из поля image или из товара)
+                  count: sub._count?.Product || 0,
+                  subSubcategories: (sub.other_Category || []).map((subSub: any) => {
+                    const subSubImage = subSub.image && typeof subSub.image === 'string' && subSub.image.trim() !== '' ? subSub.image : null
+                    return {
+                      name: subSub.name,
+                      slug: subSub.slug,
+                      image: subSubImage, // Изображение под-подкатегории
+                    }
+                  }),
+                }
+              })
+              
+              return {
+                name: category.name,
+                slug: category.slug,
+                image: category.image,
+                subcategories,
+              }
+            })
             setCategories(transformedCategories)
           }
         })
@@ -134,9 +161,28 @@ export function CatalogSidebar({ categories: initialCategories }: CatalogSidebar
 
   const handleSidebarLeave = () => {
     isSidebarHoveredRef.current = false
-    // Проверяем, не находимся ли мы в панели подкатегорий
-    checkAndCloseSidebar()
+    // Если уходим с сайдбара, запускаем анимацию исчезновения панели
+    if (hoveredCategory) {
+      setIsPanelLeaving(true)
+      leaveTimeoutRef.current = setTimeout(() => {
+        setHoveredCategory(null)
+        setIsPanelLeaving(false)
+        checkAndCloseSidebar()
+      }, 200)
+    } else {
+      // Проверяем, не находимся ли мы в панели подкатегорий
+      checkAndCloseSidebar()
+    }
   }
+
+  // Очистка таймера при размонтировании
+  useEffect(() => {
+    return () => {
+      if (leaveTimeoutRef.current) {
+        clearTimeout(leaveTimeoutRef.current)
+      }
+    }
+  }, [])
 
   return (
     <>
@@ -153,8 +199,23 @@ export function CatalogSidebar({ categories: initialCategories }: CatalogSidebar
                   <div
                     key={category.slug}
                     className={styles.categoryItem}
-                    onMouseEnter={() => setHoveredCategory(category.slug)}
-                    onMouseLeave={() => setHoveredCategory(null)}
+                    onMouseEnter={() => {
+                      // Отменяем анимацию исчезновения, если вернулись на категорию
+                      if (leaveTimeoutRef.current) {
+                        clearTimeout(leaveTimeoutRef.current)
+                        leaveTimeoutRef.current = null
+                      }
+                      setIsPanelLeaving(false)
+                      setHoveredCategory(category.slug)
+                    }}
+                    onMouseLeave={() => {
+                      // Запускаем анимацию исчезновения панели
+                      setIsPanelLeaving(true)
+                      leaveTimeoutRef.current = setTimeout(() => {
+                        setHoveredCategory(null)
+                        setIsPanelLeaving(false)
+                      }, 200) // Время анимации исчезновения
+                    }}
                   >
                     <Link
                       href={`/catalog/${category.slug}`}
@@ -165,23 +226,42 @@ export function CatalogSidebar({ categories: initialCategories }: CatalogSidebar
                         <span className={styles.arrow}>›</span>
                       )}
                     </Link>
-                    {category.subcategories.length > 0 && hoveredCategory === category.slug && (
+                    {category.subcategories.length > 0 && (hoveredCategory === category.slug || isPanelLeaving) && (
                       <div 
-                        className={styles.subcategoriesPanel}
+                        className={`${styles.subcategoriesPanel} ${isPanelLeaving && hoveredCategory !== category.slug ? styles.leaving : ''}`}
                         onMouseEnter={() => {
+                          // Отменяем анимацию исчезновения, если вернулись на панель
+                          if (leaveTimeoutRef.current) {
+                            clearTimeout(leaveTimeoutRef.current)
+                            leaveTimeoutRef.current = null
+                          }
+                          setIsPanelLeaving(false)
                           setHoveredCategory(category.slug)
                           isSubcategoriesPanelHoveredRef.current = true
                           openSidebar() // Держим сайдбар открытым при наведении на подкатегории
                         }}
                         onMouseLeave={() => {
-                          setHoveredCategory(null)
                           isSubcategoriesPanelHoveredRef.current = false
-                          // Проверяем, не находимся ли мы в сайдбаре
-                          checkAndCloseSidebar()
+                          // Запускаем анимацию исчезновения
+                          setIsPanelLeaving(true)
+                          leaveTimeoutRef.current = setTimeout(() => {
+                            setHoveredCategory(null)
+                            setIsPanelLeaving(false)
+                            checkAndCloseSidebar()
+                          }, 200) // Время анимации исчезновения
                         }}
                       >
                         <div className={styles.subcategoriesContent}>
-                          <h3 className={styles.subcategoriesTitle}>{category.name}</h3>
+                          <div className={styles.categoryHeader}>
+                            {category.image && (
+                              <img
+                                src={category.image}
+                                alt={category.name}
+                                className={styles.categoryImage}
+                              />
+                            )}
+                            <h3 className={styles.subcategoriesTitle}>{category.name}</h3>
+                          </div>
                           <div className={styles.subcategoriesGrid}>
                             {category.subcategories.map((subcategory) => (
                               <div key={subcategory.slug} className={styles.subcategoryCard}>
@@ -190,9 +270,19 @@ export function CatalogSidebar({ categories: initialCategories }: CatalogSidebar
                                   className={styles.subcategoryHeader}
                                 >
                                   <img
-                                    src={getPlaceholderImage(subcategory.name, 64)}
+                                    src={subcategory.image || getPlaceholderImage(subcategory.name, 64)}
                                     alt={subcategory.name}
                                     className={styles.subcategoryImage}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={(e) => {
+                                      // Если изображение не загрузилось, используем placeholder
+                                      const target = e.target as HTMLImageElement
+                                      const placeholderUrl = getPlaceholderImage(subcategory.name, 64)
+                                      if (target.src !== placeholderUrl) {
+                                        target.src = placeholderUrl
+                                      }
+                                    }}
                                   />
                                   <div className={styles.subcategoryInfo}>
                                     <span className={styles.subcategoryName}>

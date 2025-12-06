@@ -56,8 +56,9 @@ export async function POST(request: NextRequest) {
           errors.push('Отсутствует или неверный формат массива sections')
         }
 
-        if (!data.products || !Array.isArray(data.products)) {
-          errors.push('Отсутствует или неверный формат массива products')
+        // Проверяем наличие products или elements
+        if ((!data.products || !Array.isArray(data.products)) && (!data.elements || !Array.isArray(data.elements))) {
+          errors.push('Отсутствует или неверный формат массива products/elements')
         }
 
         // Validate sections
@@ -78,33 +79,29 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        // Validate products
-        if (data.products) {
-          data.products.forEach((product: any, index: number) => {
+        // Validate products/elements
+        const productsToValidate = data.elements || data.products || []
+        if (Array.isArray(productsToValidate) && productsToValidate.length > 0) {
+          productsToValidate.forEach((product: any, index: number) => {
             if (!product.ID) {
               errors.push(`Товар #${index + 1}: отсутствует ID`)
             }
             if (!product.NAME) {
               errors.push(`Товар #${index + 1}: отсутствует название (NAME)`)
             }
-            if (!product.CODE && !product.ID) {
-              errors.push(`Товар #${index + 1}: отсутствует CODE или ID`)
-            }
             if (product.IBLOCK_SECTION_ID === undefined) {
               errors.push(`Товар #${index + 1}: отсутствует IBLOCK_SECTION_ID`)
             }
-            // Проверяем наличие цены в PROPS
-            if (product.PROPS && Array.isArray(product.PROPS)) {
-              const priceProp = product.PROPS.find((p: any) => 
-                p.IBLOCK_PROPERTY_ID === '45' || 
-                p.IBLOCK_PROPERTY_ID === 'price' ||
-                (p.VALUE_NUM !== undefined || p.VALUE !== undefined)
-              )
-              if (!priceProp) {
-                warnings.push(`Товар #${index + 1}: не найдено свойство с ценой в PROPS`)
-              }
-            } else {
-              warnings.push(`Товар #${index + 1}: отсутствует массив PROPS`)
+            // Проверяем наличие цены в PRICES (новый формат) или PROPS (старый формат)
+            const hasPrice = (product.PRICES && Array.isArray(product.PRICES) && product.PRICES.length > 0) ||
+                            (product.PROPS && Array.isArray(product.PROPS) && product.PROPS.some((p: any) => 
+                              p.IBLOCK_PROPERTY_ID === '45' || 
+                              p.IBLOCK_PROPERTY_ID === 'price' ||
+                              (p.VALUE_NUM !== undefined || p.VALUE !== undefined)
+                            )) ||
+                            (product.PROPERTIES && typeof product.PROPERTIES === 'object' && Object.keys(product.PROPERTIES).length > 0)
+            if (!hasPrice) {
+              warnings.push(`Товар #${index + 1}: не найдено свойство с ценой (проверьте PRICES, PROPS или PROPERTIES)`)
             }
           })
         }
@@ -154,11 +151,12 @@ export async function POST(request: NextRequest) {
       }
 
       const stats = {
-        products: data.products?.length || 0,
+        products: (data.elements?.length || data.products?.length || 0),
         categories: format === 'export_catalog' 
           ? (data.sections?.length || 0)
           : (data.categories?.length || 0),
         sections: format === 'export_catalog' ? (data.sections?.length || 0) : 0,
+        images: data.images ? (typeof data.images === 'object' && !Array.isArray(data.images) ? Object.keys(data.images).length : (Array.isArray(data.images) ? data.images.length : 0)) : 0,
         settings: Object.keys(data.settings || {}).length,
         format,
       }

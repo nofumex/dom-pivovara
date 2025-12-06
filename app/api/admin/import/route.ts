@@ -284,66 +284,67 @@ export async function POST(request: NextRequest) {
                 console.log(`[IMPORT] Создана категория: ${categoryData.slug} (${categoryData.name})`)
               }
             } else {
-          // Существующая логика для режима обновления
-          const existing = await prisma.category.findUnique({
-            where: { slug: categoryData.slug },
-          })
-
-          if (existing) {
-            categorySlugToId.set(categoryData.slug, existing.id)
-            if (options.skipExisting) {
-              result.skipped.categories.push(categoryData.slug)
-              continue
-            }
-            if (options.updateExisting) {
-              await prisma.category.update({
+              // Существующая логика для режима обновления
+              const existing = await prisma.category.findUnique({
                 where: { slug: categoryData.slug },
-                data: {
-                  name: categoryData.name,
-                  description: categoryData.description,
-                  image: categoryData.image,
-                  isActive: categoryData.isActive ?? true,
-                  sortOrder: categoryData.sortOrder ?? 0,
-                  seoTitle: categoryData.seoTitle,
-                  seoDesc: categoryData.seoDesc,
-                  updatedAt: new Date(),
-                },
               })
-              result.processed.categories++
-              processedItems++
+
+              if (existing) {
+                categorySlugToId.set(categoryData.slug, existing.id)
+                if (options.skipExisting) {
+                  result.skipped.categories.push(categoryData.slug)
+                  continue
+                }
+                if (options.updateExisting) {
+                  await prisma.category.update({
+                    where: { slug: categoryData.slug },
+                    data: {
+                      name: categoryData.name,
+                      description: categoryData.description,
+                      image: categoryData.image,
+                      isActive: categoryData.isActive ?? true,
+                      sortOrder: categoryData.sortOrder ?? 0,
+                      seoTitle: categoryData.seoTitle,
+                      seoDesc: categoryData.seoDesc,
+                      updatedAt: new Date(),
+                    },
+                  })
+                  result.processed.categories++
+                  processedItems++
+                }
+              } else {
+                const newCategory = await prisma.category.create({
+                  data: {
+                    id: randomUUID(),
+                    name: categoryData.name,
+                    slug: categoryData.slug,
+                    description: categoryData.description,
+                    image: categoryData.image,
+                    isActive: categoryData.isActive ?? true,
+                    sortOrder: categoryData.sortOrder ?? 0,
+                    seoTitle: categoryData.seoTitle,
+                    seoDesc: categoryData.seoDesc,
+                    updatedAt: new Date(),
+                  },
+                })
+                categorySlugToId.set(categoryData.slug, newCategory.id)
+                result.processed.categories++
+                processedItems++
+                if (result.processed.categories <= 5) {
+                  console.log(`[IMPORT] Создана категория: ${categoryData.slug} (${categoryData.name})`)
+                }
+              }
             }
-          } else {
-            const newCategory = await prisma.category.create({
-              data: {
-                id: randomUUID(),
-                name: categoryData.name,
-                slug: categoryData.slug,
-                description: categoryData.description,
-                image: categoryData.image,
-                isActive: categoryData.isActive ?? true,
-                sortOrder: categoryData.sortOrder ?? 0,
-                seoTitle: categoryData.seoTitle,
-                seoDesc: categoryData.seoDesc,
-                updatedAt: new Date(),
-              },
-            })
-            categorySlugToId.set(categoryData.slug, newCategory.id)
-            result.processed.categories++
-            processedItems++
-            if (result.processed.categories <= 5) {
-              console.log(`[IMPORT] Создана категория: ${categoryData.slug} (${categoryData.name})`)
+            
+            // Отправляем прогресс каждые 10 категорий или на последней
+            if ((i + 1) % 10 === 0 || i === sortedCategories.length - 1) {
+              const progress = Math.min(30, 15 + Math.floor((processedItems / totalItems) * 25))
+              sendProgress(controller, progress, `Импорт категорий (${i + 1}/${sortedCategories.length})...`, {
+                processedCategories: result.processed.categories,
+                totalCategories: sortedCategories.length,
+              })
             }
-          }
-          
-          // Отправляем прогресс каждые 10 категорий или на последней
-          if ((i + 1) % 10 === 0 || i === sortedCategories.length - 1) {
-            const progress = Math.min(30, 15 + Math.floor((processedItems / totalItems) * 25))
-            sendProgress(controller, progress, `Импорт категорий (${i + 1}/${sortedCategories.length})...`, {
-              processedCategories: result.processed.categories,
-              totalCategories: sortedCategories.length,
-            })
-          }
-        } catch (error: any) {
+          } catch (error: any) {
           console.error(`[IMPORT] Ошибка при импорте категории ${categoryData.slug}:`, error)
           result.errors.push(`Ошибка при импорте категории ${categoryData.slug}: ${error.message}`)
         }
@@ -351,180 +352,65 @@ export async function POST(request: NextRequest) {
       
       console.log(`[IMPORT] Категории обработаны. Создано/обновлено: ${result.processed.categories}, в маппинге: ${categorySlugToId.size}`)
 
-    // Second pass: update parentId relationships
-    for (const categoryData of data.categories || []) {
-      if (!categoryData.parentId) continue // Skip if no parent
+        // Second pass: update parentId relationships
+        for (const categoryData of data.categories || []) {
+          if (!categoryData.parentId) continue // Skip if no parent
 
-      try {
-        const categoryId = categorySlugToId.get(categoryData.slug)
-        const parentId = categorySlugToId.get(categoryData.parentId)
+          try {
+            const categoryId = categorySlugToId.get(categoryData.slug)
+            const parentId = categorySlugToId.get(categoryData.parentId)
 
-        if (!categoryId) {
-          result.warnings.push(`Категория ${categoryData.slug} не найдена для обновления parentId`)
-          continue
-        }
-
-        if (!parentId) {
-          result.warnings.push(`Родительская категория ${categoryData.parentId} не найдена для ${categoryData.slug}`)
-          continue
-        }
-
-        await prisma.category.update({
-          where: { id: categoryId },
-          data: { parentId },
-        })
-      } catch (error: any) {
-        result.warnings.push(`Ошибка при обновлении parentId для категории ${categoryData.slug}: ${error.message}`)
-      }
-    }
-
-    // Import products
-    console.log(`[IMPORT] Начало импорта товаров (${data.products.length} шт.)`)
-    let productsWithoutCategory = 0
-    let productsWithFallbackCategory = 0
-    
-    for (const productData of data.products || []) {
-      try {
-        // В режиме replaceAll все товары создаются заново
-        if (options.replaceAll) {
-          // Find category by slug
-          let category = null
-          if (productData.categoryObj?.slug) {
-            category = await prisma.category.findUnique({
-              where: { slug: productData.categoryObj.slug },
-            })
-            
-            if (!category) {
-              productsWithoutCategory++
-              result.errors.push(`Категория "${productData.categoryObj.slug}" не найдена для товара ${productData.sku}`)
+            if (!categoryId) {
+              result.warnings.push(`Категория ${categoryData.slug} не найдена для обновления parentId`)
               continue
             }
-          } else {
-            productsWithoutCategory++
-            result.errors.push(`Категория не указана для товара ${productData.sku}`)
-            continue
-          }
 
-          const product = await prisma.product.create({
-            data: {
-              id: randomUUID(),
-              sku: productData.sku,
-              title: productData.title,
-              slug: productData.slug,
-              description: productData.description,
-              content: productData.content,
-              price: productData.price.toString(),
-              oldPrice: productData.oldPrice?.toString(),
-              stock: typeof productData.stock === 'string' ? parseInt(productData.stock, 10) || 0 : (typeof productData.stock === 'number' ? productData.stock : 0),
-              minOrder: productData.minOrder ?? 1,
-              weight: productData.weight?.toString(),
-              dimensions: productData.dimensions,
-              material: productData.material,
-              tags: productData.tags || [],
-              images: productData.images || [],
-              isActive: productData.isActive ?? true,
-              isFeatured: productData.isFeatured ?? false,
-              isInStock: productData.isInStock ?? true,
-              visibility: productData.visibility || 'VISIBLE',
-              categoryId: category.id,
-              seoTitle: productData.seoTitle,
-              seoDesc: productData.seoDesc,
-              metaTitle: productData.metaTitle,
-              metaDesc: productData.metaDesc,
-              updatedAt: new Date(),
-            },
-          })
-
-          // Import variants
-          if (productData.variants) {
-            for (const variantData of productData.variants) {
-              await prisma.productVariant.create({
-                data: {
-                  productId: product.id,
-                  size: variantData.size,
-                  color: variantData.color,
-                  material: variantData.material,
-                  price: variantData.price.toString(),
-                  stock: variantData.stock,
-                  sku: variantData.sku,
-                  imageUrl: variantData.imageUrl,
-                  isActive: variantData.isActive ?? true,
-                },
-              })
-            }
-          }
-
-          result.processed.products++
-          processedItems++
-          
-          // Отправляем прогресс каждые 50 товаров или на последнем
-          if ((i + 1) % 50 === 0 || i === data.products.length - 1) {
-            const progress = Math.min(90, 35 + Math.floor((processedItems / totalItems) * 55))
-            sendProgress(controller, progress, `Импорт товаров (${i + 1}/${data.products.length})...`, {
-              processedProducts: result.processed.products,
-              totalProducts: data.products.length,
-            })
-          }
-        } else {
-          // Существующая логика для режима обновления
-          const existing = await prisma.product.findUnique({
-            where: { sku: productData.sku },
-          })
-
-          if (existing) {
-            if (options.skipExisting) {
-              result.skipped.products.push(productData.sku)
+            if (!parentId) {
+              result.warnings.push(`Родительская категория ${categoryData.parentId} не найдена для ${categoryData.slug}`)
               continue
             }
-            if (options.updateExisting) {
-              // Find category
+
+            await prisma.category.update({
+              where: { id: categoryId },
+              data: { parentId },
+            })
+          } catch (error: any) {
+            result.warnings.push(`Ошибка при обновлении parentId для категории ${categoryData.slug}: ${error.message}`)
+          }
+        }
+
+        // Import products
+        console.log(`[IMPORT] Начало импорта товаров (${data.products.length} шт.)`)
+        let productsWithoutCategory = 0
+        let productsWithFallbackCategory = 0
+        
+        for (let i = 0; i < (data.products || []).length; i++) {
+          const productData = data.products[i]
+          try {
+            // В режиме replaceAll все товары создаются заново
+            if (options.replaceAll) {
+              // Find category by slug
               let category = null
               if (productData.categoryObj?.slug) {
-                category = await prisma.category.findFirst({
-                  where: {
-                    OR: [
-                      { slug: productData.categoryObj.slug },
-                      { name: productData.categoryObj.name },
-                    ],
-                  },
+                category = await prisma.category.findUnique({
+                  where: { slug: productData.categoryObj.slug },
                 })
                 
-                if (!category && productsWithoutCategory < 5) {
-                  console.warn(`[IMPORT] Товар ${productData.sku} (обновление): категория "${productData.categoryObj.slug}" не найдена в базе`)
-                }
-              } else {
-                if (productsWithoutCategory < 5) {
-                  console.warn(`[IMPORT] Товар ${productData.sku} (обновление): categoryObj не указан`)
-                }
-              }
-
-              if (!category) {
-                productsWithoutCategory++
-                // Пробуем найти любую категорию как fallback
-                const fallbackCategory = await prisma.category.findFirst({
-                  orderBy: { createdAt: 'asc' },
-                })
-                
-                if (fallbackCategory) {
-                  productsWithFallbackCategory++
-                  if (productsWithFallbackCategory <= 5) {
-                    console.log(`[IMPORT] Товар ${productData.sku} (обновление): категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, используется fallback категория "${fallbackCategory.name}"`)
-                  }
-                  result.warnings.push(`Товар ${productData.sku}: категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, использована категория "${fallbackCategory.name}"`)
-                  category = fallbackCategory
-                } else {
-                  result.errors.push(`Категория не найдена для товара ${productData.sku} (искали: ${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}). Нет категорий в базе для fallback.`)
+                if (!category) {
+                  productsWithoutCategory++
+                  result.errors.push(`Категория "${productData.categoryObj.slug}" не найдена для товара ${productData.sku}`)
                   continue
                 }
               } else {
-                if (productsWithoutCategory < 5) {
-                  console.log(`[IMPORT] Товар ${productData.sku} (обновление): найдена категория "${category.name}" (${category.slug})`)
-                }
+                productsWithoutCategory++
+                result.errors.push(`Категория не указана для товара ${productData.sku}`)
+                continue
               }
 
-              await prisma.product.update({
-                where: { sku: productData.sku },
+              const product = await prisma.product.create({
                 data: {
+                  id: randomUUID(),
+                  sku: productData.sku,
                   title: productData.title,
                   slug: productData.slug,
                   description: productData.description,
@@ -547,25 +433,16 @@ export async function POST(request: NextRequest) {
                   seoDesc: productData.seoDesc,
                   metaTitle: productData.metaTitle,
                   metaDesc: productData.metaDesc,
+                  updatedAt: new Date(),
                 },
               })
 
               // Import variants
               if (productData.variants) {
                 for (const variantData of productData.variants) {
-                  await prisma.productVariant.upsert({
-                    where: { sku: variantData.sku },
-                    update: {
-                      size: variantData.size,
-                      color: variantData.color,
-                      material: variantData.material,
-                      price: variantData.price.toString(),
-                      stock: variantData.stock,
-                      imageUrl: variantData.imageUrl,
-                      isActive: variantData.isActive ?? true,
-                    },
-                    create: {
-                      productId: existing.id,
+                  await prisma.productVariant.create({
+                    data: {
+                      productId: product.id,
                       size: variantData.size,
                       color: variantData.color,
                       material: variantData.material,
@@ -582,142 +459,268 @@ export async function POST(request: NextRequest) {
               result.processed.products++
               processedItems++
               
-              // Отправляем прогресс каждые 50 товаров
-              if ((i + 1) % 50 === 0) {
+              // Отправляем прогресс каждые 50 товаров или на последнем
+              if ((i + 1) % 50 === 0 || i === data.products.length - 1) {
                 const progress = Math.min(90, 35 + Math.floor((processedItems / totalItems) * 55))
                 sendProgress(controller, progress, `Импорт товаров (${i + 1}/${data.products.length})...`, {
                   processedProducts: result.processed.products,
                   totalProducts: data.products.length,
                 })
               }
-            }
-          } else {
-            // Find category
-            let category = null
-            if (productData.categoryObj?.slug) {
-              category = await prisma.category.findFirst({
-                where: {
-                  OR: [
-                    { slug: productData.categoryObj.slug },
-                    { name: productData.categoryObj.name },
-                  ],
-                },
-              })
-              
-              if (!category && productsWithoutCategory < 5) {
-                console.warn(`[IMPORT] Товар ${productData.sku} (создание): категория "${productData.categoryObj.slug}" не найдена в базе`)
-              }
             } else {
-              if (productsWithoutCategory < 5) {
-                console.warn(`[IMPORT] Товар ${productData.sku} (создание): categoryObj не указан`)
-              }
-            }
-
-            if (!category) {
-              productsWithoutCategory++
-              // Пробуем найти любую категорию как fallback
-              const fallbackCategory = await prisma.category.findFirst({
-                orderBy: { createdAt: 'asc' },
+              // Существующая логика для режима обновления
+              const existing = await prisma.product.findUnique({
+                where: { sku: productData.sku },
               })
-              
-              if (fallbackCategory) {
-                productsWithFallbackCategory++
-                if (productsWithFallbackCategory <= 5) {
-                  console.log(`[IMPORT] Товар ${productData.sku} (создание): категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, используется fallback категория "${fallbackCategory.name}"`)
+
+              if (existing) {
+                if (options.skipExisting) {
+                  result.skipped.products.push(productData.sku)
+                  continue
                 }
-                result.warnings.push(`Товар ${productData.sku}: категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, использована категория "${fallbackCategory.name}"`)
-                category = fallbackCategory
+                if (options.updateExisting) {
+                  // Find category
+                  let category = null
+                  if (productData.categoryObj?.slug) {
+                    category = await prisma.category.findFirst({
+                      where: {
+                        OR: [
+                          { slug: productData.categoryObj.slug },
+                          { name: productData.categoryObj.name },
+                        ],
+                      },
+                    })
+                    
+                    if (!category && productsWithoutCategory < 5) {
+                      console.warn(`[IMPORT] Товар ${productData.sku} (обновление): категория "${productData.categoryObj.slug}" не найдена в базе`)
+                    }
+                  } else {
+                    if (productsWithoutCategory < 5) {
+                      console.warn(`[IMPORT] Товар ${productData.sku} (обновление): categoryObj не указан`)
+                    }
+                  }
+
+                  if (!category) {
+                    productsWithoutCategory++
+                    // Пробуем найти любую категорию как fallback
+                    const fallbackCategory = await prisma.category.findFirst({
+                      orderBy: { createdAt: 'asc' },
+                    })
+                    
+                    if (fallbackCategory) {
+                      productsWithFallbackCategory++
+                      if (productsWithFallbackCategory <= 5) {
+                        console.log(`[IMPORT] Товар ${productData.sku} (обновление): категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, используется fallback категория "${fallbackCategory.name}"`)
+                      }
+                      result.warnings.push(`Товар ${productData.sku}: категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, использована категория "${fallbackCategory.name}"`)
+                      category = fallbackCategory
+                    } else {
+                      result.errors.push(`Категория не найдена для товара ${productData.sku} (искали: ${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}). Нет категорий в базе для fallback.`)
+                      continue
+                    }
+                  } else {
+                    if (productsWithoutCategory < 5) {
+                      console.log(`[IMPORT] Товар ${productData.sku} (обновление): найдена категория "${category.name}" (${category.slug})`)
+                    }
+                  }
+
+                  await prisma.product.update({
+                    where: { sku: productData.sku },
+                    data: {
+                      title: productData.title,
+                      slug: productData.slug,
+                      description: productData.description,
+                      content: productData.content,
+                      price: productData.price.toString(),
+                      oldPrice: productData.oldPrice?.toString(),
+                      stock: typeof productData.stock === 'string' ? parseInt(productData.stock, 10) || 0 : (typeof productData.stock === 'number' ? productData.stock : 0),
+                      minOrder: productData.minOrder ?? 1,
+                      weight: productData.weight?.toString(),
+                      dimensions: productData.dimensions,
+                      material: productData.material,
+                      tags: productData.tags || [],
+                      images: productData.images || [],
+                      isActive: productData.isActive ?? true,
+                      isFeatured: productData.isFeatured ?? false,
+                      isInStock: productData.isInStock ?? true,
+                      visibility: productData.visibility || 'VISIBLE',
+                      categoryId: category.id,
+                      seoTitle: productData.seoTitle,
+                      seoDesc: productData.seoDesc,
+                      metaTitle: productData.metaTitle,
+                      metaDesc: productData.metaDesc,
+                    },
+                  })
+
+                  // Import variants
+                  if (productData.variants) {
+                    for (const variantData of productData.variants) {
+                      await prisma.productVariant.upsert({
+                        where: { sku: variantData.sku },
+                        update: {
+                          size: variantData.size,
+                          color: variantData.color,
+                          material: variantData.material,
+                          price: variantData.price.toString(),
+                          stock: variantData.stock,
+                          imageUrl: variantData.imageUrl,
+                          isActive: variantData.isActive ?? true,
+                        },
+                        create: {
+                          productId: existing.id,
+                          size: variantData.size,
+                          color: variantData.color,
+                          material: variantData.material,
+                          price: variantData.price.toString(),
+                          stock: variantData.stock,
+                          sku: variantData.sku,
+                          imageUrl: variantData.imageUrl,
+                          isActive: variantData.isActive ?? true,
+                        },
+                      })
+                    }
+                  }
+
+                  result.processed.products++
+                  processedItems++
+                  
+                  // Отправляем прогресс каждые 50 товаров
+                  if ((i + 1) % 50 === 0) {
+                    const progress = Math.min(90, 35 + Math.floor((processedItems / totalItems) * 55))
+                    sendProgress(controller, progress, `Импорт товаров (${i + 1}/${data.products.length})...`, {
+                      processedProducts: result.processed.products,
+                      totalProducts: data.products.length,
+                    })
+                  }
+                }
               } else {
-                result.errors.push(`Категория не найдена для товара ${productData.sku} (искали: ${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}). Нет категорий в базе для fallback.`)
-                continue
-              }
-            } else {
-              if (productsWithoutCategory < 5) {
-                console.log(`[IMPORT] Товар ${productData.sku} (создание): найдена категория "${category.name}" (${category.slug})`)
-              }
-            }
+                // Find category
+                let category = null
+                if (productData.categoryObj?.slug) {
+                  category = await prisma.category.findFirst({
+                    where: {
+                      OR: [
+                        { slug: productData.categoryObj.slug },
+                        { name: productData.categoryObj.name },
+                      ],
+                    },
+                  })
+                  
+                  if (!category && productsWithoutCategory < 5) {
+                    console.warn(`[IMPORT] Товар ${productData.sku} (создание): категория "${productData.categoryObj.slug}" не найдена в базе`)
+                  }
+                } else {
+                  if (productsWithoutCategory < 5) {
+                    console.warn(`[IMPORT] Товар ${productData.sku} (создание): categoryObj не указан`)
+                  }
+                }
 
-            const product = await prisma.product.create({
-              data: {
-                id: randomUUID(),
-                sku: productData.sku,
-                title: productData.title,
-                slug: productData.slug,
-                description: productData.description,
-                content: productData.content,
-                price: productData.price.toString(),
-                oldPrice: productData.oldPrice?.toString(),
-                stock: typeof productData.stock === 'string' ? parseInt(productData.stock, 10) || 0 : (typeof productData.stock === 'number' ? productData.stock : 0),
-                minOrder: productData.minOrder ?? 1,
-                weight: productData.weight?.toString(),
-                dimensions: productData.dimensions,
-                material: productData.material,
-                tags: productData.tags || [],
-                images: productData.images || [],
-                isActive: productData.isActive ?? true,
-                isFeatured: productData.isFeatured ?? false,
-                isInStock: productData.isInStock ?? true,
-                visibility: productData.visibility || 'VISIBLE',
-                categoryId: category.id,
-                seoTitle: productData.seoTitle,
-                seoDesc: productData.seoDesc,
-                metaTitle: productData.metaTitle,
-                metaDesc: productData.metaDesc,
-                updatedAt: new Date(),
-              },
-            })
+                if (!category) {
+                  productsWithoutCategory++
+                  // Пробуем найти любую категорию как fallback
+                  const fallbackCategory = await prisma.category.findFirst({
+                    orderBy: { createdAt: 'asc' },
+                  })
+                  
+                  if (fallbackCategory) {
+                    productsWithFallbackCategory++
+                    if (productsWithFallbackCategory <= 5) {
+                      console.log(`[IMPORT] Товар ${productData.sku} (создание): категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, используется fallback категория "${fallbackCategory.name}"`)
+                    }
+                    result.warnings.push(`Товар ${productData.sku}: категория "${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}" не найдена, использована категория "${fallbackCategory.name}"`)
+                    category = fallbackCategory
+                  } else {
+                    result.errors.push(`Категория не найдена для товара ${productData.sku} (искали: ${productData.categoryObj?.slug || productData.categoryObj?.name || 'не указана'}). Нет категорий в базе для fallback.`)
+                    continue
+                  }
+                } else {
+                  if (productsWithoutCategory < 5) {
+                    console.log(`[IMPORT] Товар ${productData.sku} (создание): найдена категория "${category.name}" (${category.slug})`)
+                  }
+                }
 
-            // Import variants
-            if (productData.variants) {
-              for (const variantData of productData.variants) {
-                await prisma.productVariant.create({
+                const product = await prisma.product.create({
                   data: {
-                    productId: product.id,
-                    size: variantData.size,
-                    color: variantData.color,
-                    material: variantData.material,
-                    price: variantData.price.toString(),
-                    stock: variantData.stock,
-                    sku: variantData.sku,
-                    imageUrl: variantData.imageUrl,
-                    isActive: variantData.isActive ?? true,
+                    id: randomUUID(),
+                    sku: productData.sku,
+                    title: productData.title,
+                    slug: productData.slug,
+                    description: productData.description,
+                    content: productData.content,
+                    price: productData.price.toString(),
+                    oldPrice: productData.oldPrice?.toString(),
+                    stock: typeof productData.stock === 'string' ? parseInt(productData.stock, 10) || 0 : (typeof productData.stock === 'number' ? productData.stock : 0),
+                    minOrder: productData.minOrder ?? 1,
+                    weight: productData.weight?.toString(),
+                    dimensions: productData.dimensions,
+                    material: productData.material,
+                    tags: productData.tags || [],
+                    images: productData.images || [],
+                    isActive: productData.isActive ?? true,
+                    isFeatured: productData.isFeatured ?? false,
+                    isInStock: productData.isInStock ?? true,
+                    visibility: productData.visibility || 'VISIBLE',
+                    categoryId: category.id,
+                    seoTitle: productData.seoTitle,
+                    seoDesc: productData.seoDesc,
+                    metaTitle: productData.metaTitle,
+                    metaDesc: productData.metaDesc,
+                    updatedAt: new Date(),
                   },
                 })
+
+                // Import variants
+                if (productData.variants) {
+                  for (const variantData of productData.variants) {
+                    await prisma.productVariant.create({
+                      data: {
+                        productId: product.id,
+                        size: variantData.size,
+                        color: variantData.color,
+                        material: variantData.material,
+                        price: variantData.price.toString(),
+                        stock: variantData.stock,
+                        sku: variantData.sku,
+                        imageUrl: variantData.imageUrl,
+                        isActive: variantData.isActive ?? true,
+                      },
+                    })
+                  }
+                }
+
+                result.processed.products++
+                processedItems++
+                
+                // Отправляем прогресс каждые 50 товаров или на последнем
+                if ((i + 1) % 50 === 0 || i === data.products.length - 1) {
+                  const progress = Math.min(90, 35 + Math.floor((processedItems / totalItems) * 55))
+                  sendProgress(controller, progress, `Импорт товаров (${i + 1}/${data.products.length})...`, {
+                    processedProducts: result.processed.products,
+                    totalProducts: data.products.length,
+                  })
+                }
               }
             }
+          } catch (error: any) {
+            result.errors.push(`Ошибка при импорте товара ${productData.sku}: ${error.message}`)
+          }
+        }
 
-            result.processed.products++
-            processedItems++
-            
-            // Отправляем прогресс каждые 50 товаров или на последнем
-            if ((i + 1) % 50 === 0 || i === data.products.length - 1) {
-              const progress = Math.min(90, 35 + Math.floor((processedItems / totalItems) * 55))
-              sendProgress(controller, progress, `Импорт товаров (${i + 1}/${data.products.length})...`, {
-                processedProducts: result.processed.products,
-                totalProducts: data.products.length,
+        // Import settings
+        sendProgress(controller, 92, 'Импорт настроек...')
+        if (data.settings) {
+          for (const [key, value] of Object.entries(data.settings)) {
+            try {
+              await prisma.setting.upsert({
+                where: { key },
+                update: { value: String(value) },
+                create: { key, value: String(value), type: 'STRING' },
               })
+            } catch (error: any) {
+              result.warnings.push(`Ошибка при импорте настройки ${key}: ${error.message}`)
             }
           }
-        } catch (error: any) {
-          result.errors.push(`Ошибка при импорте товара ${productData.sku}: ${error.message}`)
         }
-      }
-
-      // Import settings
-      sendProgress(controller, 92, 'Импорт настроек...')
-      if (data.settings) {
-      for (const [key, value] of Object.entries(data.settings)) {
-        try {
-          await prisma.setting.upsert({
-            where: { key },
-            update: { value: String(value) },
-            create: { key, value: String(value), type: 'STRING' },
-          })
-        } catch (error: any) {
-          result.warnings.push(`Ошибка при импорте настройки ${key}: ${error.message}`)
-        }
-      }
-    }
 
         console.log(`[IMPORT] Импорт завершен успешно. Обработано: товаров=${result.processed.products}, категорий=${result.processed.categories}, медиа=${result.processed.media}`)
         if (productsWithoutCategory > 0) {

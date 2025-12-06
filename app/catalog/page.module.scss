@@ -83,6 +83,15 @@
   }
 }
 
+.subcategoryImage {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: transparent;
+  border-radius: var(--radius-sm, 4px);
+}
+
 .subcategoryName {
   flex: 1;
   line-height: 1.3;

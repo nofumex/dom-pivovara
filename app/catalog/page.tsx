@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { prisma } from '@/lib/db'
-import { getCategoryProductCount } from '@/lib/categoryUtils'
+import { getCategoryProductCount, getSubcategoryImage } from '@/lib/categoryUtils'
 import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
@@ -33,14 +33,21 @@ export default async function CatalogPage() {
   })
 
   // Подсчитываем товары для каждой подкатегории с учетом дочерних категорий
+  // И получаем изображения подкатегорий из товаров
   const categoriesWithCounts = await Promise.all(
     categories.map(async (category) => ({
       ...category,
       subcategoriesWithCounts: await Promise.all(
-        category.other_Category.map(async (subcategory) => ({
-          ...subcategory,
-          productCount: await getCategoryProductCount(subcategory.id),
-        }))
+        category.other_Category.map(async (subcategory) => {
+          // Получаем изображение подкатегории из товара, если у самой подкатегории нет изображения
+          const subcategoryImage = subcategory.image || await getSubcategoryImage(subcategory.id)
+          
+          return {
+            ...subcategory,
+            image: subcategoryImage,
+            productCount: await getCategoryProductCount(subcategory.id),
+          }
+        })
       ),
     }))
   )
@@ -74,6 +81,13 @@ export default async function CatalogPage() {
                       href={`/catalog/${category.slug}/${subcategory.slug}`}
                       className={styles.subcategoryItem}
                     >
+                      {subcategory.image && (
+                        <img
+                          src={subcategory.image}
+                          alt={subcategory.name}
+                          className={styles.subcategoryImage}
+                        />
+                      )}
                       <span className={styles.subcategoryName}>
                         {subcategory.name}
                       </span>

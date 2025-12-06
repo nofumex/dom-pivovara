@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { getCategoryProductCount } from '@/lib/categoryUtils'
+import { getCategoryProductCount, getSubcategoryImage } from '@/lib/categoryUtils'
 import { CategoryClient } from './CategoryClient'
 
 export default async function CategoryPage({
@@ -34,13 +34,20 @@ export default async function CategoryPage({
   }
 
   // Подсчитываем товары для каждой подкатегории с учетом дочерних категорий
+  // И получаем изображения подкатегорий из товаров
   const childrenWithCounts = await Promise.all(
-    category.other_Category.map(async (sub) => ({
-      id: sub.id,
-      name: sub.name,
-      slug: sub.slug,
-      count: await getCategoryProductCount(sub.id),
-    }))
+    category.other_Category.map(async (sub) => {
+      // Получаем изображение подкатегории из товара, если у самой подкатегории нет изображения
+      const subcategoryImage = sub.image || await getSubcategoryImage(sub.id)
+      
+      return {
+        id: sub.id,
+        name: sub.name,
+        slug: sub.slug,
+        image: subcategoryImage,
+        count: await getCategoryProductCount(sub.id),
+      }
+    })
   )
 
   // Преобразуем структуру данных для CategoryClient
