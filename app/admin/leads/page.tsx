@@ -52,6 +52,7 @@ export default async function AdminLeadsPage() {
               <th>Имя</th>
               <th>Телефон</th>
               <th>Email</th>
+              <th>Категория</th>
               <th>Сообщение</th>
               <th>Статус</th>
               <th>Дата</th>
@@ -60,19 +61,33 @@ export default async function AdminLeadsPage() {
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.empty}>
+                <td colSpan={8} className={styles.empty}>
                   Заявки не найдены
                 </td>
               </tr>
             ) : (
               leads.map((lead) => {
                 const statusStyle = getStatusColor(lead.status)
+                const sourceLabels: Record<string, string> = {
+                  CHEAPER: 'Нашли дешевле',
+                  CONTACT: 'Обратная связь',
+                  CALLBACK: 'Заказ звонка',
+                  QUESTION: 'Вопрос',
+                  OTHER: 'Другое',
+                }
                 return (
-                  <tr key={lead.id}>
+                  <tr 
+                    key={lead.id}
+                    onClick={() => window.location.href = `/admin/leads/${lead.id}`}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <td className={styles.id}>{lead.id.substring(0, 8)}...</td>
                     <td>{lead.name || '-'}</td>
                     <td>{lead.phone || '-'}</td>
                     <td className={styles.email}>{lead.email || '-'}</td>
+                    <td className={styles.source}>
+                      {lead.source ? sourceLabels[lead.source] || lead.source : '-'}
+                    </td>
                     <td className={styles.message}>
                       {lead.message ? (
                         lead.message.length > 50

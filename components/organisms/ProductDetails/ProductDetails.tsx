@@ -11,6 +11,7 @@ import { useFavoritesStore } from '@/store/favorites-store'
 import { useComparisonStore } from '@/store/comparison-store'
 import { CheaperModal } from '@/components/molecules/CheaperModal/CheaperModal'
 import { QuickBuyModal } from '@/components/molecules/QuickBuyModal/QuickBuyModal'
+import { SharePopup } from '@/components/molecules/SharePopup/SharePopup'
 import { CartIcon } from '@/components/atoms/Icons/CartIcon'
 import styles from './ProductDetails.module.scss'
 
@@ -34,6 +35,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const [selectedImage, setSelectedImage] = useState(0)
   const [isCheaperModalOpen, setIsCheaperModalOpen] = useState(false)
   const [isQuickBuyModalOpen, setIsQuickBuyModalOpen] = useState(false)
+  const [isSharePopupOpen, setIsSharePopupOpen] = useState(false)
   const addItem = useCartStore((state) => state.addItem)
   const toggleFavorite = useFavoritesStore((state) => state.toggle)
   const addToComparison = useComparisonStore((state) => state.add)
@@ -143,14 +145,15 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
         <div className={styles.price}>{formatPrice(product.price)}</div>
 
-        <StockLabel stock={stockStatus} size="md" />
-
-        <button
-          onClick={() => setIsCheaperModalOpen(true)}
-          className={styles.cheaperLink}
-        >
-          Нашли дешевле?
-        </button>
+        <div className={styles.stockRow}>
+          <StockLabel stock={stockStatus} size="md" />
+          <button
+            onClick={() => setIsCheaperModalOpen(true)}
+            className={styles.cheaperLink}
+          >
+            Нашли дешевле?
+          </button>
+        </div>
 
         <div className={styles.quantity}>
           <button
@@ -195,36 +198,20 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         </div>
 
         <div className={styles.share}>
-          <span className={styles.shareLabel}>Поделиться:</span>
-          <div className={styles.socialIcons}>
-            <button
-              className={styles.socialIcon}
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href)
-                alert('Ссылка на товар скопирована')
-              }}
-            >
-              VK
-            </button>
-            <button
-              className={styles.socialIcon}
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href)
-                alert('Ссылка на товар скопирована')
-              }}
-            >
-              TG
-            </button>
-            <button
-              className={styles.socialIcon}
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href)
-                alert('Ссылка на товар скопирована')
-              }}
-            >
-              WA
-            </button>
-          </div>
+          <button
+            className={styles.shareButton}
+            onClick={() => setIsSharePopupOpen(!isSharePopupOpen)}
+          >
+            Поделиться
+          </button>
+          {isSharePopupOpen && (
+            <SharePopup
+              isOpen={isSharePopupOpen}
+              onClose={() => setIsSharePopupOpen(false)}
+              url={typeof window !== 'undefined' ? window.location.href : ''}
+              title={product.title}
+            />
+          )}
         </div>
 
         <p className={styles.note}>

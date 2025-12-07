@@ -34,7 +34,7 @@ export default function ContactsPage() {
           phone: formData.phone || undefined,
           email: formData.email || undefined,
           message: formData.message,
-          source: 'contact',
+          source: 'CONTACT',
         }),
       })
 

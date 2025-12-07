@@ -1,54 +1,114 @@
-.page {
-  padding: 80px 0;
-  min-height: 60vh;
-  display: flex;
-  align-items: center;
-}
-
 .content {
   text-align: center;
-  max-width: 600px;
-  margin: 0 auto;
+  max-width: 700px;
+  width: 100%;
+  margin: 24px auto 0;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .successIcon {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  background: var(--color-success);
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
-  margin: 0 auto 24px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 16px;
-}
-
-.orderNumber {
-  font-size: 18px;
-  margin-bottom: 16px;
-
-  strong {
-    color: var(--color-primary);
+  margin: 0 auto 32px;
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
+  animation: scaleIn 0.5s ease-out 0.2s both;
+  
+  svg {
+    width: 50px;
+    height: 50px;
   }
 }
 
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.orderNumberBox {
+  background: var(--color-bg-secondary, #f5f5f5);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 32px 0;
+  border: 2px solid var(--color-primary, #007bff);
+}
+
+.orderNumberLabel {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.orderNumber {
+  font-size: 24px;
+  margin: 0;
+
+  strong {
+    color: var(--color-primary);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+}
+
+.messageBox {
+  margin: 32px 0;
+  padding: 24px;
+  background: var(--color-bg-secondary, #f9f9f9);
+  border-radius: 8px;
+  border-left: 4px solid var(--color-primary);
+}
+
 .message {
+  font-size: 18px;
+  color: var(--color-text-primary);
+  margin-bottom: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.messageSecondary {
   font-size: 16px;
   color: var(--color-text-secondary);
-  margin-bottom: 32px;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .actions {
   display: flex;
   gap: 16px;
   justify-content: center;
+  margin-top: 40px;
+  flex-wrap: wrap;
 }
 
 

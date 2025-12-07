@@ -47,11 +47,12 @@ export default function OrderPage() {
 
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [formData, setFormData] = useState<OrderFormData>({
     payerType: 'INDIVIDUAL',
     location: '',
     zipCode: '',
-    deliveryType: 'COURIER',
+    deliveryType: 'PICKUP_SEMAFORNAYA', // По умолчанию самовывоз
     deliveryAddress: '',
     pickupLocation: undefined,
     paymentMethod: 'CARD',
@@ -77,10 +78,11 @@ export default function OrderPage() {
   }, [])
 
   useEffect(() => {
-    if (mounted && cartItems.length === 0) {
+    // Не редиректим на /cart если заказ успешно создан
+    if (mounted && cartItems.length === 0 && !orderSubmitted) {
       router.push('/cart')
     }
-  }, [mounted, cartItems, router])
+  }, [mounted, cartItems, router, orderSubmitted])
 
   const updateFormData = (field: keyof OrderFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -135,14 +137,35 @@ export default function OrderPage() {
   const handleNext = () => {
     // Валидация в зависимости от шага
     if (currentStep === 1) {
-      if (!formData.location || !formData.zipCode) {
+      // Шаг 1 - выбор доставки, валидация не нужна (всегда что-то выбрано)
+      // Можно перейти дальше
+    }
+    if (currentStep === 2) {
+      // Шаг 2 - регион доставки
+      const isPickup = formData.deliveryType === 'PICKUP' || 
+                      formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
+                      formData.deliveryType === 'PICKUP_MOLOKOVA'
+      
+      // Для самовывоза регион не обязателен, для доставки - обязателен
+      if (!isPickup && (!formData.location || !formData.zipCode)) {
         alert('Заполните все обязательные поля')
         return
       }
     }
     if (currentStep === 4) {
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.address) {
+      // Базовые поля всегда обязательны
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
         alert('Заполните все обязательные поля')
+        return
+      }
+      
+      // Адрес обязателен только для доставки (не для самовывоза)
+      const isPickup = formData.deliveryType === 'PICKUP' || 
+                      formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
+                      formData.deliveryType === 'PICKUP_MOLOKOVA'
+      
+      if (!isPickup && !formData.address) {
+        alert('Заполните адрес доставки')
         return
       }
     }
@@ -199,8 +222,10 @@ export default function OrderPage() {
       const data = await response.json()
 
       if (data.success) {
+        setOrderSubmitted(true) // Устанавливаем флаг перед очисткой корзины
         clearCart()
-        router.push(`/order/success?orderNumber=${data.data.orderNumber}`)
+        // Используем window.location для надежного редиректа
+        window.location.href = `/order/success?orderNumber=${data.data.orderNumber}`
       } else {
         console.error('Order submission error:', data)
         const errorMessage = data.details || data.error || 'Ошибка при оформлении заказа'
@@ -227,54 +252,8 @@ export default function OrderPage() {
 
         <div className={styles.content}>
           <div className={styles.formSection}>
-            {/* Шаг 1: Регион доставки */}
+            {/* Шаг 1: Доставка (первый шаг - выбор типа доставки) */}
             {currentStep === 1 && (
-              <div className={styles.step}>
-                <h2 className={styles.stepTitle}>Регион доставки</h2>
-                <div className={styles.payerType}>
-                  <label className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="payerType"
-                      value="INDIVIDUAL"
-                      checked={formData.payerType === 'INDIVIDUAL'}
-                      onChange={(e) => updateFormData('payerType', e.target.value)}
-                    />
-                    <span>Физическое лицо</span>
-                  </label>
-                  <label className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="payerType"
-                      value="LEGAL"
-                      checked={formData.payerType === 'LEGAL'}
-                      onChange={(e) => updateFormData('payerType', e.target.value)}
-                    />
-                    <span>Юридическое лицо</span>
-                  </label>
-                </div>
-                <Input
-                  label="* Местоположение"
-                  value={formData.location}
-                  onChange={(e) => updateFormData('location', e.target.value)}
-                  placeholder="Введите название ..."
-                  required
-                />
-                <Input
-                  label="* Индекс"
-                  value={formData.zipCode}
-                  onChange={(e) => updateFormData('zipCode', e.target.value)}
-                  placeholder="101000"
-                  required
-                />
-                <p className={styles.hint}>
-                  Выберите свой город в списке. Если вы не нашли свой город, выберите "другое местоположение", а город впишите в поле "Город"
-                </p>
-              </div>
-            )}
-
-            {/* Шаг 2: Доставка */}
-            {currentStep === 2 && (
               <div className={styles.step}>
                 <h2 className={styles.stepTitle}>Доставка</h2>
                 <div className={styles.deliveryOptions}>
@@ -325,6 +304,108 @@ export default function OrderPage() {
                     </div>
                   </label>
                 </div>
+              </div>
+            )}
+
+            {/* Шаг 2: Регион доставки (показываем только если не самовывоз) */}
+            {currentStep === 2 && (
+              <div className={styles.step}>
+                {(() => {
+                  const isPickup = formData.deliveryType === 'PICKUP' || 
+                                  formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
+                                  formData.deliveryType === 'PICKUP_MOLOKOVA'
+                  
+                  if (isPickup) {
+                    // Для самовывоза регион необязателен
+                    return (
+                      <>
+                        <h2 className={styles.stepTitle}>Регион (необязательно)</h2>
+                        <div className={styles.payerType}>
+                          <label className={styles.radioLabel}>
+                            <input
+                              type="radio"
+                              name="payerType"
+                              value="INDIVIDUAL"
+                              checked={formData.payerType === 'INDIVIDUAL'}
+                              onChange={(e) => updateFormData('payerType', e.target.value)}
+                            />
+                            <span>Физическое лицо</span>
+                          </label>
+                          <label className={styles.radioLabel}>
+                            <input
+                              type="radio"
+                              name="payerType"
+                              value="LEGAL"
+                              checked={formData.payerType === 'LEGAL'}
+                              onChange={(e) => updateFormData('payerType', e.target.value)}
+                            />
+                            <span>Юридическое лицо</span>
+                          </label>
+                        </div>
+                        <p className={styles.hint}>
+                          Для самовывоза регион не обязателен. Вы можете указать его для статистики или пропустить этот шаг.
+                        </p>
+                        <Input
+                          label="Местоположение (необязательно)"
+                          value={formData.location}
+                          onChange={(e) => updateFormData('location', e.target.value)}
+                          placeholder="Введите название ..."
+                        />
+                        <Input
+                          label="Индекс (необязательно)"
+                          value={formData.zipCode}
+                          onChange={(e) => updateFormData('zipCode', e.target.value)}
+                          placeholder="101000"
+                        />
+                      </>
+                    )
+                  }
+                  
+                  return (
+                    <>
+                      <h2 className={styles.stepTitle}>Регион доставки</h2>
+                      <div className={styles.payerType}>
+                        <label className={styles.radioLabel}>
+                          <input
+                            type="radio"
+                            name="payerType"
+                            value="INDIVIDUAL"
+                            checked={formData.payerType === 'INDIVIDUAL'}
+                            onChange={(e) => updateFormData('payerType', e.target.value)}
+                          />
+                          <span>Физическое лицо</span>
+                        </label>
+                        <label className={styles.radioLabel}>
+                          <input
+                            type="radio"
+                            name="payerType"
+                            value="LEGAL"
+                            checked={formData.payerType === 'LEGAL'}
+                            onChange={(e) => updateFormData('payerType', e.target.value)}
+                          />
+                          <span>Юридическое лицо</span>
+                        </label>
+                      </div>
+                      <Input
+                        label="* Местоположение"
+                        value={formData.location}
+                        onChange={(e) => updateFormData('location', e.target.value)}
+                        placeholder="Введите название ..."
+                        required
+                      />
+                      <Input
+                        label="* Индекс"
+                        value={formData.zipCode}
+                        onChange={(e) => updateFormData('zipCode', e.target.value)}
+                        placeholder="101000"
+                        required
+                      />
+                      <p className={styles.hint}>
+                        Выберите свой город в списке. Если вы не нашли свой город, выберите "другое местоположение", а город впишите в поле "Город"
+                      </p>
+                    </>
+                  )
+                })()}
               </div>
             )}
 
@@ -406,12 +487,24 @@ export default function OrderPage() {
                   onChange={(e) => updateFormData('phone', e.target.value)}
                   required
                 />
-                <Input
-                  label="* Адрес доставки"
-                  value={formData.address}
-                  onChange={(e) => updateFormData('address', e.target.value)}
-                  required
-                />
+                {(() => {
+                  const isPickup = formData.deliveryType === 'PICKUP' || 
+                                  formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
+                                  formData.deliveryType === 'PICKUP_MOLOKOVA'
+                  
+                  if (!isPickup) {
+                    return (
+                      <Input
+                        label="* Адрес доставки"
+                        value={formData.address}
+                        onChange={(e) => updateFormData('address', e.target.value)}
+                        placeholder="Улица, дом, квартира"
+                        required
+                      />
+                    )
+                  }
+                  return null
+                })()}
                 <Input
                   label="Комментарии к заказу:"
                   value={formData.notes}
@@ -452,20 +545,37 @@ export default function OrderPage() {
                         <span className={styles.confirmationLabel}>Телефон:</span>
                         <span>{formData.phone}</span>
                       </div>
-                      <div className={styles.confirmationRow}>
-                        <span className={styles.confirmationLabel}>Местоположение:</span>
-                        <span>{formData.location}</span>
-                      </div>
-                      <div className={styles.confirmationRow}>
-                        <span className={styles.confirmationLabel}>Индекс:</span>
-                        <span>{formData.zipCode}</span>
-                      </div>
-                      {formData.address && (
-                        <div className={styles.confirmationRow}>
-                          <span className={styles.confirmationLabel}>Адрес доставки:</span>
-                          <span>{formData.address}</span>
-                        </div>
+                      {(formData.location || formData.zipCode) && (
+                        <>
+                          {formData.location && (
+                            <div className={styles.confirmationRow}>
+                              <span className={styles.confirmationLabel}>Местоположение:</span>
+                              <span>{formData.location}</span>
+                            </div>
+                          )}
+                          {formData.zipCode && (
+                            <div className={styles.confirmationRow}>
+                              <span className={styles.confirmationLabel}>Индекс:</span>
+                              <span>{formData.zipCode}</span>
+                            </div>
+                          )}
+                        </>
                       )}
+                      {(() => {
+                        const isPickup = formData.deliveryType === 'PICKUP' || 
+                                        formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
+                                        formData.deliveryType === 'PICKUP_MOLOKOVA'
+                        
+                        if (!isPickup && formData.address) {
+                          return (
+                            <div className={styles.confirmationRow}>
+                              <span className={styles.confirmationLabel}>Адрес доставки:</span>
+                              <span>{formData.address}</span>
+                            </div>
+                          )
+                        }
+                        return null
+                      })()}
                     </div>
                   </div>
 
@@ -548,6 +658,11 @@ export default function OrderPage() {
                 <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
                   {isSubmitting ? 'Оформление...' : 'Оформить заказ'}
                 </Button>
+              )}
+              {currentStep === 1 && (
+                <p className={styles.hint} style={{ marginTop: '12px', fontSize: '14px', color: 'var(--color-muted)' }}>
+                  Выберите способ получения заказа
+                </p>
               )}
             </div>
           </div>

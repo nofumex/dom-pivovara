@@ -7,12 +7,34 @@ import styles from './Sidebar.module.scss'
 
 export function Sidebar() {
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle subscription
-    alert('Спасибо за подписку!')
-    setEmail('')
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setMessage({ type: 'success', text: data.message || 'Спасибо за подписку!' })
+        setEmail('')
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Ошибка при подписке' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Ошибка при подписке' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const news = [
@@ -40,10 +62,23 @@ export function Sidebar() {
               className={styles.input}
               required
             />
-            <button type="submit" className={styles.submitButton} aria-label="Подписаться">
-              →
+            <button 
+              type="submit" 
+              className={styles.submitButton} 
+              aria-label="Подписаться"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? '...' : '→'}
             </button>
           </div>
+          {message && (
+            <p 
+              className={message.type === 'success' ? styles.successMessage : styles.errorMessage}
+              style={{ marginTop: '12px', fontSize: '14px' }}
+            >
+              {message.text}
+            </p>
+          )}
         </form>
       </div>
 

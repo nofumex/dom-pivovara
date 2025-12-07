@@ -39,12 +39,34 @@ function ArticleItem({ article }: ArticleItemProps) {
 
 export function SidebarSections() {
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // TODO: Implement newsletter subscription
-    console.log('Newsletter subscription:', email)
-    setEmail('')
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setMessage({ type: 'success', text: data.message || 'Спасибо за подписку!' })
+        setEmail('')
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Ошибка при подписке' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Ошибка при подписке' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const newsItems = [
@@ -93,10 +115,26 @@ export function SidebarSections() {
             className={styles.newsletterInput}
             required
           />
-          <button type="submit" className={styles.newsletterButton} aria-label="Подписаться">
-            →
+          <button 
+            type="submit" 
+            className={styles.newsletterButton} 
+            aria-label="Подписаться"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? '...' : '→'}
           </button>
         </form>
+        {message && (
+          <p 
+            style={{ 
+              marginTop: '12px', 
+              fontSize: '14px',
+              color: message.type === 'success' ? '#10b981' : '#ef4444'
+            }}
+          >
+            {message.text}
+          </p>
+        )}
       </div>
 
       {/* News Section */}

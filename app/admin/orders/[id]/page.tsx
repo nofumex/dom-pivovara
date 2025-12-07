@@ -18,10 +18,10 @@ export default async function AdminOrderPage({
   const order = await prisma.order.findUnique({
     where: { id: params.id },
     include: {
-      user: true,
-      items: {
+      User: true,
+      OrderItem: {
         include: {
-          product: {
+          Product: {
             select: {
               title: true,
               slug: true,
@@ -30,8 +30,8 @@ export default async function AdminOrderPage({
           },
         },
       },
-      address: true,
-      logs: {
+      Address: true,
+      OrderLog: {
         orderBy: { createdAt: 'desc' },
       },
     },

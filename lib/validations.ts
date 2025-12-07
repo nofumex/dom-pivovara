@@ -99,7 +99,7 @@ export const createLeadSchema = z.object({
   email: z.string().email().optional(),
   company: z.string().optional(),
   message: z.string().optional(),
-  source: z.string().optional(),
+  source: z.enum(['CHEAPER', 'CONTACT', 'CALLBACK', 'QUESTION', 'OTHER']).optional(),
 })
 
 

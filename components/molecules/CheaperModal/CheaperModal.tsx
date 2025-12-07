@@ -32,7 +32,7 @@ export function CheaperModal({ isOpen, onClose, productTitle }: CheaperModalProp
         body: JSON.stringify({
           name: 'Нашли дешевле',
           message: `Товар: ${productTitle || ''}\nСсылка: ${formData.url}\nЦена: ${formData.price}\nКомментарий: ${formData.comment}`,
-          source: 'cheaper',
+          source: 'CHEAPER',
         }),
       })
 

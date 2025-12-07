@@ -48,9 +48,9 @@ export async function GET(request: NextRequest) {
           createdAt: 'desc',
         },
         include: {
-          items: {
+          OrderItem: {
             include: {
-              product: {
+              Product: {
                 select: {
                   id: true,
                   title: true,
@@ -210,9 +210,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Generate IDs for nested creates
+    const orderId = crypto.randomUUID()
+    const orderItemsWithIds = orderItems.map((item) => ({
+      ...item,
+      id: crypto.randomUUID(),
+    }))
+    const orderLogId = crypto.randomUUID()
+
     // Create order
+    const now = new Date()
     const order = await prisma.order.create({
       data: {
+        id: orderId,
         orderNumber: generateOrderNumber(),
         userId: orderUserId,
         status: OrderStatus.NEW,
@@ -229,11 +239,13 @@ export async function POST(request: NextRequest) {
         deliveryType: validated.deliveryType,
         addressId: validated.addressId,
         promoCode: validated.promoCode,
-        items: {
-          create: orderItems,
+        updatedAt: now,
+        OrderItem: {
+          create: orderItemsWithIds,
         },
-        logs: {
+        OrderLog: {
           create: {
+            id: orderLogId,
             status: OrderStatus.NEW,
             comment: user ? 'Заказ создан' : 'Заказ создан (гость)',
             createdBy: orderUserId,
@@ -241,12 +253,12 @@ export async function POST(request: NextRequest) {
         },
       },
       include: {
-        items: {
+        OrderItem: {
           include: {
-            product: true,
+            Product: true,
           },
         },
-        address: true,
+        Address: true,
       },
     })
 
@@ -265,34 +277,47 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send emails
-    const orderItemsForEmail = order.items.map((item) => ({
-      title: item.product.title,
+    // Send emails (не блокируем создание заказа при ошибках отправки)
+    const orderItemsForEmail = order.OrderItem.map((item) => ({
+      title: item.Product.title,
       quantity: item.quantity,
       price: parseFloat(item.price.toString()),
     }))
 
-    // Send confirmation email to customer
-    await sendOrderConfirmationEmail(
-      order.orderNumber,
-      validated.email,
-      total,
-      orderItemsForEmail
-    )
+    // Отправляем email асинхронно, не ждем результата
+    Promise.allSettled([
+      sendOrderConfirmationEmail(
+        order.orderNumber,
+        validated.email,
+        total,
+        orderItemsForEmail
+      ),
+      (async () => {
+        const deliveryAddress = order.Address
+          ? `${order.Address.street}, ${order.Address.city}, ${order.Address.region}, ${order.Address.zipCode}`
+          : undefined
 
-    // Send notification email to admin
-    const deliveryAddress = order.address
-      ? `${order.address.street}, ${order.address.city}, ${order.address.region}, ${order.address.zipCode}`
-      : undefined
-
-    await sendNewOrderNotificationEmail(
-      order.orderNumber,
-      `${validated.firstName} ${validated.lastName}`,
-      validated.email,
-      validated.phone,
-      total,
-      deliveryAddress
-    )
+        return sendNewOrderNotificationEmail(
+          order.orderNumber,
+          `${validated.firstName} ${validated.lastName}`,
+          validated.email,
+          validated.phone,
+          total,
+          deliveryAddress
+        )
+      })(),
+    ]).then((results) => {
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          // Логируем как предупреждение, так как это не критично для создания заказа
+          console.warn(`Email send timeout/error (${index === 0 ? 'customer' : 'admin'}):`, result.reason?.message || result.reason)
+        } else if (result.status === 'fulfilled' && !result.value) {
+          console.warn(`Email send failed (${index === 0 ? 'customer' : 'admin'}) - check email settings`)
+        }
+      })
+    }).catch((error) => {
+      console.warn('Unexpected error in email sending:', error)
+    })
 
     return successResponse({ order, orderNumber: order.orderNumber }, 'Заказ создан успешно')
   } catch (error: any) {

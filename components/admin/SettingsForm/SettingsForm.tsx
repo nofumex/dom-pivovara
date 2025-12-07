@@ -98,6 +98,8 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isTestingSMTP, setIsTestingSMTP] = useState(false)
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string; details?: any } | null>(null)
   const [activeTab, setActiveTab] = useState('contacts')
 
   useEffect(() => {
@@ -443,6 +445,103 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
               value={emailSettings.companyEmail}
               onChange={(e) => setEmailSettings({ ...emailSettings, companyEmail: e.target.value })}
             />
+            
+            <div style={{ marginTop: '20px', padding: '16px', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
+              <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: 600 }}>Тестирование SMTP подключения</h3>
+              <p style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--color-muted)' }}>
+                Проверьте подключение к SMTP серверу перед сохранением настроек
+              </p>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  setIsTestingSMTP(true)
+                  setSmtpTestResult(null)
+                  
+                  try {
+                    const response = await fetch('/api/admin/test-smtp', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        smtpHost: emailSettings.smtpHost,
+                        smtpPort: emailSettings.smtpPort,
+                        smtpUser: emailSettings.smtpUser,
+                        smtpPassword: emailSettings.smtpPassword,
+                      }),
+                    })
+                    
+                    const data = await response.json()
+                    
+                    if (data.success) {
+                      setSmtpTestResult({
+                        success: true,
+                        message: data.message || 'SMTP подключение успешно установлено',
+                        details: data.data?.details,
+                      })
+                    } else {
+                      setSmtpTestResult({
+                        success: false,
+                        message: data.error || 'Ошибка подключения',
+                        details: data.details || data.data?.details,
+                      })
+                    }
+                  } catch (error: any) {
+                    setSmtpTestResult({
+                      success: false,
+                      message: 'Ошибка при тестировании подключения: ' + (error.message || 'Неизвестная ошибка'),
+                    })
+                  } finally {
+                    setIsTestingSMTP(false)
+                  }
+                }}
+                disabled={isTestingSMTP || !emailSettings.smtpHost || !emailSettings.smtpPort || !emailSettings.smtpUser || !emailSettings.smtpPassword}
+              >
+                {isTestingSMTP ? 'Тестирование...' : 'Тестировать SMTP подключение'}
+              </Button>
+              
+                  {smtpTestResult && (
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    backgroundColor: smtpTestResult.success ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)',
+                    border: `1px solid ${smtpTestResult.success ? 'rgba(46, 204, 113, 0.3)' : 'rgba(231, 76, 60, 0.3)'}`,
+                    color: smtpTestResult.success ? '#27ae60' : '#e74c3c',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, marginBottom: '8px' }}>
+                    {smtpTestResult.success ? '✅ ' : '❌ '}
+                    {smtpTestResult.message}
+                  </div>
+                  {smtpTestResult.details && (
+                    <div style={{ marginTop: '8px', fontSize: '13px', opacity: 0.9 }}>
+                      {smtpTestResult.details.suggestion && (
+                        <div style={{ marginTop: '6px', padding: '8px', backgroundColor: 'rgba(0, 0, 0, 0.05)', borderRadius: '4px', whiteSpace: 'pre-line' }}>
+                          <strong>💡 Рекомендация:</strong> {smtpTestResult.details.suggestion}
+                        </div>
+                      )}
+                      {smtpTestResult.details.blockedPorts && (
+                        <div style={{ marginTop: '6px', padding: '8px', backgroundColor: 'rgba(231, 76, 60, 0.1)', borderRadius: '4px', color: '#e74c3c' }}>
+                          <strong>⚠️ Заблокированные порты:</strong> {smtpTestResult.details.blockedPorts}
+                        </div>
+                      )}
+                      {smtpTestResult.details.workingPort && smtpTestResult.details.originalPort && (
+                        <div style={{ marginTop: '6px', padding: '8px', backgroundColor: 'rgba(46, 204, 113, 0.1)', borderRadius: '4px', color: '#27ae60' }}>
+                          <strong>✅ Решение найдено:</strong> Порт {smtpTestResult.details.workingPort} работает! 
+                          Измените порт в настройках SMTP на {smtpTestResult.details.workingPort}.
+                        </div>
+                      )}
+                      {smtpTestResult.details.code && (
+                        <div style={{ marginTop: '4px', fontSize: '12px' }}>
+                          <strong>Код ошибки:</strong> {smtpTestResult.details.code}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

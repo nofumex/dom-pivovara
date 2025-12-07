@@ -45,6 +45,13 @@ export function OrderDetails({ order }: OrderDetailsProps) {
     }
   }
 
+  // Разделяем комментарий и адрес самовывоза
+  const pickupMatch = order.notes?.match(/Пункт самовывоза:\s*(.+)/)
+  const userComment = pickupMatch 
+    ? order.notes?.replace(/\n?Пункт самовывоза:.*$/, '').trim() || null
+    : order.notes
+  const pickupAddress = pickupMatch ? pickupMatch[1] : null
+
   return (
     <div className={styles.page}>
       <h1>Заказ {order.orderNumber}</h1>
@@ -70,6 +77,97 @@ export function OrderDetails({ order }: OrderDetailsProps) {
           </div>
         </div>
 
+        {order.deliveryType && (
+          <div className={styles.section}>
+            <h2>Доставка</h2>
+            <div className={styles.info}>
+              <p>
+                <strong>Тип доставки:</strong>{' '}
+                {order.deliveryType === 'PICKUP'
+                  ? 'Самовывоз'
+                  : order.deliveryType === 'COURIER'
+                  ? 'Курьером'
+                  : order.deliveryType === 'TRANSPORT'
+                  ? 'Транспортной компанией'
+                  : order.deliveryType}
+              </p>
+              {order.Address && (
+                <div>
+                  <p>
+                    <strong>Адрес доставки:</strong>
+                  </p>
+                  <p style={{ marginLeft: '20px', marginTop: '5px' }}>
+                    {order.Address.name && (
+                      <>
+                        <strong>Название:</strong> {order.Address.name}
+                        <br />
+                      </>
+                    )}
+                    {order.Address.street && (
+                      <>
+                        <strong>Улица:</strong> {order.Address.street}
+                        <br />
+                      </>
+                    )}
+                    {order.Address.city && (
+                      <>
+                        <strong>Город:</strong> {order.Address.city}
+                        <br />
+                      </>
+                    )}
+                    {order.Address.region && (
+                      <>
+                        <strong>Регион:</strong> {order.Address.region}
+                        <br />
+                      </>
+                    )}
+                    {order.Address.zipCode && (
+                      <>
+                        <strong>Индекс:</strong> {order.Address.zipCode}
+                        <br />
+                      </>
+                    )}
+                    {order.Address.phone && (
+                      <>
+                        <strong>Телефон:</strong> {order.Address.phone}
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {userComment && (
+          <div className={styles.section}>
+            <h2>Комментарий к заказу</h2>
+            <div className={styles.info}>
+              <p>{userComment}</p>
+            </div>
+          </div>
+        )}
+
+        {pickupAddress && order.deliveryType === 'PICKUP' && (
+          <div className={styles.section}>
+            <h2>Пункт самовывоза</h2>
+            <div className={styles.info}>
+              <p>{pickupAddress}</p>
+            </div>
+          </div>
+        )}
+
+        {order.promoCode && (
+          <div className={styles.section}>
+            <h2>Промокод</h2>
+            <div className={styles.info}>
+              <p>
+                <strong>Код:</strong> {order.promoCode}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className={styles.section}>
           <h2>Состав заказа</h2>
           <table className={styles.table}>
@@ -94,6 +192,26 @@ export function OrderDetails({ order }: OrderDetailsProps) {
               ))}
             </tbody>
             <tfoot>
+              {Number(order.delivery || 0) > 0 && (
+                <tr>
+                  <td colSpan={3}>
+                    <strong>Доставка:</strong>
+                  </td>
+                  <td>
+                    {new Intl.NumberFormat('ru-RU').format(Number(order.delivery || 0))} ₽
+                  </td>
+                </tr>
+              )}
+              {Number(order.discount || 0) > 0 && (
+                <tr>
+                  <td colSpan={3}>
+                    <strong>Скидка:</strong>
+                  </td>
+                  <td>
+                    -{new Intl.NumberFormat('ru-RU').format(Number(order.discount || 0))} ₽
+                  </td>
+                </tr>
+              )}
               <tr>
                 <td colSpan={3}>
                   <strong>Итого:</strong>

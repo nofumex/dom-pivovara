@@ -80,20 +80,20 @@ model FeaturedCategoryTile {
 }
 
 model Lead {
-  id        String     @id
+  id        String      @id @default(cuid())
   name      String
   phone     String?
   email     String?
   company   String?
   message   String?
-  source    String?
-  status    LeadStatus @default(NEW)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime
+  source    LeadSource?
+  status    LeadStatus  @default(NEW)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 model Order {
-  id           String       @id
+  id           String       @id @default(cuid())
   orderNumber  String       @unique
   userId       String
   status       OrderStatus  @default(NEW)
@@ -112,7 +112,7 @@ model Order {
   trackNumber  String?
   promoCode    String?
   createdAt    DateTime     @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime     @updatedAt
   Address      Address?     @relation(fields: [addressId], references: [id])
   User         User         @relation(fields: [userId], references: [id])
   OrderItem    OrderItem[]
@@ -120,7 +120,7 @@ model Order {
 }
 
 model OrderItem {
-  id             String          @id
+  id             String          @id @default(cuid())
   orderId        String
   productId      String
   variantId      String?
@@ -135,7 +135,7 @@ model OrderItem {
 }
 
 model OrderLog {
-  id        String      @id
+  id        String      @id @default(cuid())
   orderId   String
   status    OrderStatus
   comment   String?
@@ -271,6 +271,22 @@ enum LeadStatus {
   QUALIFIED
   CONVERTED
   LOST
+}
+
+enum LeadSource {
+  CHEAPER
+  CONTACT
+  CALLBACK
+  QUESTION
+  OTHER
+}
+
+model EmailSubscription {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum OrderStatus {
