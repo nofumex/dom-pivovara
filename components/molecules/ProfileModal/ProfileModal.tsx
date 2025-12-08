@@ -21,6 +21,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     password: '',
@@ -107,7 +109,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           }
           
           // Reset form
-          setFormData({ email: '', phone: '', password: '', code: '' })
+          setFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', code: '' })
           setError('')
           onClose()
           
@@ -126,6 +128,64 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         }
       } else {
         // Registration logic
+        if (!formData.firstName.trim() || !formData.lastName.trim()) {
+          setError('Введите имя и фамилию')
+          return
+        }
+
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone || undefined,
+          }),
+        })
+
+        let data
+        try {
+          data = await response.json()
+        } catch (parseError) {
+          setError('Ошибка сервера. Попробуйте позже.')
+          return
+        }
+
+        if (data.success && data.data) {
+          const { setAuth } = useAuthStore.getState()
+          const userData = data.data.user || data.data
+          const accessToken = data.data.accessToken || data.accessToken
+          const refreshToken = data.data.refreshToken || data.refreshToken
+
+          setAuth(userData, accessToken, refreshToken)
+
+          // Небольшая задержка для установки cookies
+          await new Promise((resolve) => setTimeout(resolve, 200))
+
+          // Проверяем авторизацию через /api/auth/me для синхронизации
+          try {
+            const meResponse = await fetch('/api/auth/me', {
+              credentials: 'include',
+            })
+            const meData = await meResponse.json()
+            if (meData.success && meData.data) {
+              setAuth(meData.data, accessToken, refreshToken)
+            }
+          } catch (meError) {
+            console.error('Error checking /api/auth/me:', meError)
+          }
+
+          setFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', code: '' })
+          setError('')
+          onClose()
+          window.location.reload()
+        } else {
+          const errorMessage = data.error || data.message || 'Ошибка при регистрации. Проверьте введенные данные.'
+          setError(errorMessage)
+        }
       }
     } catch (error: any) {
       console.error('Auth error:', error)
@@ -232,6 +292,27 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       )}
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}
+        {!isLogin && (
+          <>
+            <Input
+              type="text"
+              label="Имя"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              required
+              placeholder="Иван"
+            />
+            <Input
+              type="text"
+              label="Фамилия"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              required
+              placeholder="Иванов"
+            />
+          </>
+        )}
+
         <Input
           type="email"
           label="Email"
@@ -240,6 +321,16 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           required
           placeholder="your@email.com"
         />
+
+        {!isLogin && (
+          <Input
+            type="text"
+            label="Телефон"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="+7 (999) 000-00-00"
+          />
+        )}
 
         <Input
           type="password"
@@ -252,7 +343,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
         <div className={styles.actions}>
           <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Вход...' : 'Войти'}
+            {isLogin ? (isSubmitting ? 'Вход...' : 'Войти') : isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
           </Button>
           <button
             type="button"

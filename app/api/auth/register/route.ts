@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { generateAccessToken, generateRefreshToken, createSession } from '@/lib/auth'
@@ -26,12 +27,12 @@ export async function POST(request: NextRequest) {
     // Create user
     const user = await prisma.user.create({
       data: {
+        id: randomUUID(),
         email: validated.email,
         password: hashedPassword,
         firstName: validated.firstName,
         lastName: validated.lastName,
-        phone: validated.phone,
-        company: validated.company,
+        phone: validated.phone || null,
         role: 'CUSTOMER',
       },
       select: {
@@ -41,7 +42,6 @@ export async function POST(request: NextRequest) {
         lastName: true,
         role: true,
         phone: true,
-        company: true,
       },
     })
 

@@ -1,0 +1,160 @@
+.title {
+  font-size: var(--font-h1-size);
+  font-weight: var(--font-h1-weight);
+  margin-bottom: 32px;
+  color: var(--color-text);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 48px;
+  align-items: start;
+}
+
+.profileSection,
+.addressesSection {
+  background: var(--color-white);
+  padding: 32px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sectionTitle {
+  font-size: var(--font-h2-size);
+  font-weight: var(--font-h2-weight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.infoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.infoRow {
+  display: flex;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-light);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.infoLabel {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  min-width: 120px;
+}
+
+.infoValue {
+  color: var(--color-text);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.error {
+  padding: 12px;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: var(--font-small-size);
+}
+
+.success {
+  padding: 12px;
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: var(--font-small-size);
+}
+
+.emptyState {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 32px;
+  font-style: italic;
+}
+
+.addressesList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.addressCard {
+  position: relative;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+}
+
+.mainBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  background: var(--color-primary-600);
+  color: var(--color-white);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-small-size);
+  font-weight: 500;
+}
+
+.addressName {
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  color: var(--color-text);
+  margin: 0 0 8px 0;
+}
+
+.addressText {
+  color: var(--color-text);
+  margin: 0 0 4px 0;
+  line-height: 1.6;
+}
+
+.addressPhone {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: var(--font-small-size);
+}
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
