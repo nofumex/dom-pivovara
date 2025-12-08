@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { CallbackModal } from '@/components/molecules/CallbackModal/CallbackModal'
 import { PhoneIcon } from '@/components/atoms/Icons/PhoneIcon'
 import { MenuIcon } from '@/components/atoms/Icons/MenuIcon'
@@ -45,6 +45,7 @@ export function Header() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
   const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0, width: 0 })
   const router = useRouter()
+  const pathname = usePathname()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchWrapperRef = useRef<HTMLDivElement>(null)
   const autocompleteRef = useRef<HTMLDivElement>(null)
@@ -167,6 +168,12 @@ export function Header() {
     })
       .format(price)
       .replace(/\s/g, ' ')
+  }
+
+  const isActivePath = (href: string, exact = false) => {
+    if (href === '/') return false
+    if (exact) return pathname === href
+    return pathname === href || pathname.startsWith(`${href}/`)
   }
 
   return (
@@ -303,22 +310,54 @@ export function Header() {
               <ChevronDownIcon />
             </span>
           </Link>
-          <Link href="/about" className={styles.navItem}>
+          <Link
+            href="/about"
+            className={`${styles.navItem} ${isActivePath('/about') ? styles.navItemActive : ''}`}
+          >
             О КОМПАНИИ
           </Link>
-          <Link href="/sales" className={styles.navItem}>
-            АКЦИИ
-          </Link>
-          <Link href="/stores" className={styles.navItem}>
+          <div className={styles.navDropdown}>
+            <Link
+              href="/sales"
+              className={`${styles.navItem} ${isActivePath('/sales') ? styles.navItemActive : ''}`}
+            >
+              АКЦИИ
+              <ChevronDownIcon />
+            </Link>
+            <div className={styles.navDropdownMenu}>
+              <Link href="/sales/monthly" className={styles.navDropdownItem}>
+                Акции месяца
+              </Link>
+              <Link href="/sales/discounts" className={styles.navDropdownItem}>
+                Скидки
+              </Link>
+              <Link href="/sales/certificates" className={styles.navDropdownItem}>
+                Подарочные сертификаты
+              </Link>
+            </div>
+          </div>
+          <Link
+            href="/stores"
+            className={`${styles.navItem} ${isActivePath('/stores') ? styles.navItemActive : ''}`}
+          >
             МАГАЗИНЫ
           </Link>
-          <Link href="/articles" className={styles.navItem}>
+          <Link
+            href="/articles"
+            className={`${styles.navItem} ${isActivePath('/articles') ? styles.navItemActive : ''}`}
+          >
             СТАТЬИ
           </Link>
-          <Link href="/delivery" className={styles.navItem}>
+          <Link
+            href="/delivery"
+            className={`${styles.navItem} ${isActivePath('/delivery') ? styles.navItemActive : ''}`}
+          >
             ДОСТАВКА И ОПЛАТА
           </Link>
-          <Link href="/contacts" className={styles.navItem}>
+          <Link
+            href="/contacts"
+            className={`${styles.navItem} ${isActivePath('/contacts') ? styles.navItemActive : ''}`}
+          >
             КОНТАКТЫ
           </Link>
         </nav>

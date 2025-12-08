@@ -30,3 +30,4 @@ export async function PUT(
     return errorResponse('Ошибка при обновлении заявки', 500)
   }
 }
+

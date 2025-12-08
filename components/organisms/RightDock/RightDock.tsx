@@ -17,6 +17,7 @@ import styles from './RightDock.module.scss'
 export function RightDock() {
   const [activeDrawer, setActiveDrawer] = useState<'cart' | 'favorites' | 'comparison' | 'profile' | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   
   const cartCount = useCartStore((state) => state.getTotalItems())
   const favoritesCount = useFavoritesStore((state) => state.getAll().length)
@@ -24,11 +25,36 @@ export function RightDock() {
 
   useEffect(() => {
     setMounted(true)
+    
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 600)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
 
   return (
     <>
       <div className={styles.dock}>
+        {isScrolled && (
+          <button
+            className={styles.scrollToTopButton}
+            onClick={scrollToTop}
+            aria-label="Наверх"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 4L4 10L5.41 11.41L10 6.83L14.59 11.41L16 10L10 4Z" fill="white"/>
+            </svg>
+          </button>
+        )}
         <button
           className={styles.dockButton}
           onClick={() => setActiveDrawer(activeDrawer === 'cart' ? null : 'cart')}

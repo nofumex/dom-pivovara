@@ -161,3 +161,4 @@ if (brokenParentLinks === 0 && productsWithoutSection === 0 && productsWithInval
   }
 }
 console.log(`${'='.repeat(50)}\n`);
+

@@ -116,3 +116,4 @@ export async function DELETE(
     return errorResponse('Ошибка при удалении купона', 500)
   }
 }
+

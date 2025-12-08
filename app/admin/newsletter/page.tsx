@@ -1,19 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/atoms/Button/Button'
 import { Input } from '@/components/atoms/Input/Input'
 import styles from './page.module.scss'
 
 export default function NewsletterPage() {
-  const router = useRouter()
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
   const [isHtml, setIsHtml] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [subscribersCount, setSubscribersCount] = useState(0)
+  const [subscribersCount, setSubscribersCount] = useState<number | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
+
+  const subscribersLabel =
+    subscribersCount === null ? 'подписчикам' : `${subscribersCount} подписчикам`
 
   useEffect(() => {
     fetchSubscribersCount()
@@ -23,8 +24,9 @@ export default function NewsletterPage() {
     try {
       const response = await fetch('/api/admin/newsletter/count')
       const data = await response.json()
-      if (data.success) {
-        setSubscribersCount(data.count)
+      const count = data?.data?.count
+      if (data.success && typeof count === 'number') {
+        setSubscribersCount(count)
       }
     } catch (error) {
       console.error('Error fetching subscribers count:', error)
@@ -37,7 +39,7 @@ export default function NewsletterPage() {
       return
     }
 
-    if (!confirm(`Отправить рассылку ${subscribersCount} подписчикам?`)) {
+    if (!confirm(`Отправить рассылку ${subscribersLabel}?`)) {
       return
     }
 
@@ -69,6 +71,25 @@ export default function NewsletterPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const buildPreviewHtml = () => {
+    if (!content.trim()) {
+      return '<p style="color: var(--color-muted);">Предпросмотр появится, когда вы добавите текст.</p>'
+    }
+
+    if (isHtml) {
+      return content
+    }
+
+    const escaped = content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+
+    return escaped.replace(/\n/g, '<br />')
   }
 
   return (
@@ -109,51 +130,43 @@ export default function NewsletterPage() {
             <label className={styles.label}>
               Содержимое письма {isHtml && '(HTML)'}
             </label>
-            <div className={styles.buttonGroup}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPreviewMode(!previewMode)}
-              >
-                {previewMode ? 'Редактировать' : 'Предпросмотр'}
-              </Button>
-            </div>
-            {previewMode && isHtml ? (
-              <div
-                className={styles.preview}
-                dangerouslySetInnerHTML={{ __html: content }}
-              />
-            ) : previewMode ? (
-              <div className={styles.preview}>
-                <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                  {content}
-                </pre>
-              </div>
-            ) : (
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className={styles.textarea}
-                rows={15}
-                placeholder={
-                  isHtml
-                    ? '<html><body><h1>Ваше HTML содержимое</h1></body></html>'
-                    : 'Введите текст письма...'
-                }
-                required
-              />
-            )}
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className={styles.textarea}
+              rows={15}
+              placeholder={
+                isHtml
+                  ? '<html><body><h1>Ваше HTML содержимое</h1></body></html>'
+                  : 'Введите текст письма...'
+              }
+              required
+            />
           </div>
 
           <div className={styles.actions}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewMode(!previewMode)}
+            >
+              {previewMode ? 'Скрыть предпросмотр' : 'Предпросмотр'}
+            </Button>
             <Button
               variant="primary"
               onClick={handleSend}
               disabled={isSubmitting || !subject.trim() || !content.trim()}
             >
-              {isSubmitting ? 'Отправка...' : `Отправить ${subscribersCount} подписчикам`}
+              {isSubmitting ? 'Отправка...' : `Отправить ${subscribersLabel}`}
             </Button>
           </div>
+
+          {previewMode && (
+            <div
+              className={styles.preview}
+              dangerouslySetInnerHTML={{ __html: buildPreviewHtml() }}
+            />
+          )}
         </div>
 
         <div className={styles.info}>
@@ -169,3 +182,4 @@ export default function NewsletterPage() {
     </div>
   )
 }
+

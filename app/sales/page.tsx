@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
-import { ProductGrid } from '@/components/organisms/ProductGrid/ProductGrid'
+import { QuestionModal } from '@/components/molecules/QuestionModal/QuestionModal'
 import styles from './page.module.scss'
 
 export default function SalesPage() {
@@ -10,46 +10,41 @@ export default function SalesPage() {
     { label: 'Главная', href: '/' },
     { label: 'Акции', href: '/sales' },
   ]
-
-  const [products, setProducts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/products?badges=SALE&limit=50')
-        const data = await response.json()
-        if (data.success) {
-          const productsWithBadges = (data.data || []).map((p: any) => ({
-            ...p,
-            badges: p.tags || [],
-            stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
-            rating: p.rating ? Number(p.rating) : 0,
-          }))
-          setProducts(productsWithBadges)
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error)
-        setProducts([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchProducts()
-  }, [])
+  const [isQuestionOpen, setIsQuestionOpen] = useState(false)
 
   return (
     <main>
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
-        <h1 className={styles.title}>Акции</h1>
-        {loading ? (
-          <div>Загрузка...</div>
-        ) : (
-          <ProductGrid products={products} />
-        )}
+        <section className={styles.content}>
+          <h1 className={styles.title}>Акции</h1>
+
+          <p className={styles.lead}>
+            Промо-акция — это разновидность рекламной активности, при которой происходит прямой контакт с
+            потребителем товаров или услуг. Во время этого контакта потенциальный покупатель получает информацию
+            о товаре, услуге, условиях акций и скидках.
+          </p>
+          <p className={styles.text}>
+            Общая цель проведения промо-акций всегда одна — увеличение продаж. Но достигаться эта цель может путем
+            реализации различных задач. В зависимости от поставленных задач, выбирается механика планируемой
+            промо-акции.
+          </p>
+
+          <div className={styles.actionBox}>
+            <div>
+              <h3 className={styles.actionTitle}>Есть вопрос?</h3>
+              <p className={styles.actionText}>
+                Наши специалисты с радостью ответят на любой интересующий по нашим услугам вопрос.
+              </p>
+            </div>
+            <button className={styles.actionButton} onClick={() => setIsQuestionOpen(true)}>
+              Задать вопрос
+            </button>
+          </div>
+        </section>
       </div>
+
+      <QuestionModal isOpen={isQuestionOpen} onClose={() => setIsQuestionOpen(false)} />
     </main>
   )
 }

@@ -2,7 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import styles from './SidebarSections.module.scss'
+
+const salesNavItems = [
+  { label: 'Акции месяца', href: '/sales/monthly' },
+  { label: 'Скидки', href: '/sales/discounts' },
+  { label: 'Подарочные сертификаты', href: '/sales/certificates' },
+]
 
 interface ArticleItemProps {
   article: {
@@ -41,6 +48,8 @@ export function SidebarSections() {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const pathname = usePathname()
+  const isSalesPage = pathname?.startsWith('/sales/') && pathname !== '/sales'
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,6 +109,26 @@ export function SidebarSections() {
 
   return (
     <div className={styles.sections}>
+      {isSalesPage && (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>Акции</h3>
+          <nav className={styles.salesNav}>
+            {salesNavItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${styles.salesNavLink} ${isActive ? styles.salesNavLinkActive : ''}`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+      )}
+
       {/* Newsletter Section */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Будьте всегда в курсе!</h3>

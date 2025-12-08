@@ -160,6 +160,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  align-items: stretch;
   
   @media (max-width: 1200px) {
     grid-template-columns: repeat(2, 1fr);
@@ -174,7 +175,6 @@
   overflow: hidden;
   transition: box-shadow 0.2s ease-in-out;
   background: var(--color-white);
-  min-height: auto;
 
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -190,7 +190,7 @@
   color: inherit;
   text-align: center;
   gap: 8px;
-  flex: 1;
+  flex-shrink: 0;
 }
 
 .subcategoryImage {
@@ -225,14 +225,14 @@
 
 .subSubcategoriesList {
   list-style: none;
-  padding: 0;
+  padding: 8px;
   margin: 0;
   border-top: 1px solid var(--color-border);
-  padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   background: #FAFAFA;
+  flex-shrink: 0;
 }
 
 .subSubcategoryItem {

@@ -196,3 +196,4 @@ if (brokenParentLinks === 0 && productsWithoutSection === 0 && productsWithInval
   if (productsWithoutSection > 0) console.log(`   - ${productsWithoutSection} товаров без раздела`);
   if (productsWithInvalidSection > 0) console.log(`   - ${productsWithInvalidSection} товаров ссылаются на несуществующие разделы`);
 }
+

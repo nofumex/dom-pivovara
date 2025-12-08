@@ -145,3 +145,4 @@ export async function POST(request: NextRequest) {
     return errorResponse('Ошибка при отправке рассылки', 500)
   }
 }
+

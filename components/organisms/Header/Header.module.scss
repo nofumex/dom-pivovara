@@ -216,28 +216,19 @@
   border-right: 1px solid rgba(255, 255, 255, 0.2);
   white-space: nowrap;
   min-width: 0;
+  gap: 6px;
 
   &:last-child {
     border-right: none;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.04);
   }
 
   &:active,
   &.active {
-    background: rgba(255, 255, 255, 0.15);
-    
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: var(--color-white);
-    }
+    background: rgba(0, 0, 0, 0.08);
   }
   
   &[data-catalog-button] {
@@ -246,6 +237,60 @@
     max-width: 280px;
     min-width: 280px;
     border-right: none;
+  }
+}
+
+.navItemActive {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.navDropdown {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+
+  &:hover .navDropdownMenu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  &:focus-within .navDropdownMenu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+}
+
+.navDropdownMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--color-white);
+  color: var(--color-text);
+  min-width: 220px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  padding: 8px 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 200;
+}
+
+.navDropdownItem {
+  display: block;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: rgba(242, 108, 34, 0.08);
+    color: var(--color-primary-600);
   }
 }
 

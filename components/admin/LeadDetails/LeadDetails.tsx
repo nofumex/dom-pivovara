@@ -162,3 +162,4 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
     </div>
   )
 }
+

@@ -6,7 +6,6 @@ import { Footer } from '@/components/organisms/Footer/Footer'
 import { RightDock } from '@/components/organisms/RightDock/RightDock'
 import { CatalogSidebarServer } from '@/components/organisms/CatalogSidebar/CatalogSidebarServer'
 import { PageWrapper } from '@/components/organisms/PageWrapper/PageWrapper'
-import { ScrollToTop } from '@/components/atoms/ScrollToTop/ScrollToTop'
 import { AuthSync } from '@/components/AuthSync/AuthSync'
 import '@/styles/globals.scss'
 
@@ -55,7 +54,6 @@ export default async function RootLayout({
         </div>
         <Footer />
         <RightDock />
-        <ScrollToTop />
       </body>
     </html>
   )

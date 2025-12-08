@@ -21,3 +21,4 @@ export async function GET(request: NextRequest) {
     return errorResponse('Ошибка при получении количества подписчиков', 500)
   }
 }
+

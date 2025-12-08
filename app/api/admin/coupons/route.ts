@@ -98,3 +98,4 @@ export async function POST(request: NextRequest) {
     return errorResponse('Ошибка при создании купона', 500)
   }
 }
+

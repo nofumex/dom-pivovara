@@ -25,3 +25,4 @@ export default async function AdminLeadPage({
 
   return <LeadDetails lead={lead} />
 }
+

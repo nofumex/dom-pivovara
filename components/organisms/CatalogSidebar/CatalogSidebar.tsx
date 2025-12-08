@@ -50,13 +50,6 @@ export function CatalogSidebar({ categories: initialCategories }: CatalogSidebar
                 // Нормализуем изображение: убираем пустые строки и null
                 const subImage = sub.image && typeof sub.image === 'string' && sub.image.trim() !== '' ? sub.image : null
                 
-                // Временное логирование для отладки
-                if (subImage) {
-                  console.log(`✅ [CatalogSidebar] Подкатегория "${sub.name}" имеет изображение:`, subImage)
-                } else {
-                  console.warn(`⚠️ [CatalogSidebar] Подкатегория "${sub.name}" НЕ имеет изображения. sub.image =`, sub.image, 'raw sub:', sub)
-                }
-                
                 return {
                   name: sub.name,
                   slug: sub.slug,
