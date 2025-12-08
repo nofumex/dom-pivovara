@@ -82,6 +82,19 @@
   gap: 12px;
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.helper {
+  margin: 6px 0 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .info {
   background: white;
   border: 1px solid var(--color-border);

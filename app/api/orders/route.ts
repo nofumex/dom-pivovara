@@ -290,7 +290,8 @@ export async function POST(request: NextRequest) {
         order.orderNumber,
         validated.email,
         total,
-        orderItemsForEmail
+        orderItemsForEmail,
+        `${validated.firstName} ${validated.lastName}`.trim()
       ),
       (async () => {
         const deliveryAddress = order.Address

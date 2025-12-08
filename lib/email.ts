@@ -1,6 +1,13 @@
 import nodemailer from 'nodemailer'
 import { prisma } from './db'
 import { SettingType } from '@prisma/client'
+import {
+  buildAdminLeadEmail,
+  buildAdminOrderEmail,
+  buildNewsletterEmail,
+  buildOrderConfirmationEmail,
+  OrderItem,
+} from './email-templates'
 
 interface EmailSettings {
   smtpHost: string
@@ -367,58 +374,17 @@ export async function sendOrderConfirmationEmail(
   orderNumber: string,
   customerEmail: string,
   orderTotal: number,
-  items: Array<{ title: string; quantity: number; price: number }>
+  items: Array<{ title: string; quantity: number; price: number }>,
+  customerName?: string
 ): Promise<boolean> {
-  const itemsHtml = items
-    .map(
-      (item) => `
-    <tr>
-      <td>${item.title}</td>
-      <td>${item.quantity}</td>
-      <td>${new Intl.NumberFormat('ru-RU').format(item.price)} ₽</td>
-    </tr>
-  `
-    )
-    .join('')
+  const built = buildOrderConfirmationEmail({
+    orderNumber,
+    customerName,
+    orderTotal,
+    items: items as OrderItem[],
+  })
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Ваш заказ №${orderNumber}</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #2c3e50;">Ваш заказ №${orderNumber}</h1>
-          <p>Спасибо за ваш заказ!</p>
-          <h2>Состав заказа:</h2>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <thead>
-              <tr style="background-color: #f4f4f4;">
-                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Товар</th>
-                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Количество</th>
-                <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Цена</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-          <p style="font-size: 18px; font-weight: bold;">
-            Итого: ${new Intl.NumberFormat('ru-RU').format(orderTotal)} ₽
-          </p>
-          <p>Мы свяжемся с вами в ближайшее время для подтверждения заказа.</p>
-        </div>
-      </body>
-    </html>
-  `
-
-  return sendEmail(
-    customerEmail,
-    `Ваш заказ №${orderNumber}`,
-    html
-  )
+  return sendEmail(customerEmail, built.subject, built.html, built.text)
 }
 
 export async function sendNewOrderNotificationEmail(
@@ -434,37 +400,16 @@ export async function sendNewOrderNotificationEmail(
     return false
   }
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Новый заказ №${orderNumber}</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #e74c3c;">Новый заказ №${orderNumber}</h1>
-          <h2>Данные клиента:</h2>
-          <ul>
-            <li><strong>Имя:</strong> ${customerName}</li>
-            <li><strong>Email:</strong> ${customerEmail}</li>
-            <li><strong>Телефон:</strong> ${customerPhone}</li>
-            ${deliveryAddress ? `<li><strong>Адрес доставки:</strong> ${deliveryAddress}</li>` : ''}
-          </ul>
-          <p style="font-size: 18px; font-weight: bold;">
-            Сумма заказа: ${new Intl.NumberFormat('ru-RU').format(orderTotal)} ₽
-          </p>
-          <p>Пожалуйста, обработайте заказ в админ-панели.</p>
-        </div>
-      </body>
-    </html>
-  `
+  const built = buildAdminOrderEmail({
+    orderNumber,
+    customerName,
+    customerEmail,
+    customerPhone,
+    orderTotal,
+    deliveryAddress,
+  })
 
-  return sendEmail(
-    settings.companyEmail,
-    `Новый заказ №${orderNumber}`,
-    html
-  )
+  return sendEmail(settings.companyEmail, built.subject, built.html, built.text)
 }
 
 export async function sendNewLeadNotificationEmail(
@@ -480,42 +425,45 @@ export async function sendNewLeadNotificationEmail(
   }
 
   const sourceLabels: Record<string, string> = {
-    'callback': 'Заказ звонка',
-    'cheaper': 'Нашли дешевле',
+    callback: 'Заказ звонка',
+    cheaper: 'Нашли дешевле',
     'quick-buy': 'Быстрая покупка',
-    'contact': 'Обратная связь',
+    contact: 'Обратная связь',
   }
 
   const sourceLabel = sourceLabels[leadSource] || leadSource
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Новая заявка: ${sourceLabel}</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #e74c3c;">Новая заявка: ${sourceLabel}</h1>
-          <h2>Данные клиента:</h2>
-          <ul>
-            <li><strong>Имя:</strong> ${name}</li>
-            ${phone ? `<li><strong>Телефон:</strong> ${phone}</li>` : ''}
-            ${email ? `<li><strong>Email:</strong> ${email}</li>` : ''}
-            ${message ? `<li><strong>Сообщение:</strong><br>${message.replace(/\n/g, '<br>')}</li>` : ''}
-          </ul>
-          <p>Пожалуйста, обработайте заявку в админ-панели.</p>
-        </div>
-      </body>
-    </html>
-  `
+  const built = buildAdminLeadEmail({
+    leadSource: sourceLabel,
+    name,
+    phone,
+    email,
+    message,
+  })
 
-  return sendEmail(
-    settings.companyEmail,
-    `Новая заявка: ${sourceLabel}`,
-    html
-  )
+  return sendEmail(settings.companyEmail, built.subject, built.html, built.text)
+}
+
+// Унифицированный конструктор для маркетинговой рассылки
+export function buildMarketingEmail(subject: string, rawContent: string, isHtml: boolean, options?: { preheader?: string; ctaLabel?: string; ctaUrl?: string; badgeLabel?: string }) {
+  const contentHtml = isHtml
+    ? rawContent
+    : safeConvertTextToHtml(rawContent)
+
+  return buildNewsletterEmail({
+    subject,
+    contentHtml,
+    preheader: options?.preheader,
+    badgeLabel: options?.badgeLabel,
+    cta: options?.ctaLabel && options?.ctaUrl ? { label: options.ctaLabel, url: options.ctaUrl } : undefined,
+  })
+}
+
+function safeConvertTextToHtml(text: string) {
+  return text
+    .split('\n')
+    .map((line) => `<p style="margin:0 0 10px 0;">${line.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
+    .join('')
 }
 
 

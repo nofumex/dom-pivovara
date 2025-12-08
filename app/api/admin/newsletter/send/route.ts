@@ -5,11 +5,17 @@ import { getAuthUserWithRefresh } from '@/lib/auth-helpers'
 import { z } from 'zod'
 import nodemailer from 'nodemailer'
 import { SettingType } from '@prisma/client'
+import { buildMarketingEmail } from '@/lib/email'
 
 const sendNewsletterSchema = z.object({
   subject: z.string().min(1, 'Тема обязательна'),
   content: z.string().min(1, 'Содержимое обязательно'),
   isHtml: z.boolean().optional().default(false),
+  useTemplate: z.boolean().optional().default(true),
+  preheader: z.string().optional(),
+  ctaLabel: z.string().optional(),
+  ctaUrl: z.string().url().optional(),
+  badgeLabel: z.string().optional(),
 })
 
 interface EmailSettings {
@@ -101,23 +107,49 @@ export async function POST(request: NextRequest) {
 
     // Создаем транспортер
     const transporter = await createTransporter(emailSettings)
+    
+    // Проверяем подключение к SMTP
+    try {
+      await transporter.verify()
+      console.log('✅ SMTP connection verified')
+    } catch (verifyError: any) {
+      console.error('❌ SMTP verification failed:', verifyError)
+      return errorResponse('Ошибка подключения к SMTP серверу', 500, verifyError.message)
+    }
+
+    // Подготавливаем оформление письма
+    const built = validated.useTemplate
+      ? buildMarketingEmail(validated.subject, validated.content, validated.isHtml, {
+          preheader: validated.preheader,
+          ctaLabel: validated.ctaLabel,
+          ctaUrl: validated.ctaUrl,
+          badgeLabel: validated.badgeLabel,
+        })
+      : {
+          subject: validated.subject,
+          html: validated.isHtml ? validated.content : validated.content.replace(/\n/g, '<br />'),
+          text: validated.isHtml ? undefined : validated.content,
+        }
 
     // Отправляем письма
     let sentCount = 0
     let failedCount = 0
     const errors: string[] = []
 
+    console.log(`📧 Начинаем рассылку для ${subscribers.length} подписчиков`)
+
     // Отправляем письма последовательно с небольшой задержкой
     for (const subscriber of subscribers) {
       try {
-        await transporter.sendMail({
+        const result = await transporter.sendMail({
           from: `"ДомПивовар" <${emailSettings.fromEmail}>`,
           to: subscriber.email,
-          subject: validated.subject,
-          text: validated.isHtml ? undefined : validated.content,
-          html: validated.isHtml ? validated.content : undefined,
+          subject: built.subject,
+          text: built.text,
+          html: built.html,
         })
         sentCount++
+        console.log(`✅ Отправлено на ${subscriber.email}, messageId: ${result.messageId}`)
         
         // Небольшая задержка между письмами, чтобы не перегружать SMTP сервер
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -126,6 +158,17 @@ export async function POST(request: NextRequest) {
         errors.push(`${subscriber.email}: ${error.message}`)
         console.error(`Error sending to ${subscriber.email}:`, error)
       }
+    }
+
+    console.log(`📊 Результаты рассылки: ${sentCount} отправлено, ${failedCount} ошибок из ${subscribers.length} подписчиков`)
+
+    if (sentCount === 0) {
+      console.error('❌ Все попытки отправки провалились')
+      return errorResponse(
+        'Не удалось отправить рассылку ни одному подписчику',
+        500,
+        errors[0] || 'SMTP ошибка'
+      )
     }
 
     return successResponse(

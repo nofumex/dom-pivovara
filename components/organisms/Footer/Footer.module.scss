@@ -1,194 +1,153 @@
 .footer {
-  background: var(--color-white);
-  margin-top: 64px;
-  margin-left: 280px;
-  width: calc(100% - 280px);
+  background: #F5F6F7;
+  margin-top: 32px;
+  margin-left: 0;
+  width: 100%;
 }
 
-// Секция с логотипами партнеров
-.partnersSection {
-  padding: 48px 0;
-  background: var(--color-white);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.partnersRow {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 40px;
-  flex-wrap: wrap;
-}
-
-.partnerLogo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  filter: grayscale(100%);
-  opacity: 0.8;
-  transition: opacity 0.3s, filter 0.3s;
-
-  &:hover {
-    opacity: 1;
-    filter: grayscale(0%);
-  }
-}
-
-.partnerImage {
-  object-fit: contain;
-  max-width: 120px;
-  max-height: 80px;
-  width: auto;
-  height: auto;
-}
-
-// Секция "Ранее вы смотрели"
 .recentlyViewed {
-  padding: 48px 0;
-  background: var(--color-white);
+  padding: 24px 0;
   border-bottom: 1px solid var(--color-border);
+  background: #F5F6F7;
 }
 
 .recentlyViewedTitle {
-  font-size: 26px;
+  font-size: var(--font-lg-size);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 32px;
-  text-align: left;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.recentlyViewedCarousel {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 8px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+.recentlyViewedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  max-width: 1260px;
+  margin: 0 auto;
+  align-items: stretch;
+}
 
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 3px;
-  }
+.recentProductSlot {
+  min-width: 0;
 }
 
 .productCard {
-  flex: 0 0 160px;
   display: flex;
   flex-direction: column;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 210px;
   padding: 12px;
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.3s, transform 0.2s;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    box-shadow: var(--shadow-elev);
     transform: translateY(-2px);
+    box-shadow: 0px 4px 18px rgba(0, 0, 0, 0.08);
   }
 }
 
-.productImage {
+.productThumb {
   width: 100%;
-  aspect-ratio: 1;
-  background-size: cover;
-  background-position: center;
-  background-color: var(--color-border);
+  height: 120px;
   border-radius: var(--radius-sm);
-  margin-bottom: 12px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--color-white);
 }
 
-.productName {
-  font-size: 14px;
-  font-weight: 400;
+.productInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  text-align: center;
+}
+
+.productTitle {
+  font-size: var(--font-small-size);
+  line-height: 1.35;
   color: var(--color-text);
-  margin-bottom: 8px;
-  line-height: 1.4;
+  min-height: 36px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 40px;
+  text-align: center;
 }
 
 .productPrice {
-  font-size: 18px;
+  font-size: var(--font-base-size);
   font-weight: 700;
   color: var(--color-text);
 }
 
-// Основной футер
-.main {
-  padding: 48px 0;
-  background: var(--color-white);
+.emptySlot {
+  width: 100%;
+  height: 210px;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+  opacity: 0.4;
 }
 
-.footerContent {
+.main {
+  padding: 40px 0;
+  background: #F5F6F7;
+}
+
+.content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 48px;
 }
 
-// Колонка с платежными системами
-.paymentsColumn {
-  min-width: 200px;
+.logoSection {
+  flex-shrink: 0;
+  min-width: 240px;
+  max-width: 280px;
 }
 
-.paymentSystems {
-  display: flex;
-  gap: 12px;
+.logoWrapper {
   margin-bottom: 16px;
-  flex-wrap: wrap;
 }
 
-.paymentLogo {
-  padding: 8px 16px;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  white-space: nowrap;
+.logo {
+  width: auto;
+  height: auto;
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: contain;
 }
 
-.serviceIcons {
+.logoDescription {
+  font-size: var(--font-small-size);
+  line-height: 1.6;
+  color: #4a4a4a;
+  margin: 0;
+}
+
+.columns {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 64px;
+  flex: 1;
+  justify-content: flex-end;
 }
 
-.serviceIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  background: var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-// Общие стили для колонок
 .column {
-  min-width: 150px;
+  min-width: 140px;
 }
 
 .columnTitle {
-  font-size: 14px;
+  font-size: var(--font-small-size);
   font-weight: 700;
   color: var(--color-text);
   margin-bottom: 16px;
@@ -198,11 +157,11 @@
 
 .links {
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .links li {
@@ -210,8 +169,7 @@
 }
 
 .links a {
-  font-size: 16px;
-  font-weight: 400;
+  font-size: var(--font-base-size);
   color: var(--color-text);
   text-decoration: none;
   line-height: 1.5;
@@ -223,47 +181,48 @@
   }
 }
 
-// Контакты
 .contacts {
-  min-width: 220px;
   text-align: right;
+  min-width: 220px;
 }
 
 .phoneBlock {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 12px;
   justify-content: flex-end;
 }
 
 .phoneIcon {
-  width: 16px;
-  height: 16px;
-  margin-top: 4px;
-  color: #999999;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--color-primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .phoneNumbers {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 600;
+  font-size: var(--font-base-size);
   color: var(--color-text);
-  line-height: 1.3;
-  text-align: right;
+  line-height: 1.4;
+  gap: 2px;
 }
 
 .callbackLink {
   display: inline-block;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-primary-600);
   text-transform: uppercase;
   text-decoration: underline;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-top: 8px;
   background: none;
   border: none;
   padding: 0;
@@ -276,41 +235,45 @@
 }
 
 .socialText {
-  font-size: 14px;
-  font-weight: 400;
+  font-size: var(--font-small-size);
   color: var(--color-text);
+  margin-top: 20px;
   margin-bottom: 12px;
-  margin-top: 0;
+  text-align: right;
 }
 
-.socialIconsMain {
-  display: flex;
+.socialIcons {
+  display: grid;
+  grid-template-columns: repeat(3, 36px);
   gap: 8px;
-  justify-content: flex-end;
-  margin-bottom: 12px;
-}
-
-.whatsappIcon {
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
+  width: fit-content;
+  margin-left: auto;
+  
+  // Последний элемент (WhatsApp) занимает среднюю колонку и центрируется
+  .socialIcon:last-child {
+    grid-column: 2;
+    justify-self: center;
+  }
 }
 
 .socialIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
   text-decoration: none;
   transition: opacity 0.2s, transform 0.2s;
+  flex-shrink: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
 
   &:hover {
-    opacity: 0.9;
+    opacity: 0.85;
     transform: scale(1.05);
   }
 
@@ -318,42 +281,33 @@
     background: #0077FF;
   }
 
-  &.youtube {
-    background: #FF0000;
-  }
-
   &.telegram {
     background: #0088cc;
   }
 
   &.viber {
-    background: #665CAC;
+    background: #7360F2;
   }
 
   &.whatsapp {
     background: #25D366;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
   }
 }
 
-// Нижняя строка
 .bottom {
-  padding: 20px 0;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-white);
+  padding: 16px 0;
+  border-top: 1px solid #E0E0E0;
+  background: #F0F0F0;
 }
 
 .copyright {
   font-size: 13px;
-  color: #E67E22;
+  color: #B8860B;
   text-align: left;
   margin: 0;
-  font-weight: 400;
 
   a {
-    color: #E67E22;
+    color: #B8860B;
     text-decoration: none;
 
     &:hover {
@@ -362,88 +316,92 @@
   }
 }
 
-// Адаптивность
 @media (max-width: 1023px) {
   .footer {
     margin-left: 0;
     width: 100%;
   }
 
-  .footerContent {
+  .content {
     flex-direction: column;
     gap: 32px;
   }
 
+  .logoSection {
+    max-width: 100%;
+  }
+
+  .columns {
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: flex-start;
+  }
+
   .contacts {
     text-align: left;
+    width: 100%;
   }
 
   .phoneBlock {
     justify-content: flex-start;
   }
 
-  .phoneNumbers {
+  .socialText {
     text-align: left;
   }
 
-  .socialIconsMain {
+  .socialIcons {
+    margin-left: 0;
     justify-content: flex-start;
-  }
-
-  .whatsappIcon {
-    justify-content: flex-start;
-  }
-
-  .partnersRow {
-    gap: 24px;
-  }
-
-  .recentlyViewedCarousel {
-    gap: 16px;
-  }
-
-  .productCard {
-    flex: 0 0 140px;
   }
 }
 
 @media (max-width: 767px) {
-  .partnersSection {
-    padding: 32px 0;
-  }
-
-  .recentlyViewed {
-    padding: 32px 0;
-  }
-
-  .recentlyViewedTitle {
-    font-size: 22px;
-    margin-bottom: 24px;
-  }
-
-  .main {
-    padding: 32px 0;
-  }
-
-  .footerContent {
-    gap: 24px;
-  }
-
-  .partnersRow {
-    gap: 16px;
-  }
-
-  .partnerImage {
-    max-width: 80px;
-    max-height: 60px;
-  }
-
-  .productCard {
-    flex: 0 0 120px;
+  .footer {
+    margin-left: 0;
+    width: 100%;
   }
 
   .copyright {
     text-align: center;
     font-size: 12px;
   }
+
+  .recentlyViewed {
+    padding: 24px 0;
+  }
+
+  .recentlyViewedTitle {
+    font-size: var(--font-base-size);
+    margin-bottom: 16px;
+  }
+
+  .recentlyViewedGrid {
+    gap: 12px;
+  }
+
+  .main {
+    padding: 32px 0;
+  }
+
+  .columns {
+    gap: 24px;
+  }
+
+  .column {
+    min-width: 120px;
+  }
+
+  .logoSection {
+    min-width: 100%;
+  }
 }
+
+
+
+
+
+
+
+
+

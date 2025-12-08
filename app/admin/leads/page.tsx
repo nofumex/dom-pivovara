@@ -76,12 +76,12 @@ export default async function AdminLeadsPage() {
                   OTHER: 'Другое',
                 }
                 return (
-                  <tr 
-                    key={lead.id}
-                    onClick={() => window.location.href = `/admin/leads/${lead.id}`}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td className={styles.id}>{lead.id.substring(0, 8)}...</td>
+                  <tr key={lead.id}>
+                    <td className={styles.id}>
+                      <a href={`/admin/leads/${lead.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {lead.id.substring(0, 8)}...
+                      </a>
+                    </td>
                     <td>{lead.name || '-'}</td>
                     <td>{lead.phone || '-'}</td>
                     <td className={styles.email}>{lead.email || '-'}</td>

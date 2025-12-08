@@ -3,12 +3,18 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/atoms/Button/Button'
 import { Input } from '@/components/atoms/Input/Input'
+import { buildNewsletterEmail } from '@/lib/email-templates'
 import styles from './page.module.scss'
 
 export default function NewsletterPage() {
   const [subject, setSubject] = useState('')
   const [content, setContent] = useState('')
   const [isHtml, setIsHtml] = useState(false)
+  const [useTemplate, setUseTemplate] = useState(true)
+  const [preheader, setPreheader] = useState('')
+  const [badgeLabel, setBadgeLabel] = useState('Новое')
+  const [ctaLabel, setCtaLabel] = useState('Посмотреть')
+  const [ctaUrl, setCtaUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [subscribersCount, setSubscribersCount] = useState<number | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
@@ -53,15 +59,31 @@ export default function NewsletterPage() {
           subject,
           content,
           isHtml,
+          useTemplate,
+          preheader: preheader.trim() || undefined,
+          badgeLabel: badgeLabel.trim() || undefined,
+          ctaLabel: ctaLabel.trim() || undefined,
+          ctaUrl: ctaUrl.trim() || undefined,
         }),
       })
 
       const data = await response.json()
       if (data.success) {
-        alert(`Рассылка успешно отправлена ${data.sentCount} подписчикам!`)
+        const sentCount = data.data?.sentCount || 0
+        const failedCount = data.data?.failedCount || 0
+        if (failedCount > 0) {
+          alert(`Рассылка завершена: ${sentCount} отправлено, ${failedCount} ошибок`)
+        } else {
+          alert(`Рассылка успешно отправлена ${sentCount} подписчикам!`)
+        }
         setSubject('')
         setContent('')
         setIsHtml(false)
+        setUseTemplate(true)
+        setBadgeLabel('Новое')
+        setCtaLabel('Посмотреть')
+        setCtaUrl('')
+        setPreheader('')
       } else {
         alert(data.error || 'Ошибка при отправке рассылки')
       }
@@ -78,10 +100,20 @@ export default function NewsletterPage() {
       return '<p style="color: var(--color-muted);">Предпросмотр появится, когда вы добавите текст.</p>'
     }
 
+    // HTML из поля
     if (isHtml) {
-      return content
+      if (!useTemplate) return content
+      const built = buildNewsletterEmail({
+        subject: subject || 'Предпросмотр',
+        contentHtml: content,
+        preheader: preheader || undefined,
+        badgeLabel: badgeLabel || undefined,
+        cta: ctaLabel && ctaUrl ? { label: ctaLabel, url: ctaUrl } : undefined,
+      })
+      return built.html
     }
 
+    // Текстовое письмо => превращаем в параграфы
     const escaped = content
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -89,7 +121,24 @@ export default function NewsletterPage() {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;')
 
-    return escaped.replace(/\n/g, '<br />')
+    const htmlFromText = escaped
+      .split('\n')
+      .map((line) => `<p style="margin:0 0 10px 0;">${line}</p>`)
+      .join('')
+
+    if (!useTemplate) {
+      return htmlFromText
+    }
+
+    const built = buildNewsletterEmail({
+      subject: subject || 'Предпросмотр',
+      contentHtml: htmlFromText,
+      preheader: preheader || undefined,
+      badgeLabel: badgeLabel || undefined,
+      cta: ctaLabel && ctaUrl ? { label: ctaLabel, url: ctaUrl } : undefined,
+    })
+
+    return built.html
   }
 
   return (
@@ -117,6 +166,21 @@ export default function NewsletterPage() {
             </label>
           </div>
 
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              <input
+                type="checkbox"
+                checked={useTemplate}
+                onChange={(e) => setUseTemplate(e.target.checked)}
+                style={{ marginRight: '8px' }}
+              />
+              Использовать фирменное оформление
+            </label>
+            <p className={styles.helper}>
+              Оборачивает письмо в красивый шаблон с логотипом, хедером и футером.
+            </p>
+          </div>
+
           <Input
             label="Тема письма"
             type="text"
@@ -125,6 +189,39 @@ export default function NewsletterPage() {
             placeholder="Например: Новые акции и скидки!"
             required
           />
+
+          {useTemplate && (
+            <div className={styles.grid}>
+              <Input
+                label="Пре-хедер"
+                type="text"
+                value={preheader}
+                onChange={(e) => setPreheader(e.target.value)}
+                placeholder="Короткая строка в списке писем"
+              />
+              <Input
+                label="Бейдж"
+                type="text"
+                value={badgeLabel}
+                onChange={(e) => setBadgeLabel(e.target.value)}
+                placeholder="Например: Акция"
+              />
+              <Input
+                label="Текст кнопки"
+                type="text"
+                value={ctaLabel}
+                onChange={(e) => setCtaLabel(e.target.value)}
+                placeholder="Например: Подробнее"
+              />
+              <Input
+                label="Ссылка кнопки"
+                type="url"
+                value={ctaUrl}
+                onChange={(e) => setCtaUrl(e.target.value)}
+                placeholder="https://domain.com/..."
+              />
+            </div>
+          )}
 
           <div className={styles.formGroup}>
             <label className={styles.label}>

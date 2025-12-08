@@ -11,7 +11,7 @@ import styles from './Footer.module.scss'
 export function Footer() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
   const [recentProducts, setRecentProducts] = useState<any[]>([])
-  const recentIds = useRecentlyViewedStore((state) => state.getRecent(7))
+  const recentIds = useRecentlyViewedStore((state) => state.getRecent(6))
 
   useEffect(() => {
     const loadRecentProducts = async () => {
@@ -40,127 +40,77 @@ export function Footer() {
     }
 
     loadRecentProducts()
-  }, [recentIds.join(',')])
+  }, [recentIds.join(',')]) // Обновляем при изменении списка ID
+
+  // Всегда показываем 6 слотов
+  const slots = Array.from({ length: 6 }, (_, i) => {
+    return recentProducts[i] || null
+  })
 
   return (
     <>
-      <footer className={styles.footer}>
-        {/* Секция с логотипами партнеров */}
-        <div className={styles.partnersSection}>
-          <div className="container">
-            <div className={styles.partnersRow}>
-              <div className={styles.partnerLogo}>
-                <Image
-                  src="/images/Ставбондарь.jpg"
-                  alt="ВСЕ ДЛЯ ПРИГОТОВЛЕНИЯ СПИРТНЫХ НАПИТКОВ ДОМА"
-                  width={120}
-                  height={120}
-                  className={styles.partnerImage}
-                  unoptimized
-                />
-              </div>
-              <div className={styles.partnerLogo}>
-                <Image
-                  src="/images/Ставбондарь.jpg"
-                  alt="Ставбондарь"
-                  width={120}
-                  height={120}
-                  className={styles.partnerImage}
-                  unoptimized
-                />
-              </div>
-              <div className={styles.partnerLogo}>
-                <Image
-                  src="/images/АлтайскийВинокур.jpg"
-                  alt="Алтайский винокур"
-                  width={120}
-                  height={120}
-                  className={styles.partnerImage}
-                  unoptimized
-                />
-              </div>
-              <div className={styles.partnerLogo}>
-                <Image
-                  src="/images/ДедАлтай.jpg"
-                  alt="ДЕД АЛТАЙ"
-                  width={120}
-                  height={120}
-                  className={styles.partnerImage}
-                  unoptimized
-                />
-              </div>
-              <div className={styles.partnerLogo}>
-                <Image
-                  src="/images/Iplate.jpg"
-                  alt="iplate"
-                  width={120}
-                  height={120}
-                  className={styles.partnerImage}
-                  unoptimized
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Секция "Ранее вы смотрели" */}
+    <footer className={styles.footer}>
+      {recentProducts.length > 0 && (
         <div className={styles.recentlyViewed}>
           <div className="container">
             <h2 className={styles.recentlyViewedTitle}>Ранее вы смотрели</h2>
-            <div className={styles.recentlyViewedCarousel}>
-              {recentProducts.slice(0, 7).map((product) => {
-                const imageUrl = product.images && 
-                  product.images.length > 0 && 
-                  product.images[0] && 
-                  !product.images[0].includes('placeholder')
-                  ? product.images[0]
-                  : `https://picsum.photos/seed/${product.id}/400/400`
+            <div className={styles.recentlyViewedGrid}>
+              {slots.map((product, index) => (
+                <div key={product?.id || `empty-${index}`} className={styles.recentProductSlot}>
+                  {product ? (
+                    <Link href={`/product/${product.slug}`} className={styles.productCard}>
+                      <div
+                        className={styles.productThumb}
+                        style={{
+                          backgroundImage: (() => {
+                            const hasRealImage = product.images &&
+                              product.images.length > 0 &&
+                              product.images[0] &&
+                              !product.images[0].includes('placeholder')
 
-                return (
-                  <Link key={product.id} href={`/product/${product.slug}`} className={styles.productCard}>
-                    <div
-                      className={styles.productImage}
-                      style={{
-                        backgroundImage: `url(${imageUrl})`,
-                      }}
-                    />
-                    <div className={styles.productName}>{product.title}</div>
-                    <div className={styles.productPrice}>
-                      {new Intl.NumberFormat('ru-RU', {
-                        style: 'decimal',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(typeof product.price === 'string' ? parseFloat(product.price) : product.price)} Р/шт
-                    </div>
-                  </Link>
-                )
-              })}
+                            if (hasRealImage) {
+                              return `url(${product.images[0]})`
+                            }
+
+                            return `url(https://picsum.photos/seed/${product.id}/400/400)`
+                          })(),
+                        }}
+                      />
+                      <div className={styles.productInfo}>
+                        <div className={styles.productTitle}>{product.title}</div>
+                        <div className={styles.productPrice}>{formatPrice(product.price)}</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className={styles.emptySlot}></div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Основной футер */}
-        <div className={styles.main}>
-          <div className="container">
-            <div className={styles.footerContent}>
-              {/* Колонка 1: Платежные системы и сервисы */}
-              <div className={styles.paymentsColumn}>
-                <div className={styles.paymentSystems}>
-                  <div className={styles.paymentLogo}>VISA</div>
-                  <div className={styles.paymentLogo}>МИР</div>
-                  <div className={styles.paymentLogo}>TINKOFF</div>
-                </div>
-                <div className={styles.serviceIcons}>
-                  <div className={styles.serviceIcon}>VK</div>
-                  <div className={styles.serviceIcon}>Q</div>
-                  <div className={styles.serviceIcon}>io</div>
-                  <div className={styles.serviceIcon}>✓</div>
-                  <div className={styles.serviceIcon}>✗</div>
-                  <div className={styles.serviceIcon}>⚙</div>
-                </div>
+      <div className={styles.main}>
+        <div className="container">
+          <div className={styles.content}>
+            <div className={styles.logoSection}>
+              <div className={styles.logoWrapper}>
+                <Image
+                  src="/images/logoPivovar.png"
+                  alt="ДомПивовар"
+                  width={80}
+                  height={80}
+                  className={styles.logo}
+                />
               </div>
+              <p className={styles.logoDescription}>
+                ДомПивовар — всё для домашнего пива, виноделия и дистилляции.
+                Подберём оборудование, ингредиенты и аксессуары, чтобы ваш напиток получался идеальным каждый раз.
+              </p>
+            </div>
 
-              {/* Колонка 2: КОМПАНИЯ */}
+            <div className={styles.columns}>
               <div className={styles.column}>
                 <h3 className={styles.columnTitle}>КОМПАНИЯ</h3>
                 <ul className={styles.links}>
@@ -170,7 +120,6 @@ export function Footer() {
                 </ul>
               </div>
 
-              {/* Колонка 3: ПОМОЩЬ */}
               <div className={styles.column}>
                 <h3 className={styles.columnTitle}>ПОМОЩЬ</h3>
                 <ul className={styles.links}>
@@ -179,31 +128,21 @@ export function Footer() {
                 </ul>
               </div>
 
-              {/* Колонка 4: ИНФОРМАЦИЯ */}
               <div className={styles.column}>
                 <h3 className={styles.columnTitle}>ИНФОРМАЦИЯ</h3>
                 <ul className={styles.links}>
                   <li><Link href="/articles">Статьи</Link></li>
-                  <li><Link href="/faq">Вопрос-ответ</Link></li>
+                  <li><Link href="/faq">Вопрос‑ответ</Link></li>
                 </ul>
               </div>
 
-              {/* Колонка 5: Контакты и социальные сети */}
               <div className={styles.contacts}>
                 <div className={styles.phoneBlock}>
-                  <svg
-                    className={styles.phoneIcon}
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"
-                      fill="currentColor"
-                    />
-                  </svg>
+                  <div className={styles.phoneIcon}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="currentColor"/>
+                    </svg>
+                  </div>
                   <div className={styles.phoneNumbers}>
                     <div>+7 913 555-222-6</div>
                     <div>+7 913 037-32-47</div>
@@ -216,34 +155,72 @@ export function Footer() {
                   ЗАКАЗАТЬ ЗВОНОК
                 </button>
                 <p className={styles.socialText}>Мы в социальных сетях:</p>
-                <div className={styles.socialIconsMain}>
-                  <a href="#" className={`${styles.socialIcon} ${styles.vk}`}>VK</a>
-                  <a href="#" className={`${styles.socialIcon} ${styles.youtube}`}>YT</a>
-                  <a href="#" className={`${styles.socialIcon} ${styles.telegram}`}>TG</a>
-                  <a href="#" className={`${styles.socialIcon} ${styles.viber}`}>VB</a>
-                </div>
-                <div className={styles.whatsappIcon}>
-                  <a href="#" className={`${styles.socialIcon} ${styles.whatsapp}`}>WA</a>
+                <div className={styles.socialIcons}>
+                  <a 
+                    href="https://vk.com/dompivovar_ru" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`${styles.socialIcon} ${styles.vk}`}
+                    aria-label="ВКонтакте"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12.785 16.241s.287-.033.435-.2c.135-.15.131-.433.131-.433s-.02-1.303.58-1.496c.592-.19 1.35.95 2.15 1.37.605.318 1.065.247 1.065.247l2.15-.031s1.123-.07.59-.95c-.044-.07-.31-.65-1.61-1.84-1.36-1.25-1.176-.525.45-1.61.98-.82 1.37-1.32 1.25-1.53-.117-.205-.84-.15-.84-.15l-2.15.013s-.16-.022-.277.05c-.115.07-.19.23-.19.23s-.34.91-.79 1.68c-.95 1.78-1.33 1.87-1.49 1.76-.36-.22-.27-.88-.27-1.35 0-1.47.22-2.08-.43-2.24-.21-.05-.37-.08-.91-.09-.69-.01-1.28.01-1.61.16-.22.1-.38.32-.28.33.13.02.42.08.57.29.2.28.19.91.19.91s.12 1.75-.28 1.97c-.28.15-.66-.16-1.48-1.58-.42-.75-.74-1.58-.74-1.58s-.06-.15-.17-.23c-.13-.09-.31-.12-.31-.12l-2.05.013s-.31.01-.42.15c-.1.12-.01.37-.01.37s1.58 3.73 3.37 5.61c1.64 1.72 3.52 1.61 3.52 1.61h.85z" fill="white"/>
+                    </svg>
+                  </a>
+                  <a 
+                    href="https://t.me/dompivovar_shop" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`${styles.socialIcon} ${styles.telegram}`}
+                    aria-label="Telegram"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.174 1.857-.928 6.678-1.309 8.855-.177.998-.525 1.332-.86 1.365-.73.064-1.283-.482-1.99-.945-1.103-.73-1.727-1.184-2.797-1.897-1.21-.9-.425-1.395.263-2.203.18-.21 3.256-2.988 3.317-3.243.007-.032.014-.15-.056-.212-.07-.062-.173-.041-.248-.024-.106.024-1.793 1.14-5.062 3.345-.479.336-.913.5-1.304.491-.43-.01-1.256-.242-1.87-.442-.755-.248-1.354-.38-1.303-.803.027-.22.325-.445.895-.675 3.498-1.524 5.83-2.529 7.002-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.321.024.465.14.118.095.151.223.167.312.016.09.036.297.02.458z" fill="white"/>
+                    </svg>
+                  </a>
+                  <a 
+                    href="https://viber.me/add?number=89135552226" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`${styles.socialIcon} ${styles.viber}`}
+                    aria-label="Viber"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12.5 0C6.148 0 1 5.148 1 11.5c0 2.19.7 4.22 1.89 5.88L1 24l6.82-1.89C9.28 23.3 10.86 23.5 12.5 23.5c6.352 0 11.5-5.148 11.5-11.5S18.852.5 12.5.5zm0 20.5c-1.4 0-2.78-.24-4.07-.7l-.29-.08-3.14.87.88-3.06-.09-.3C5.2 15.78 4.5 13.7 4.5 11.5 4.5 6.529 8.529 2.5 13.5 2.5S22.5 6.529 22.5 11.5 18.471 20.5 13.5 20.5h-1z" fill="white"/>
+                      <path d="M17.5 13.5c-.3 0-.5-.2-.5-.5v-1c0-.3.2-.5.5-.5s.5.2.5.5v1c0 .3-.2.5-.5.5zm-1.5-2.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zm3 0c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zm-1.5 1.5c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5z" fill="white"/>
+                    </svg>
+                  </a>
+                  <a 
+                    href="https://wa.me/89135552226" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`${styles.socialIcon} ${styles.whatsapp}`}
+                    aria-label="WhatsApp"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="white"/>
+                    </svg>
+                  </a>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Нижняя строка с копирайтом */}
-        <div className={styles.bottom}>
-          <div className="container">
-            <p className={styles.copyright}>
-              Разработка сайтов на 1С-Битрикс - KONTUR
-            </p>
-          </div>
+      <div className={styles.bottom}>
+        <div className="container">
+          <p className={styles.copyright}>
+            Разработка сайтов на 1С‑Битрикс — <Link href="#">KONTUR</Link>
+          </p>
         </div>
-      </footer>
+      </div>
+    </footer>
 
-      <CallbackModal
-        isOpen={isCallbackModalOpen}
-        onClose={() => setIsCallbackModalOpen(false)}
-      />
+    <CallbackModal
+      isOpen={isCallbackModalOpen}
+      onClose={() => setIsCallbackModalOpen(false)}
+    />
     </>
   )
 }
