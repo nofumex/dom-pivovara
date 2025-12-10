@@ -20,6 +20,20 @@ export default async function EditProductPage({
       include: {
         Category: true,
         ProductVariant: true,
+        Review: {
+          include: {
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
   })
 

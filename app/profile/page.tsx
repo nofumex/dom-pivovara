@@ -141,7 +141,19 @@ export default function ProfilePage() {
     <main>
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
-        <h1 className={styles.title}>Мой аккаунт</h1>
+        <div className={styles.header}>
+          <div className={styles.headerContent}>
+            <div className={styles.avatar}>
+              {userData.firstName?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div className={styles.headerInfo}>
+              <h1 className={styles.title}>
+                {userData.firstName} {userData.lastName}
+              </h1>
+              <p className={styles.subtitle}>{userData.email}</p>
+            </div>
+          </div>
+        </div>
 
         <div className={styles.layout}>
           <div className={styles.profileSection}>
@@ -212,21 +224,33 @@ export default function ProfilePage() {
             ) : (
               <div className={styles.infoBlock}>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Имя:</span>
-                  <span className={styles.infoValue}>{userData.firstName}</span>
+                  <div className={styles.infoIcon}>👤</div>
+                  <div className={styles.infoContent}>
+                    <span className={styles.infoLabel}>Имя</span>
+                    <span className={styles.infoValue}>{userData.firstName}</span>
+                  </div>
                 </div>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Фамилия:</span>
-                  <span className={styles.infoValue}>{userData.lastName}</span>
+                  <div className={styles.infoIcon}>👤</div>
+                  <div className={styles.infoContent}>
+                    <span className={styles.infoLabel}>Фамилия</span>
+                    <span className={styles.infoValue}>{userData.lastName}</span>
+                  </div>
                 </div>
                 <div className={styles.infoRow}>
-                  <span className={styles.infoLabel}>Email:</span>
-                  <span className={styles.infoValue}>{userData.email}</span>
+                  <div className={styles.infoIcon}>✉️</div>
+                  <div className={styles.infoContent}>
+                    <span className={styles.infoLabel}>Email</span>
+                    <span className={styles.infoValue}>{userData.email}</span>
+                  </div>
                 </div>
                 {userData.phone && (
                   <div className={styles.infoRow}>
-                    <span className={styles.infoLabel}>Телефон:</span>
-                    <span className={styles.infoValue}>{userData.phone}</span>
+                    <div className={styles.infoIcon}>📞</div>
+                    <div className={styles.infoContent}>
+                      <span className={styles.infoLabel}>Телефон</span>
+                      <span className={styles.infoValue}>{userData.phone}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -243,12 +267,16 @@ export default function ProfilePage() {
                   alert('Функция добавления адреса будет реализована')
                 }}
               >
-                Добавить адрес
+                + Добавить адрес
               </Button>
             </div>
 
             {addresses.length === 0 ? (
-              <p className={styles.emptyState}>У вас пока нет сохраненных адресов</p>
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}>📍</div>
+                <p>У вас пока нет сохраненных адресов</p>
+                <p className={styles.emptySubtext}>Добавьте адрес для быстрой доставки</p>
+              </div>
             ) : (
               <div className={styles.addressesList}>
                 {addresses.map((address) => (
@@ -256,12 +284,13 @@ export default function ProfilePage() {
                     {address.isMain && (
                       <span className={styles.mainBadge}>Основной</span>
                     )}
+                    <div className={styles.addressIcon}>🏠</div>
                     <h3 className={styles.addressName}>{address.name}</h3>
                     <p className={styles.addressText}>
                       {address.street}, {address.city}, {address.region}, {address.zipCode}
                     </p>
                     {address.phone && (
-                      <p className={styles.addressPhone}>{address.phone}</p>
+                      <p className={styles.addressPhone}>📞 {address.phone}</p>
                     )}
                   </div>
                 ))}

@@ -6,6 +6,7 @@ import { Button } from '@/components/atoms/Button/Button'
 import { Input } from '@/components/atoms/Input/Input'
 import { Select } from '@/components/atoms/Select/Select'
 import { ProductVariantsManager } from '@/components/admin/ProductVariantsManager/ProductVariantsManager'
+import { ProductReviewsManager } from '@/components/admin/ProductReviewsManager/ProductReviewsManager'
 import styles from './EditProductForm.module.scss'
 
 interface EditProductFormProps {
@@ -410,6 +411,14 @@ export function EditProductForm({ product, categories }: EditProductFormProps) {
               />
             </div>
           </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Отзывы</h2>
+          <ProductReviewsManager
+            productSlug={product.slug}
+            initialReviews={product.Review || []}
+          />
         </div>
 
         <ProductVariantsManager

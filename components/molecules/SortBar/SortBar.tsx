@@ -5,17 +5,22 @@ import styles from './SortBar.module.scss'
 
 type SortBy = 'popularity' | 'name' | 'price' | 'createdAt'
 type SortOrder = 'asc' | 'desc'
+type ViewMode = 'grid' | 'list'
 
 interface SortBarProps {
   sortBy?: SortBy
   sortOrder?: SortOrder
+  viewMode?: ViewMode
   onSortChange?: (sortBy: SortBy, sortOrder: SortOrder) => void
+  onViewModeChange?: (viewMode: ViewMode) => void
 }
 
-export function SortBar({ sortBy: externalSortBy, sortOrder: externalSortOrder, onSortChange }: SortBarProps = {}) {
+export function SortBar({ sortBy: externalSortBy, sortOrder: externalSortOrder, viewMode: externalViewMode, onSortChange, onViewModeChange }: SortBarProps = {}) {
   const [internalSortBy, setInternalSortBy] = useState<SortBy>('popularity')
   const [internalSortOrder, setInternalSortOrder] = useState<SortOrder>('desc')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [internalViewMode, setInternalViewMode] = useState<ViewMode>('grid')
+  
+  const viewMode = externalViewMode ?? internalViewMode
 
   const sortBy = externalSortBy ?? internalSortBy
   const sortOrder = externalSortOrder ?? internalSortOrder
@@ -61,15 +66,31 @@ export function SortBar({ sortBy: externalSortBy, sortOrder: externalSortOrder, 
       <div className={styles.view}>
         <button
           className={`${styles.viewButton} ${viewMode === 'grid' ? styles.active : ''}`}
-          onClick={() => setViewMode('grid')}
+          onClick={() => {
+            const newMode: ViewMode = 'grid'
+            if (onViewModeChange) {
+              onViewModeChange(newMode)
+            } else {
+              setInternalViewMode(newMode)
+            }
+          }}
           aria-label="Сетка"
+          title="Сетка"
         >
           ⬜
         </button>
         <button
           className={`${styles.viewButton} ${viewMode === 'list' ? styles.active : ''}`}
-          onClick={() => setViewMode('list')}
+          onClick={() => {
+            const newMode: ViewMode = 'list'
+            if (onViewModeChange) {
+              onViewModeChange(newMode)
+            } else {
+              setInternalViewMode(newMode)
+            }
+          }}
           aria-label="Список"
+          title="Список"
         >
           ☰
         </button>

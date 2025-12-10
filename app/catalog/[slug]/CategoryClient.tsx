@@ -23,6 +23,7 @@ interface CategoryClientProps {
 export function CategoryClient({ category, initialProducts }: CategoryClientProps) {
   const [products, setProducts] = useState(initialProducts)
   const [loading, setLoading] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
   // Вычисляем максимальную цену из товаров на странице
   const calculateMaxPrice = (productsList: any[]) => {
@@ -166,15 +167,19 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         <SortBar
           sortBy={sortBy}
           sortOrder={sortOrder}
+          viewMode={viewMode}
           onSortChange={(newSortBy, newSortOrder) => {
             setSortBy(newSortBy)
             setSortOrder(newSortOrder)
+          }}
+          onViewModeChange={(newViewMode) => {
+            setViewMode(newViewMode)
           }}
         />
         {loading ? (
           <div className={styles.loading}>Загрузка...</div>
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid products={products} viewMode={viewMode} />
         )}
       </div>
     </main>

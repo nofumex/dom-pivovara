@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useComparisonStore } from '@/store/comparison-store'
 import { Button } from '@/components/atoms/Button/Button'
 import styles from './ComparisonDrawer.module.scss'
@@ -12,6 +13,7 @@ interface ComparisonDrawerProps {
 }
 
 export function ComparisonDrawer({ isOpen, onClose }: ComparisonDrawerProps) {
+  const router = useRouter()
   const comparisonIds = useComparisonStore((state) => state.getAll())
   const removeFromComparison = useComparisonStore((state) => state.remove)
   const clearComparison = useComparisonStore((state) => state.clear)
@@ -43,8 +45,8 @@ export function ComparisonDrawer({ isOpen, onClose }: ComparisonDrawerProps) {
   if (!isOpen) return null
 
   const handleCompare = () => {
-    // Navigate to comparison page
-    alert('Сравнение товаров (заглушка)')
+    router.push('/compare')
+    onClose()
   }
 
   return (

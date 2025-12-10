@@ -9,9 +9,9 @@ import { StockLabel } from '@/components/atoms/StockLabel/StockLabel'
 import { formatPrice } from '@/lib/utils'
 import { useCartStore } from '@/store/cart-store'
 import { useFavoritesStore } from '@/store/favorites-store'
-import styles from './ProductCard.module.scss'
+import styles from './ProductCardLinear.module.scss'
 
-interface ProductCardProps {
+interface ProductCardLinearProps {
   product: {
     id: string
     title: string
@@ -21,19 +21,17 @@ interface ProductCardProps {
     badges?: string[]
     stockStatus?: string
     rating?: number
+    description?: string
   }
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCardLinear({ product }: ProductCardLinearProps) {
   const addItem = useCartStore((state) => state.addItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
   const removeItem = useCartStore((state) => state.removeItem)
-  const getCartItem = useCartStore((state) => {
-    return state.items.find((item) => item.productId === product.id)
-  })
   const toggleFavorite = useFavoritesStore((state) => state.toggle)
   const isFavorite = useFavoritesStore((state) => state.has(product.id))
-  const [quantity, setQuantity] = useState(getCartItem?.quantity || 1)
+  const [quantity, setQuantity] = useState(1)
 
   const stockStatus = (product.stockStatus || 'ENOUGH').toLowerCase() as 'many' | 'enough' | 'few' | 'none'
 
@@ -82,8 +80,6 @@ export function ProductCard({ product }: ProductCardProps) {
     }
   }
 
-  const cartItem = useCartStore((state) => state.items.find((item) => item.productId === product.id))
-
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -99,7 +95,6 @@ export function ProductCard({ product }: ProductCardProps) {
     ? 'sale'
     : null
 
-  // Используем реальные изображения из product.images, если есть и это не placeholder, иначе fallback
   const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null
   const isPlaceholder = firstImage && (
     firstImage.includes('placeholder') || 
@@ -112,9 +107,11 @@ export function ProductCard({ product }: ProductCardProps) {
     ? firstImage
     : `https://picsum.photos/seed/${product.id}/400/400`
 
+  const cartItem = useCartStore((state) => state.items.find((item) => item.productId === product.id))
+
   return (
-    <div className={styles.cardWrapper}>
-      <Link href={`/product/${product.slug}`} className={styles.card}>
+    <div className={styles.card}>
+      <Link href={`/product/${product.slug}`} className={styles.imageLink}>
         {badgeType && <Badge type={badgeType} />}
         <div className={styles.imageWrapper}>
           <div
@@ -126,13 +123,20 @@ export function ProductCard({ product }: ProductCardProps) {
             }}
           />
         </div>
-        <div className={styles.content}>
+      </Link>
+      <div className={styles.content}>
+        <Link href={`/product/${product.slug}`} className={styles.titleLink}>
           <h3 className={styles.title}>{product.title}</h3>
+        </Link>
+        {product.description && (
+          <p className={styles.description}>{product.description.substring(0, 150)}...</p>
+        )}
+        <div className={styles.meta}>
           <RatingStars rating={product.rating || 0} size="sm" />
           <StockLabel stock={stockStatus} size="sm" />
-          <div className={styles.price}>{formatPrice(product.price)}</div>
         </div>
-      </Link>
+        <div className={styles.price}>{formatPrice(product.price)}</div>
+      </div>
       <div className={styles.actions}>
         <div className={styles.quantityControls}>
           <button

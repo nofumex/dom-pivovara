@@ -89,7 +89,7 @@ export const createAddressSchema = z.object({
 export const createReviewSchema = z.object({
   productId: z.string(),
   rating: z.number().int().min(1).max(5),
-  title: z.string().optional(),
+  title: z.preprocess((val) => (val === '' || val === null ? undefined : val), z.string().optional()),
   content: z.string().min(10, 'Отзыв должен содержать минимум 10 символов'),
 })
 
