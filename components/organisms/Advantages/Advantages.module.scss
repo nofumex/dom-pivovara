@@ -1,0 +1,144 @@
+.advantages {
+  margin-bottom: 32px;
+  padding: 24px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 32px;
+  box-sizing: border-box;
+  
+  @media (min-width: 1024px) {
+    padding: 0 32px;
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-xs);
+  transition: all 0.2s;
+  text-align: left;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border);
+    background: var(--color-white);
+  }
+}
+
+.icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--color-primary-600);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: none;
+  color: var(--color-white);
+  transition: all 0.2s;
+  
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .item:hover & {
+    background: var(--color-primary-700);
+    transform: scale(1.05);
+  }
+}
+
+.text {
+  font-size: 15px;
+  color: var(--color-text);
+  font-weight: 600;
+  line-height: 1.4;
+  flex: 1;
+}
+
+@media (max-width: 1023px) {
+  .advantages {
+    margin-bottom: 24px;
+    padding: 24px 0;
+    border-radius: var(--radius-lg);
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 16px;
+  }
+
+  .item {
+    padding: 16px 18px;
+    gap: 12px;
+  }
+
+  .icon {
+    width: 40px;
+    height: 40px;
+    
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .text {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .advantages {
+    margin-bottom: 20px;
+    padding: 20px 0;
+    border-radius: var(--radius-md);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .item {
+    padding: 14px 16px;
+    gap: 10px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .icon {
+    width: 36px;
+    height: 36px;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .text {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+

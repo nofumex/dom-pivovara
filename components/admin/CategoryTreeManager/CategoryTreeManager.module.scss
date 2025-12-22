@@ -1,0 +1,355 @@
+.container {
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.createButton {
+  background: #f97316;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: #ea580c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.search {
+  flex: 1;
+  max-width: 400px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  }
+}
+
+.expandAllButton,
+.collapseAllButton {
+  padding: 0.625rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+}
+
+.tree {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  /* Allow long category trees to scroll instead of freezing the page */
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 0.5rem;
+}
+
+@media (max-width: 1024px) {
+  .tree {
+    max-height: none;
+  }
+}
+
+.categoryItem {
+  border-bottom: 1px solid #f1f5f9;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.categoryRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.expandButton {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: color 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    color: #334155;
+  }
+}
+
+.expandPlaceholder {
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.categoryInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.categoryMain {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.categoryName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.categorySlug {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.categoryMeta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.productCount {
+  color: #64748b;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+
+  &.active {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  &.inactive {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+}
+
+.categoryActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.editButton {
+  padding: 0.5rem 1rem;
+  background: #f97316;
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #ea580c;
+  }
+}
+
+.deleteButton {
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #dc2626;
+  }
+}
+
+.children {
+  background: #f8fafc;
+}
+
+// Мобильная версия - категории открываются вниз без горизонтального отступа
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search {
+    max-width: 100%;
+  }
+
+  // Убираем горизонтальный отступ на мобильных устройствах
+  .categoryRow {
+    padding-left: 0.75rem !important;
+    flex-wrap: wrap;
+  }
+
+  .categoryMain {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .categoryMeta {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .categoryActions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+  }
+
+  .editButton,
+  .deleteButton {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  // Визуальный индикатор уровня вложенности через левый бордер вместо отступа
+  .categoryItem {
+    position: relative;
+  }
+
+  // Добавляем индикатор вложенности для дочерних элементов через CSS селектор data-level
+  .children .categoryRow {
+    border-left: 3px solid #f97316;
+    margin-left: 0.5rem;
+    padding-left: 0.75rem !important;
+  }
+
+  // Для более глубоких уровней используем более светлые цвета
+  .children .children .categoryRow {
+    border-left-color: #fb923c;
+  }
+
+  .children .children .children .categoryRow {
+    border-left-color: #fdba74;
+  }
+
+  .children .children .children .children .categoryRow {
+    border-left-color: #fed7aa;
+  }
+}
+
+.empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #64748b;
+}
+
+.createLink {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #f97316;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,87 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 22px 22px;
+  margin-bottom: 24px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 60px;
+}
+
+.priceInputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priceInput {
+  width: 120px;
+  height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.priceRange {
+  flex: 1 1 auto;
+  min-width: 260px;
+  padding-top: 4px;
+}
+
+.dash {
+  margin: 0 4px;
+  color: var(--color-muted);
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.resetButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-primary-600);
+  }
+}
+
+@media (max-width: 767px) {
+  .priceInputs {
+    width: 100%;
+  }
+
+  .priceInput {
+    flex: 1;
+  }
+}
+

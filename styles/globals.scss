@@ -1,0 +1,175 @@
+@import './variables.scss';
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html {
+  // Предотвращаем зум на iOS при фокусе на input
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: var(--font-base-size);
+  line-height: var(--font-base-line-height);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  // Улучшенная производительность на мобильных
+  @media (max-width: 767px) {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    touch-action: manipulation;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1 {
+  font-size: var(--font-h1-size);
+  line-height: var(--font-h1-line-height);
+  font-weight: var(--font-h1-weight);
+  letter-spacing: var(--font-h1-letter-spacing);
+  color: var(--color-text);
+  margin: 0;
+}
+
+h2 {
+  font-size: var(--font-h2-size);
+  line-height: var(--font-h2-line-height);
+  font-weight: var(--font-h2-weight);
+  letter-spacing: var(--font-h2-letter-spacing);
+  color: var(--color-text);
+  margin: 0;
+}
+
+h3 {
+  font-size: var(--font-h3-size);
+  line-height: var(--font-h3-line-height);
+  font-weight: var(--font-h3-weight);
+  letter-spacing: var(--font-h3-letter-spacing);
+  color: var(--color-text);
+  margin: 0;
+}
+
+h4 {
+  font-size: var(--font-h4-size);
+  line-height: var(--font-h4-line-height);
+  font-weight: var(--font-h4-weight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  font-size: var(--font-button-size);
+  line-height: var(--font-button-line-height);
+  font-weight: var(--font-button-weight);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: var(--font-base-size);
+}
+
+main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+  
+  @media (min-width: 768px) {
+    padding: 0 24px;
+  }
+  
+  @media (min-width: 1024px) {
+    padding: 0 32px;
+  }
+}
+
+// Layout container для мобильной адаптации
+.layout-container {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  
+  @media (max-width: 1023px) {
+    flex-direction: column;
+    width: 100%;
+  }
+}
+
+// Улучшенные touch targets для мобильных
+@media (max-width: 767px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  [role="button"] {
+    min-height: 44px; // Минимальный размер для удобного нажатия
+    min-width: 44px;
+  }
+  
+  // Улучшенная читаемость текста
+  p, li, span {
+    line-height: 1.6;
+  }
+}
+
+// Focus styles
+*:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2px;
+}
+
+// Scrollbar - Современный дизайн
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-bg-secondary);
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+

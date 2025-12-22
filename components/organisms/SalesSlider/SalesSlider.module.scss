@@ -1,0 +1,136 @@
+.slider {
+  margin-bottom: 48px;
+  padding: 32px 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 0 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.viewAll {
+  font-size: 16px;
+  color: var(--color-primary-600);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--color-primary-700);
+    text-decoration: underline;
+  }
+}
+
+.container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.slide {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  flex: 1;
+  padding: 0 24px;
+  transition: transform 0.5s ease;
+}
+
+.productWrapper {
+  min-width: 0;
+}
+
+.arrow {
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
+  background: var(--color-white);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  z-index: 2;
+
+  &:hover:not(:disabled) {
+    background: var(--color-primary-600);
+    color: white;
+    border-color: var(--color-primary-600);
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.arrowLeft {
+  margin-left: 0;
+}
+
+.arrowRight {
+  margin-right: 0;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 0;
+  border: none;
+  background: var(--color-border);
+  cursor: pointer;
+  transition: background 0.3s;
+
+  &.active {
+    background: var(--color-primary-600);
+    width: 24px;
+    border-radius: 0;
+  }
+
+  &:hover {
+    background: var(--color-primary-500);
+  }
+}
+
+@media (max-width: 1023px) {
+  .slide {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .slide {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+

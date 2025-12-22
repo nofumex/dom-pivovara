@@ -1,0 +1,295 @@
+.header {
+  background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-700) 100%);
+  border-radius: var(--radius-md);
+  padding: 32px;
+  margin-bottom: 32px;
+  color: var(--color-white);
+  box-shadow: var(--shadow-elev);
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-white);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.headerInfo {
+  flex: 1;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--color-white);
+}
+
+.subtitle {
+  font-size: var(--font-base-size);
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-bottom: 48px;
+  align-items: stretch;
+}
+
+.profileSection,
+.addressesSection {
+  background: var(--color-white);
+  padding: 32px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sectionTitle {
+  font-size: var(--font-h2-size);
+  font-weight: var(--font-h2-weight);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.infoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  transition: background 0.2s;
+  
+  &:hover {
+    background: var(--color-gray-50);
+  }
+}
+
+.infoIcon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-50);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.infoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.infoLabel {
+  font-size: var(--font-small-size);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoValue {
+  font-size: var(--font-base-size);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.error {
+  padding: 12px;
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: var(--font-small-size);
+}
+
+.success {
+  padding: 12px;
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: var(--font-small-size);
+}
+
+.emptyState {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.emptySubtext {
+  font-size: var(--font-small-size);
+  color: var(--color-muted);
+  margin-top: -8px;
+}
+
+.addressesList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.addressCard {
+  position: relative;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: var(--color-primary-600);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+}
+
+.addressIcon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.mainBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  background: var(--color-primary-600);
+  color: var(--color-white);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-small-size);
+  font-weight: 500;
+}
+
+.addressName {
+  font-size: var(--font-h3-size);
+  font-weight: var(--font-h3-weight);
+  color: var(--color-text);
+  margin: 0 0 8px 0;
+}
+
+.addressText {
+  color: var(--color-text);
+  margin: 0 0 4px 0;
+  line-height: 1.6;
+}
+
+.addressPhone {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: var(--font-small-size);
+}
+
+.addressActions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.addressForm {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-base-size);
+  color: var(--color-text);
+
+  input {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

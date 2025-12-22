@@ -1,0 +1,183 @@
+.about {
+  margin-bottom: 64px;
+  padding: 48px 0;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+
+  &.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.imageWrapper {
+  position: sticky;
+  top: 120px;
+}
+
+.image {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.description {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-text);
+
+  p {
+    margin-bottom: 16px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  strong {
+    color: var(--color-primary-600);
+    font-weight: 600;
+  }
+}
+
+.moreButton {
+  margin-top: 8px;
+}
+
+.manufacturers {
+  padding: 32px 0 0 0;
+  margin-top: 32px;
+  border-top: 1px solid var(--color-border);
+}
+
+.manufacturersTitle {
+  text-align: center;
+  margin-bottom: 24px;
+  text-decoration: none;
+  display: block;
+  transition: color 0.2s;
+  
+  h3 {
+    font-size: var(--font-h3-size);
+    font-weight: var(--font-h3-weight);
+    margin: 0;
+    color: var(--color-text);
+    transition: color 0.2s;
+  }
+  
+  &:hover h3 {
+    color: var(--color-primary-600);
+  }
+}
+
+.manufacturersGrid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.manufacturerLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: transform 0.3s, box-shadow 0.3s;
+  text-decoration: none;
+  flex-shrink: 0;
+  width: 180px;
+  height: 90px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.manufacturerImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 1023px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .imageWrapper {
+    position: static;
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .about {
+    padding: 32px 0;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .manufacturersGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    overflow: visible;
+    justify-items: center;
+  }
+
+  .manufacturerLogo {
+    width: 100%;
+    max-width: 160px;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

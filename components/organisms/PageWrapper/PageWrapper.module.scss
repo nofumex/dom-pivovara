@@ -1,0 +1,20 @@
+.pageWrapper {
+  flex: 1;
+  min-height: calc(100vh - 200px);
+  box-sizing: border-box;
+  padding: 20px 0;
+  overflow-x: hidden;
+  background: var(--color-bg);
+  position: relative;
+  width: 100%;
+  
+  @media (max-width: 1023px) {
+    padding: 16px 0;
+    width: 100%;
+  }
+  
+  @media (max-width: 767px) {
+    padding: 12px 0;
+  }
+}
+

@@ -1,0 +1,89 @@
+.adminContainer {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f7fa;
+  position: relative;
+  top: 0;
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.adminContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 280px;
+  margin-right: 0;
+  padding-right: 2rem;
+  transition: margin-left 0.3s ease;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.main {
+  flex: 1;
+  padding: 0.75rem 2rem 2rem;
+  overflow-x: hidden;
+  overflow-y: visible;
+  min-height: 0;
+  box-sizing: border-box;
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .adminContainer {
+    flex-direction: column;
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .adminContent {
+    margin-left: 0;
+    margin-right: 0;
+    min-height: 0;
+  }
+
+  .main {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 2.5rem;
+    min-height: 0;
+  }
+
+  /* Allow full vertical scroll on mobile */
+  .main {
+    overflow: visible;
+  }
+
+  /* Ensure mobile pages scroll vertically and never horizontally */
+  .main {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .mobileOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 900;
+  }
+}
+
+@media (max-width: 1400px) {
+  .adminContent {
+    margin-left: 0;
+    margin-right: 0;
+    padding-right: 0;
+  }
+}

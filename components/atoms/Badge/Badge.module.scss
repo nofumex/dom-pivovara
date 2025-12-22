@@ -1,0 +1,47 @@
+.badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.hit {
+  background-color: var(--color-accent-blue);
+  color: var(--color-white);
+}
+
+.new {
+  background-color: var(--color-success);
+  color: var(--color-white);
+}
+
+.sale {
+  background-color: var(--color-primary-600);
+  color: var(--color-white);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

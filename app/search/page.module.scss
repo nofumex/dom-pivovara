@@ -1,0 +1,57 @@
+.title {
+  font-size: var(--font-h1-size);
+  font-weight: var(--font-h1-weight);
+  margin-bottom: 16px;
+  color: var(--color-text);
+}
+
+.count {
+  font-size: var(--font-base-size);
+  color: var(--color-muted);
+  margin-bottom: 24px;
+}
+
+.empty {
+  text-align: center;
+  padding: 64px;
+  color: var(--color-muted);
+
+  p {
+    font-size: var(--font-base-size);
+    margin-bottom: 12px;
+  }
+}
+
+.suggestion {
+  font-size: var(--font-small-size);
+
+  a {
+    color: var(--color-link);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,244 @@
+.cardWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  padding-bottom: 104px; // резерв под панель действий, чтобы не наезжала на цену/рейтинг
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.3s, transform 0.3s;
+  flex: 1;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: var(--shadow-elev);
+    transform: translateY(-2px);
+  }
+}
+
+.imageWrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: var(--color-white);
+}
+
+.content {
+  flex: 1;
+}
+
+.title {
+  font-size: var(--font-base-size);
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 48px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--color-star);
+}
+
+.ratingText {
+  font-size: var(--font-small-size);
+  color: var(--color-muted);
+}
+
+.stock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: var(--font-small-size);
+}
+
+.stockIcon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+
+  &.many,
+  &.enough {
+    color: var(--color-success);
+  }
+
+  &.few {
+    color: var(--color-warning);
+  }
+
+  &.none {
+    color: var(--color-muted);
+  }
+}
+
+.stockText {
+  color: var(--color-text);
+}
+
+.price {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+
+.actions {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+.cardWrapper:hover .actions {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.favoriteOverlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-primary-600);
+    color: var(--color-primary-600);
+    background: var(--color-white);
+  }
+
+  &.active {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.quantityButton {
+  width: 30px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--color-text);
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: var(--color-gray-100);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.quantity {
+  min-width: 32px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.favoriteButton {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--color-muted);
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--color-primary-600);
+    color: var(--color-primary-600);
+  }
+
+  &.active {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+}
+
+
+
+
+
+
+
+
+
+
