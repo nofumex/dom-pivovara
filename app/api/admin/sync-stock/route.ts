@@ -153,85 +153,142 @@ export async function POST(request: NextRequest) {
     const nomenclatureKeywords = ['номенклатура', 'наименование', 'название', 'товар', 'продукт', 'артикул']
     const stockKeywords = ['конечный остаток', 'остаток', 'количество', 'кол-во', 'колво', 'склад', 'наличие']
     const excludeStockKeywords = ['начальный остаток', 'входящий остаток', 'приход']
+    
+    // Приоритетные ключевые слова для точного поиска "конечный остаток"
+    const finalStockKeywords = ['конечный остаток', 'конечныйостаток']
 
+    // Сначала ищем строку, где есть оба заголовка вместе
+    // Важно: ищем точные совпадения, чтобы избежать ложных срабатываний в описательных текстах
     for (let i = 0; i < Math.min(30, rows.length); i++) {
       const row = rows[i]
       if (!row || row.length === 0) continue
 
-      // Проверяем каждую ячейку отдельно
       let hasNomenclature = false
       let hasStock = false
       let nomenclatureIdx = -1
       let stockIdx = -1
 
+      // Проверяем каждую ячейку отдельно
       for (let j = 0; j < row.length; j++) {
-        const cellStr = normalizeString(String(row[j] || ''))
+        const cellValue = String(row[j] || '').trim()
+        const cellLower = cellValue.toLowerCase().trim()
         
-        // Проверяем на номенклатуру
-        if (!hasNomenclature && containsKeyword(cellStr, nomenclatureKeywords)) {
-          hasNomenclature = true
-          nomenclatureIdx = j
+        // Проверяем на номенклатуру - ищем ТОЧНОЕ совпадение
+        if (!hasNomenclature) {
+          // Точное совпадение "номенклатура" (без нормализации, просто toLowerCase)
+          if (cellLower === 'номенклатура') {
+            hasNomenclature = true
+            nomenclatureIdx = j
+          }
         }
         
-        // Проверяем на остаток (но не начальный)
+        // Проверяем на остаток - приоритет "конечный остаток" с ТОЧНЫМ совпадением
         if (!hasStock) {
-          const isStock = containsKeyword(cellStr, stockKeywords)
-          const isExcluded = containsKeyword(cellStr, excludeStockKeywords)
-          if (isStock && !isExcluded) {
+          // Точное совпадение "конечный остаток"
+          if (cellLower === 'конечный остаток') {
             hasStock = true
             stockIdx = j
+          } else {
+            // Другие варианты только если это не исключенные ключевые слова
+            const isExcluded = excludeStockKeywords.some(kw => cellLower.includes(kw.toLowerCase()))
+            if (!isExcluded) {
+              // Точное совпадение других ключевых слов
+              if (cellLower === 'остаток' || 
+                  cellLower === 'количество' || 
+                  cellLower === 'кол-во' || 
+                  cellLower === 'наличие') {
+                hasStock = true
+                stockIdx = j
+              }
+            }
           }
         }
       }
 
-      if (hasNomenclature && hasStock) {
+      if (hasNomenclature && hasStock && nomenclatureIdx !== stockIdx) {
         headerRowIndex = i
         productNameColIndex = nomenclatureIdx
         stockColIndex = stockIdx
         console.log(`[SYNC] ✓ Найдена строка заголовков: строка ${i}`)
-        console.log(`[SYNC] ✓ Колонка названия: ${productNameColIndex}, Колонка остатка: ${stockColIndex}`)
+        console.log(`[SYNC] ✓ Колонка названия: ${productNameColIndex} = "${String(row[productNameColIndex])}"`)
+        console.log(`[SYNC] ✓ Колонка остатка: ${stockColIndex} = "${String(row[stockColIndex])}"`)
         break
       }
     }
 
-    // Если не нашли заголовки вместе, пробуем найти по отдельности
+    // Если не нашли заголовки вместе, пробуем найти по отдельности в близких строках
     if (headerRowIndex === -1) {
       console.log('[SYNC] Заголовки не найдены вместе, ищем по отдельности...')
+      
+      let foundNomenclatureRow = -1
+      let foundStockRow = -1
+      
+      // Ищем "Номенклатура" и "Конечный остаток" в разных строках, но близко друг к другу
       for (let i = 0; i < Math.min(30, rows.length); i++) {
         const row = rows[i]
         if (!row || row.length === 0) continue
 
-        // Ищем "Номенклатура" (различные варианты)
-        if (productNameColIndex === 0) {
+        // Ищем "Номенклатура" - точное совпадение
+        if (foundNomenclatureRow === -1) {
           for (let j = 0; j < row.length; j++) {
-            const cellStr = normalizeString(String(row[j] || ''))
-            if (containsKeyword(cellStr, nomenclatureKeywords)) {
+            const cellValue = String(row[j] || '').trim()
+            const cellLower = cellValue.toLowerCase().trim()
+            
+            if (cellLower === 'номенклатура') {
               productNameColIndex = j
-              if (headerRowIndex === -1) headerRowIndex = i
-              console.log(`[SYNC] Найдена колонка "Номенклатура": строка ${i}, колонка ${j}`)
+              foundNomenclatureRow = i
+              console.log(`[SYNC] Найдена колонка "Номенклатура": строка ${i}, колонка ${j} = "${cellValue}"`)
               break
             }
           }
         }
 
-        // Ищем "Конечный остаток" (различные варианты)
-        if (stockColIndex === 5) {
+        // Ищем "Конечный остаток" с приоритетом точного совпадения
+        if (foundStockRow === -1) {
           for (let j = 0; j < row.length; j++) {
-            const cellStr = normalizeString(String(row[j] || ''))
-            const isStock = containsKeyword(cellStr, stockKeywords)
-            const isExcluded = containsKeyword(cellStr, excludeStockKeywords)
-            if (isStock && !isExcluded) {
+            const cellValue = String(row[j] || '').trim()
+            const cellLower = cellValue.toLowerCase().trim()
+            
+            // Точное совпадение "конечный остаток"
+            if (cellLower === 'конечный остаток') {
               stockColIndex = j
-              if (headerRowIndex === -1) headerRowIndex = i
-              console.log(`[SYNC] Найдена колонка "Остаток": строка ${i}, колонка ${j}`)
+              foundStockRow = i
+              console.log(`[SYNC] Найдена колонка "Конечный остаток": строка ${i}, колонка ${j} = "${cellValue}"`)
               break
+            }
+            
+            // Или другие варианты, но только точные совпадения
+            const isExcluded = excludeStockKeywords.some(kw => cellLower.includes(kw.toLowerCase()))
+            if (!isExcluded) {
+              if (cellLower === 'остаток' || 
+                  cellLower === 'количество' || 
+                  cellLower === 'кол-во' || 
+                  cellLower === 'наличие') {
+                stockColIndex = j
+                foundStockRow = i
+                console.log(`[SYNC] Найдена колонка "Остаток": строка ${i}, колонка ${j} = "${cellValue}"`)
+                break
+              }
             }
           }
         }
 
-        if (headerRowIndex !== -1 && productNameColIndex !== 0 && stockColIndex !== 5) {
+        // Если нашли оба заголовка (даже в разных строках, но близко)
+        if (foundNomenclatureRow !== -1 && foundStockRow !== -1) {
+          // Используем более позднюю строку как заголовок
+          headerRowIndex = Math.max(foundNomenclatureRow, foundStockRow)
+          console.log(`[SYNC] ✓ Заголовки найдены в строках ${foundNomenclatureRow} и ${foundStockRow}, используем строку ${headerRowIndex}`)
           break
         }
+      }
+      
+      // Если нашли только один из заголовков, используем его
+      if (headerRowIndex === -1 && foundNomenclatureRow !== -1) {
+        headerRowIndex = foundNomenclatureRow
+        console.log(`[SYNC] Найдена только "Номенклатура", используем строку ${headerRowIndex}`)
+      } else if (headerRowIndex === -1 && foundStockRow !== -1) {
+        headerRowIndex = foundStockRow
+        console.log(`[SYNC] Найдена только "Остаток", используем строку ${headerRowIndex}`)
       }
     }
 
@@ -284,80 +341,127 @@ export async function POST(request: NextRequest) {
 
     // Ищем строку "Магазин" или "Склад" - после неё начинаются данные
     // Также ищем другие индикаторы начала данных
-    const dataStartKeywords = ['магазин', 'склад', 'итого', 'всего', 'наименование', 'номенклатура']
+    const dataStartKeywords = ['магазин', 'склад', 'итого', 'всего']
     
+    // Ищем строку с "Магазин" или "Склад" сразу после заголовков
+    // Это индикатор начала данных
     for (let i = headerRowIndex + 1; i < Math.min(headerRowIndex + 10, rows.length); i++) {
       const row = rows[i]
       if (!row || row.length === 0) continue
 
-      // Проверяем первую ячейку и несколько следующих
-      for (let col = 0; col < Math.min(3, row.length); col++) {
-        const cellStr = normalizeString(String(row[col] || ''))
-        if (containsKeyword(cellStr, dataStartKeywords)) {
-          // Проверяем, что это не заголовок (не должно быть "остаток" в этой строке)
-          const hasStockHeader = row.some((cell, idx) => {
-            const cellStr2 = normalizeString(String(cell || ''))
-            return containsKeyword(cellStr2, stockKeywords) && !containsKeyword(cellStr2, excludeStockKeywords)
-          })
+      // Проверяем первую ячейку (обычно "Магазин" или "Склад" находится в первой колонке)
+      const firstCellValue = String(row[0] || '').trim()
+      const firstCellLower = firstCellValue.toLowerCase().trim()
+      
+      // Точная проверка на "магазин" или "склад" (без нормализации, чтобы избежать проблем)
+      if (firstCellLower === 'магазин' || firstCellLower === 'склад') {
+        // Проверяем, что это не заголовок (не должно быть "остаток" или "номенклатура" в этой строке)
+        let hasHeaderKeywords = false
+        for (const cell of row) {
+          const cellValue = String(cell || '').trim()
+          const cellLower = cellValue.toLowerCase().trim()
           
-          if (!hasStockHeader) {
-            dataStartRowIndex = i + 1 // Данные начинаются со следующей строки
-            console.log(`[SYNC] ✓ Найдена строка начала данных: строка ${dataStartRowIndex} (после "${String(row[col] || '')}")`)
+          // Проверяем точные совпадения заголовков
+          if (cellLower === 'номенклатура' ||
+              cellLower === 'конечный остаток' ||
+              cellLower === 'остаток' ||
+              cellLower === 'количество' ||
+              cellLower.includes('ед. изм') ||
+              cellLower.includes('ед изм')) {
+            hasHeaderKeywords = true
             break
           }
         }
+        
+        if (!hasHeaderKeywords) {
+          dataStartRowIndex = i + 1 // Данные начинаются со следующей строки
+          console.log(`[SYNC] ✓ Найдена строка начала данных: строка ${dataStartRowIndex} (после "${firstCellValue}")`)
+          break
+        }
       }
-      if (dataStartRowIndex !== -1) break
     }
 
     // Если не нашли индикатор начала данных, пробуем найти первую строку с данными
     if (dataStartRowIndex === -1 && headerRowIndex !== -1) {
+      console.log('[SYNC] Индикатор "Магазин" не найден, ищем первую строку с данными...')
+      
       // Ищем первую строку после заголовков, где есть название товара и число (остаток)
       for (let i = headerRowIndex + 1; i < Math.min(headerRowIndex + 15, rows.length); i++) {
         const row = rows[i]
         if (!row || row.length === 0) continue
         
+        // Проверяем, что у нас достаточно колонок
+        if (row.length <= Math.max(productNameColIndex, stockColIndex)) continue
+        
         const productName = String(row[productNameColIndex] || '').trim()
         const stockValue = row[stockColIndex]
         
-        // Проверяем, что есть название товара (не пустое, не заголовок)
+        // Пропускаем строки с индикаторами начала (Магазин, Склад) и заголовками
+        const firstCellValue = String(row[0] || '').trim()
+        const firstCellLower = firstCellValue.toLowerCase().trim()
+        if (firstCellLower === 'магазин' || firstCellLower === 'склад' || 
+            firstCellLower === 'итого' || firstCellLower === 'всего') {
+          continue
+        }
+        
+        // Проверяем, что есть название товара (не пустое, не заголовок, достаточно длинное)
+        const productNameLower = productName.toLowerCase().trim()
         if (productName && 
             productName.length > 2 && 
-            !containsKeyword(productName, nomenclatureKeywords) &&
-            !containsKeyword(productName, dataStartKeywords)) {
+            productNameLower !== 'номенклатура' &&
+            productNameLower !== 'магазин' &&
+            productNameLower !== 'склад' &&
+            productNameLower !== 'наименование' &&
+            productNameLower !== 'название' &&
+            productNameLower !== 'товар' &&
+            !productNameLower.startsWith('итого') &&
+            !productNameLower.startsWith('всего')) {
+          
           // Проверяем, что остаток - это число (или может быть пустым)
-          const stockStr = String(stockValue || '').trim()
-          const isNumber = !stockStr || !isNaN(parseFloat(stockStr.replace(/,/g, '.')))
+          const stockStr = String(stockValue || '').trim().replace(/,/g, '.')
+          const stockNum = parseFloat(stockStr)
+          const isNumber = !stockStr || (!isNaN(stockNum) && stockNum >= 0)
           
           if (isNumber) {
             dataStartRowIndex = i
-            console.log(`[SYNC] Найдена первая строка с данными: строка ${dataStartRowIndex} ("${productName.substring(0, 30)}")`)
+            console.log(`[SYNC] ✓ Найдена первая строка с данными: строка ${dataStartRowIndex} ("${productName.substring(0, 50)}", остаток: ${stockValue})`)
             break
           }
         }
       }
       
-      // Если всё ещё не нашли, начинаем со строки после заголовков + 1
+      // Если всё ещё не нашли, начинаем со строки после заголовков + 2 (пропускаем строку "Магазин")
       if (dataStartRowIndex === -1) {
         dataStartRowIndex = headerRowIndex + 2
-        console.log(`[SYNC] Строка начала данных не найдена автоматически, начинаем со строки ${dataStartRowIndex}`)
+        console.log(`[SYNC] ⚠ Строка начала данных не найдена автоматически, начинаем со строки ${dataStartRowIndex}`)
       }
     }
 
+    // Критическая проверка: убеждаемся, что dataStartRowIndex установлен корректно
     if (dataStartRowIndex === -1 || dataStartRowIndex >= rows.length) {
       console.error('[SYNC] ОШИБКА: Не удалось определить начало данных')
       console.error(`[SYNC] headerRowIndex=${headerRowIndex}, dataStartRowIndex=${dataStartRowIndex}, rows.length=${rows.length}`)
       
       // Последняя попытка - начинаем сразу после заголовков
       if (headerRowIndex !== -1 && headerRowIndex + 1 < rows.length) {
-        dataStartRowIndex = headerRowIndex + 1
+        dataStartRowIndex = headerRowIndex + 2 // Используем +2, чтобы пропустить строку "Магазин"
         console.log(`[SYNC] ⚠ Используем fallback: начинаем данные со строки ${dataStartRowIndex}`)
       } else {
+        console.error('[SYNC] КРИТИЧЕСКАЯ ОШИБКА: Не удалось определить начало данных, возвращаем ошибку')
         return errorResponse(
           'Не удалось определить начало данных в файле. Ожидается структура: заголовки с "Номенклатура" и "Конечный остаток", затем строка "Магазин", затем данные. Подробности в логах сервера.',
           400,
         )
       }
+    }
+    
+    // Дополнительная проверка корректности индексов
+    if (headerRowIndex === -1) {
+      console.error('[SYNC] КРИТИЧЕСКАЯ ОШИБКА: headerRowIndex не установлен!')
+      return errorResponse(
+        'Не удалось найти заголовки в файле. Проверьте формат файла.',
+        400,
+      )
     }
 
     console.log(`[SYNC] ✓ Начало обработки данных со строки ${dataStartRowIndex}`)
@@ -371,13 +475,39 @@ export async function POST(request: NextRequest) {
     let skippedRows = 0
 
     // Обрабатываем строки данных
+    console.log(`[SYNC] ===== НАЧАЛО ОБРАБОТКИ ДАННЫХ =====`)
     console.log(`[SYNC] Начало обработки данных со строки ${dataStartRowIndex}, колонки: название=${productNameColIndex}, остаток=${stockColIndex}`)
+    console.log(`[SYNC] Всего строк для обработки: ${rows.length - dataStartRowIndex}`)
+    
+    // Проверяем первые несколько строк перед обработкой
+    console.log(`[SYNC] Проверка первых 5 строк данных перед обработкой:`)
+    for (let checkI = dataStartRowIndex; checkI < Math.min(dataStartRowIndex + 5, rows.length); checkI++) {
+      const checkRow = rows[checkI]
+      if (checkRow && checkRow.length > 0) {
+        const checkName = String(checkRow[productNameColIndex] || '').trim()
+        const checkStock = checkRow[stockColIndex]
+        console.log(`[SYNC]   Строка ${checkI}: name="${checkName.substring(0, 50)}", stock=${checkStock}`)
+      }
+    }
+    console.log(`[SYNC] ====================================`)
     
     for (let i = dataStartRowIndex; i < rows.length; i++) {
       const row = rows[i]
       if (!row || row.length === 0) {
         skippedRows++
+        // Если встретили несколько пустых строк подряд, возможно, данные закончились
+        if (processedRows > 0 && skippedRows > 5) {
+          console.log(`[SYNC] Обнаружено много пустых строк подряд, возможно, данные закончились на строке ${i}`)
+          // Продолжаем, но логируем это
+        }
         continue
+      }
+      
+      // Проверяем, не достигли ли мы конца данных (строка "Итого" или подобное)
+      const firstCellStr = String(row[0] || '').trim().toLowerCase()
+      if (firstCellStr === 'итого' || firstCellStr === 'всего' || firstCellStr === 'конец' || firstCellStr.startsWith('итого')) {
+        console.log(`[SYNC] Обнаружена строка "Итого" на строке ${i}, останавливаем обработку данных`)
+        break
       }
 
       // Проверяем, что у нас есть достаточно колонок
@@ -404,12 +534,17 @@ export async function POST(request: NextRequest) {
       }
       
       // Пропускаем строки, которые являются заголовками или итогами
-      const normalizedProductName = normalizeString(productName)
-      if (containsKeyword(normalizedProductName, nomenclatureKeywords) ||
-          containsKeyword(normalizedProductName, dataStartKeywords) ||
-          normalizedProductName.includes('итого') ||
-          normalizedProductName.includes('всего') ||
-          normalizedProductName === '') {
+      const productNameLower = productName.toLowerCase().trim()
+      // Проверяем только точные совпадения и конкретные паттерны, чтобы не фильтровать реальные товары
+      if (productNameLower === 'номенклатура' ||
+          productNameLower === 'магазин' ||
+          productNameLower === 'склад' ||
+          productNameLower === 'наименование' ||
+          productNameLower === 'название' ||
+          productNameLower === 'товар' ||
+          productNameLower.startsWith('итого') ||
+          productNameLower.startsWith('всего') ||
+          productNameLower === '') {
         if (processedRows < 5 && skippedRows < 5) {
           console.log(`[SYNC] Строка ${i}: пропущена (заголовок/итог: "${productName.substring(0, 30)}")`)
         }
@@ -421,11 +556,14 @@ export async function POST(request: NextRequest) {
       let stock = 0
       if (stockCell !== null && stockCell !== undefined && stockCell !== '') {
         const stockStr = String(stockCell).trim()
-        if (stockStr) {
-          // Убираем пробелы и заменяем запятую на точку
-          const cleaned = stockStr.replace(/\s+/g, '').replace(/,/g, '.')
+        if (stockStr && stockStr !== '-' && stockStr.toLowerCase() !== 'н' && stockStr.toLowerCase() !== 'нет') {
+          // Убираем пробелы, заменяем запятую на точку, убираем нечисловые символы (кроме точки и минуса)
+          const cleaned = stockStr
+            .replace(/\s+/g, '')
+            .replace(/,/g, '.')
+            .replace(/[^\d.-]/g, '')
           const parsed = parseFloat(cleaned)
-          if (!isNaN(parsed)) {
+          if (!isNaN(parsed) && isFinite(parsed)) {
             stock = Math.max(0, Math.floor(parsed))
           }
         }
@@ -456,15 +594,25 @@ export async function POST(request: NextRequest) {
       console.error(`[SYNC]   - stockColIndex: ${stockColIndex}`)
       console.error(`[SYNC]   - processedRows: ${processedRows}`)
       console.error(`[SYNC]   - skippedRows: ${skippedRows}`)
-      console.error(`[SYNC] Примеры строк данных (первые 10 после dataStartRowIndex):`)
-      for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 10, rows.length); i++) {
+      console.error(`[SYNC] Примеры строк данных (первые 20 после dataStartRowIndex):`)
+      for (let i = dataStartRowIndex; i < Math.min(dataStartRowIndex + 20, rows.length); i++) {
         const row = rows[i]
         if (row) {
           const name = String(row[productNameColIndex] || '').trim()
           const stock = row[stockColIndex]
-          console.error(`[SYNC]   Строка ${i}: name="${name.substring(0, 50)}", stock=${stock} (тип: ${typeof stock})`)
+          const nameLower = name.toLowerCase().trim()
+          const isFiltered = nameLower === 'номенклатура' ||
+            nameLower === 'магазин' ||
+            nameLower === 'склад' ||
+            nameLower === 'наименование' ||
+            nameLower === 'название' ||
+            nameLower === 'товар' ||
+            nameLower.startsWith('итого') ||
+            nameLower.startsWith('всего')
+          console.error(`[SYNC]   Строка ${i}: name="${name.substring(0, 50)}", stock=${stock} (тип: ${typeof stock}), filtered=${isFiltered}`)
         }
       }
+      // Не возвращаем ошибку, продолжаем с пустым результатом
     }
 
     // Получаем все товары из базы с названиями
@@ -608,10 +756,17 @@ export async function POST(request: NextRequest) {
       }
     }
     console.log(`[SYNC] ✓ Установлено остаток 0 для ${stats.setToZero} товаров`)
+    
+    // Финальная проверка результата
+    console.log(`[SYNC] ===== ФИНАЛЬНЫЙ РЕЗУЛЬТАТ =====`)
+    console.log(`[SYNC] totalInFile (stockMap.size): ${stockMap.size}`)
+    console.log(`[SYNC] updated: ${stats.updated}`)
+    console.log(`[SYNC] setToZero: ${stats.setToZero}`)
+    console.log(`[SYNC] notFound: ${stats.notFound}`)
+    console.log(`[SYNC] ===============================`)
 
-    return successResponse({
-      message: 'Синхронизация завершена',
-      data: {
+    return successResponse(
+      {
         totalInFile: stockMap.size,
         updated: stats.updated,
         setToZero: stats.setToZero,
@@ -619,7 +774,8 @@ export async function POST(request: NextRequest) {
         errors: stats.errors,
         matchedProducts: stats.matchedProducts.slice(0, 50), // Первые 50 для отображения
       },
-    })
+      'Синхронизация завершена',
+    )
   } catch (error) {
     console.error('Sync stock error:', error)
     return errorResponse(
