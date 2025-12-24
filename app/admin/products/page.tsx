@@ -394,7 +394,7 @@ export default function AdminProductsPage() {
                           {product.title}
                         </Link>
                       </td>
-                      <td>{(product.Category || product.categoryObj)?.name || 'Без категории'}</td>
+                      <td>{product.Category?.name || 'Без категории'}</td>
                       <td>
                         <span className={styles.categoryBadge}>
                           {product.category === 'ECONOMY' && 'Эконом'}

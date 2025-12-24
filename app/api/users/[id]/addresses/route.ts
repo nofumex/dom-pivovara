@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth'
 import { successResponse, errorResponse, paginatedResponse } from '@/lib/response'
@@ -49,8 +50,15 @@ export async function POST(
 
     const address = await prisma.address.create({
       data: {
-        ...validated,
+        id: randomUUID(),
         userId: params.id,
+        name: validated.name,
+        street: validated.street,
+        city: validated.city,
+        region: validated.region,
+        zipCode: validated.zipCode,
+        phone: validated.phone ?? undefined,
+        isMain: validated.isMain ?? false,
       },
     })
 
@@ -63,6 +71,8 @@ export async function POST(
     return errorResponse('Ошибка при создании адреса', 500)
   }
 }
+
+
 
 
 

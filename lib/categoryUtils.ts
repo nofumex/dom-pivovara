@@ -127,7 +127,7 @@ export async function getSubcategoryImage(categoryId: string): Promise<string | 
       },
       select: {
         id: true,
-        name: true,
+        title: true,
         images: true,
         categoryId: true,
       },
@@ -137,19 +137,19 @@ export async function getSubcategoryImage(categoryId: string): Promise<string | 
     })
     
     if (product) {
-      console.log(`[getSubcategoryImage] Найден товар "${product.name}" (ID: ${product.id}, categoryId: ${product.categoryId}) с изображениями:`, product.images)
+      console.log(`[getSubcategoryImage] Найден товар "${product.title}" (ID: ${product.id}, categoryId: ${product.categoryId}) с изображениями:`, product.images)
       
       if (product.images && Array.isArray(product.images) && product.images.length > 0) {
         // Возвращаем первое изображение товара
         const firstImage = product.images[0]
         if (typeof firstImage === 'string' && firstImage.trim() !== '') {
-          console.log(`[getSubcategoryImage] ✅ Найдено изображение для категории ${categoryId} из товара "${product.name}":`, firstImage)
+          console.log(`[getSubcategoryImage] ✅ Найдено изображение для категории ${categoryId} из товара "${product.title}":`, firstImage)
           return firstImage
         } else {
-          console.warn(`[getSubcategoryImage] Первое изображение товара "${product.name}" не является валидной строкой:`, firstImage, 'type:', typeof firstImage)
+          console.warn(`[getSubcategoryImage] Первое изображение товара "${product.title}" не является валидной строкой:`, firstImage, 'type:', typeof firstImage)
         }
       } else {
-        console.warn(`[getSubcategoryImage] Товар "${product.name}" найден, но массив images пустой или не является массивом:`, product.images)
+        console.warn(`[getSubcategoryImage] Товар "${product.title}" найден, но массив images пустой или не является массивом:`, product.images)
       }
     } else {
       console.warn(`[getSubcategoryImage] ⚠️ Не найдено товаров с изображениями для категории ${categoryId} (проверено категорий: ${allCategoryIds.length}, всего товаров: ${totalProducts})`)
@@ -161,6 +161,8 @@ export async function getSubcategoryImage(categoryId: string): Promise<string | 
     return null
   }
 }
+
+
 
 
 

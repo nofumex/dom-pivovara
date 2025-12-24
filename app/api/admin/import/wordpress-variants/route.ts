@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
@@ -42,23 +43,24 @@ export async function POST(request: NextRequest) {
         await prisma.productVariant.upsert({
           where: { sku: variantData.sku },
           update: {
-            size: variantData.size,
-            color: variantData.color,
-            material: variantData.material,
+            size: variantData.size ?? undefined,
+            color: variantData.color ?? undefined,
+            material: variantData.material ?? undefined,
             price: variantData.price?.toString() || product.price.toString(),
-            stock: variantData.stock || 0,
-            imageUrl: variantData.imageUrl,
+            stock: variantData.stock ?? 0,
+            imageUrl: variantData.imageUrl ?? undefined,
             isActive: variantData.isActive !== false,
           },
           create: {
+            id: randomUUID(),
             productId: product.id,
-            size: variantData.size,
-            color: variantData.color,
-            material: variantData.material,
+            size: variantData.size ?? undefined,
+            color: variantData.color ?? undefined,
+            material: variantData.material ?? undefined,
             price: variantData.price?.toString() || product.price.toString(),
-            stock: variantData.stock || 0,
+            stock: variantData.stock ?? 0,
             sku: variantData.sku,
-            imageUrl: variantData.imageUrl,
+            imageUrl: variantData.imageUrl ?? undefined,
             isActive: variantData.isActive !== false,
           },
         })
@@ -75,6 +77,8 @@ export async function POST(request: NextRequest) {
     return errorResponse(`Ошибка при импорте вариантов: ${error.message}`, 500)
   }
 }
+
+
 
 
 

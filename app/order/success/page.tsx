@@ -1,12 +1,13 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/atoms/Button/Button'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import styles from './page.module.scss'
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('orderNumber')
 
@@ -63,6 +64,26 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={
+      <main>
+        <div className="container">
+          <Breadcrumbs items={[
+            { label: 'Главная', href: '/' },
+            { label: 'Заказ оформлен', href: '/order/success' },
+          ]} />
+          <div className={styles.content}>
+            <h1 className={styles.title}>Загрузка...</h1>
+          </div>
+        </div>
+      </main>
+    }>
+      <OrderSuccessContent />
+    </Suspense>
   )
 }
 

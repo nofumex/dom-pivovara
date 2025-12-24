@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole, SettingType } from '@prisma/client'
@@ -83,7 +84,7 @@ export async function PUT(
     const setting = await prisma.setting.upsert({
       where: { key: params.key },
       update: { value: stringValue, type },
-      create: { key: params.key, value: stringValue, type },
+      create: { id: randomUUID(), key: params.key, value: stringValue, type },
     })
 
     return successResponse(setting, 'Настройка обновлена успешно')
@@ -95,6 +96,8 @@ export async function PUT(
     return errorResponse('Ошибка при обновлении настройки', 500)
   }
 }
+
+
 
 
 

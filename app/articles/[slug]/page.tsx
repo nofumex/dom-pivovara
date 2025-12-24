@@ -15,6 +15,19 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       slug: params.slug,
       isPublished: true,
     },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      date: true,
+      preview: true,
+      image: true,
+      content: true,
+      isPublished: true,
+      createdAt: true,
+      updatedAt: true,
+      // layout excluded as it may not exist in database
+    },
   })
 
   if (!article) {
@@ -34,7 +47,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     day: 'numeric',
   })
 
-  const layout = article.layout || 'TOP_FULL'
+  // Default layout since layout field may not exist in database
+  const layout = 'TOP_FULL' as 'TOP_FULL' | 'LEFT_SQUARE' | 'RIGHT_SQUARE'
 
   return (
     <main>

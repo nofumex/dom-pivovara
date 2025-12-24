@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           _count: {
             select: {
-              orders: true,
+              Order: true,
             },
           },
         },

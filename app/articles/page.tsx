@@ -8,6 +8,19 @@ export default async function ArticlesPage() {
     where: {
       isPublished: true,
     },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      date: true,
+      preview: true,
+      image: true,
+      content: true,
+      isPublished: true,
+      createdAt: true,
+      updatedAt: true,
+      // layout excluded as it may not exist in database
+    },
     orderBy: {
       date: 'desc',
     },

@@ -18,7 +18,7 @@ export const Input = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, In
             ref={ref as React.Ref<HTMLTextAreaElement>}
             className={`${styles.input} ${styles.textarea} ${error ? styles.error : ''} ${className || ''}`}
             rows={rows}
-            {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...(props as unknown as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
           />
           {error && <span className={styles.errorText}>{error}</span>}
         </div>

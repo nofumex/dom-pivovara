@@ -163,6 +163,16 @@ interface StandardProduct {
   seoDesc?: string
   metaTitle?: string
   metaDesc?: string
+  variants?: Array<{
+    size?: string
+    color?: string
+    material?: string
+    price: number
+    stock: number
+    sku: string
+    imageUrl?: string
+    isActive?: boolean
+  }>
 }
 
 interface StandardImportData {
@@ -546,7 +556,7 @@ export function transformExportCatalogData(
   )
   // Объединяем с переданным imageIdMap
   const finalImageIdMap = new Map<string, string>(imageIdMap)
-  for (const [key, value] of picturesMap.entries()) {
+  for (const [key, value] of Array.from(picturesMap.entries())) {
     finalImageIdMap.set(key, value)
   }
 

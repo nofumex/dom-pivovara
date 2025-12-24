@@ -650,7 +650,7 @@ export async function POST(request: NextRequest) {
     if (stockMap.size > 0) {
       console.log(`[SYNC] Примеры товаров из файла (первые 3):`)
       let count = 0
-      for (const [name, stock] of stockMap.entries()) {
+      for (const [name, stock] of Array.from(stockMap.entries())) {
         if (count >= 3) break
         console.log(`  - "${name.substring(0, 60)}" -> остаток: ${stock}`)
         count++
@@ -670,7 +670,7 @@ export async function POST(request: NextRequest) {
 
     // Обновляем остатки для товаров из файла
     let matchAttempts = 0
-    for (const [productName, stock] of stockMap.entries()) {
+    for (const [productName, stock] of Array.from(stockMap.entries())) {
       matchAttempts++
       // Ищем товар по точному совпадению нормализованного названия
       let product = productIndexByNormalizedTitle.get(productName)

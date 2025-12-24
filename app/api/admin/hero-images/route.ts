@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
@@ -45,7 +46,18 @@ export async function POST(request: NextRequest) {
     const validated = heroImageSchema.parse(body)
 
     const image = await prisma.heroImage.create({
-      data: validated,
+      data: {
+        id: randomUUID(),
+        url: validated.url,
+        alt: validated.alt ?? undefined,
+        order: validated.order ?? 0,
+        isActive: validated.isActive ?? true,
+        title: validated.title ?? undefined,
+        text: validated.text ?? undefined,
+        buttonText: validated.buttonText ?? undefined,
+        buttonUrl: validated.buttonUrl ?? undefined,
+        updatedAt: new Date(),
+      },
     })
 
     return successResponse(image, 'Изображение создано успешно')

@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
-import { UserRole } from '@prisma/client'
+import { UserRole, Prisma } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
 import { createCategorySchema } from '@/lib/validations'
 import { slugify } from '@/lib/utils'
@@ -58,7 +59,19 @@ export async function POST(request: NextRequest) {
     }
 
     const category = await prisma.category.create({
-      data: validated,
+      data: {
+        id: randomUUID(),
+        name: validated.name,
+        slug: validated.slug,
+        description: validated.description ?? undefined,
+        image: validated.image ?? undefined,
+        isActive: validated.isActive,
+        sortOrder: validated.sortOrder,
+        seoTitle: validated.seoTitle ?? undefined,
+        seoDesc: validated.seoDesc ?? undefined,
+        updatedAt: new Date(),
+        ...(validated.parentId && { parentId: validated.parentId }),
+      },
       include: {
         Category: true,
         other_Category: true,

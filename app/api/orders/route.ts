@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyAuth } from '@/lib/auth'
 import { successResponse, errorResponse, paginatedResponse } from '@/lib/response'
@@ -199,6 +200,7 @@ export async function POST(request: NextRequest) {
         // Создаем гостевого пользователя (пароль не нужен, так как он не будет использоваться)
         const newGuestUser = await prisma.user.create({
           data: {
+            id: randomUUID(),
             email: 'guest@system.local',
             password: 'guest', // Пароль не используется
             firstName: 'Гость',

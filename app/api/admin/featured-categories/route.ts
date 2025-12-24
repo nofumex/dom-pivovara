@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
 
     const tile = await prisma.featuredCategoryTile.create({
       data: {
+        id: randomUUID(),
         title: body.title,
         url: body.url,
         imageUrl: body.imageUrl,

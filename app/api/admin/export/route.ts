@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
     const [products, categories, settings, heroImages] = await Promise.all([
       prisma.product.findMany({
         include: {
-          variants: true,
-          categoryObj: true,
+          ProductVariant: true,
+          Category: true,
         },
       }),
       prisma.category.findMany({
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         Цена: Number(p.price),
         СтараяЦена: p.oldPrice ? Number(p.oldPrice) : '',
         Остаток: p.stock,
-        Категория: p.categoryObj.name,
+        Категория: p.Category.name,
         Активен: p.isActive ? 'Да' : 'Нет',
         Видимость: p.visibility,
       }))
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
       const imageUrls = new Set<string>()
       products.forEach((p) => {
         p.images.forEach((img) => imageUrls.add(img))
-        p.variants.forEach((v) => {
+        p.ProductVariant.forEach((v) => {
           if (v.imageUrl) imageUrls.add(v.imageUrl)
         })
       })
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
       })
 
       // Add images to zip
-      for (const url of imageUrls) {
+      for (const url of Array.from(imageUrls)) {
         if (url.startsWith('/uploads/')) {
           const filePath = join(uploadsDir, url.replace('/uploads/', ''))
           if (existsSync(filePath)) {
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     }
 
     const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' })
-    return new Response(zipBuffer, {
+    return new Response(new Uint8Array(zipBuffer), {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="export-${Date.now()}.zip"`,

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
@@ -37,7 +38,7 @@ export async function GET(
 
     const variants = await prisma.productVariant.findMany({
       where: { productId: product.id },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { sku: 'asc' },
     })
 
     return successResponse(variants)
@@ -79,9 +80,16 @@ export async function POST(
 
     const variant = await prisma.productVariant.create({
       data: {
-        ...validated,
+        id: randomUUID(),
         productId: product.id,
+        size: validated.size ?? undefined,
+        color: validated.color ?? undefined,
+        material: validated.material ?? undefined,
         price: validated.price.toString(),
+        stock: validated.stock ?? 0,
+        sku: validated.sku,
+        imageUrl: validated.imageUrl ?? undefined,
+        isActive: validated.isActive ?? true,
       },
     })
 
@@ -94,6 +102,8 @@ export async function POST(
     return errorResponse('Ошибка при создании варианта', 500)
   }
 }
+
+
 
 
 

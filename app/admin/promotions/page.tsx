@@ -132,7 +132,7 @@ export default function AdminPromotionsPage() {
             />
             Активна
           </label>
-          <button type="submit" disabled={creating}>
+          <button type="submit" className={styles.button} disabled={creating}>
             {creating ? 'Сохранение...' : 'Создать'}
           </button>
         </form>
@@ -160,10 +160,10 @@ export default function AdminPromotionsPage() {
                   Активна
                 </label>
                 <div className={styles.actions}>
-                  <button onClick={() => handleUpdate(item.slug, { title: item.title, content: item.content })}>
+                  <button className={styles.button} onClick={() => handleUpdate(item.slug, { title: item.title, content: item.content })}>
                     Сохранить
                   </button>
-                  <button className={styles.danger} onClick={() => handleDelete(item.slug)}>
+                  <button className={`${styles.button} ${styles.danger}`} onClick={() => handleDelete(item.slug)}>
                     Удалить
                   </button>
                 </div>

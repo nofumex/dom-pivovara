@@ -21,7 +21,7 @@ export async function GET(
         productId: product.id,
         isActive: true,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { sku: 'asc' },
     })
 
     return successResponse(variants)
@@ -30,6 +30,8 @@ export async function GET(
     return errorResponse('Ошибка при получении вариантов', 500)
   }
 }
+
+
 
 
 

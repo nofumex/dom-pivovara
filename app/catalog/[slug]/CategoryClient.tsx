@@ -43,7 +43,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
     priceMax: initialMaxPrice,
     onSale: false,
   })
-  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortBy, setSortBy] = useState<'popularity' | 'name' | 'price' | 'createdAt'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   
   // Обновляем максимальную цену при изменении списка товаров

@@ -10,7 +10,14 @@ export async function POST(request: NextRequest) {
     const validated = createLeadSchema.parse(body)
 
     const lead = await prisma.lead.create({
-      data: validated,
+      data: {
+        name: validated.name,
+        phone: validated.phone ?? undefined,
+        email: validated.email ?? undefined,
+        company: validated.company ?? undefined,
+        message: validated.message ?? undefined,
+        source: validated.source ?? undefined,
+      },
     })
 
     // Отправляем уведомление в админку

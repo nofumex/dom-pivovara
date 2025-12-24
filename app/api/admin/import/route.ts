@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { randomUUID } from 'crypto'
 import { verifyRole } from '@/lib/auth'
-import { UserRole } from '@prisma/client'
+import { UserRole, ProductVisibility, SettingType } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
 import { normalizeImportData, detectImportFormat } from '@/lib/import-transformers'
 import { downloadImageFromUrl } from '@/lib/upload'
@@ -427,7 +427,9 @@ export async function POST(request: NextRequest) {
                   isActive: productData.isActive ?? true,
                   isFeatured: productData.isFeatured ?? false,
                   isInStock: productData.isInStock ?? true,
-                  visibility: productData.visibility || 'VISIBLE',
+                  visibility: (productData.visibility && Object.values(ProductVisibility).includes(productData.visibility as ProductVisibility)) 
+                    ? (productData.visibility as ProductVisibility) 
+                    : ProductVisibility.VISIBLE,
                   categoryId: category.id,
                   seoTitle: productData.seoTitle,
                   seoDesc: productData.seoDesc,
@@ -442,6 +444,7 @@ export async function POST(request: NextRequest) {
                 for (const variantData of productData.variants) {
                   await prisma.productVariant.create({
                     data: {
+                      id: randomUUID(),
                       productId: product.id,
                       size: variantData.size,
                       color: variantData.color,
@@ -524,7 +527,7 @@ export async function POST(request: NextRequest) {
                     }
                   }
 
-                  await prisma.product.update({
+                  const updatedProduct = await prisma.product.update({
                     where: { sku: productData.sku },
                     data: {
                       title: productData.title,
@@ -543,7 +546,9 @@ export async function POST(request: NextRequest) {
                       isActive: productData.isActive ?? true,
                       isFeatured: productData.isFeatured ?? false,
                       isInStock: productData.isInStock ?? true,
-                      visibility: productData.visibility || 'VISIBLE',
+                      visibility: (productData.visibility && Object.values(ProductVisibility).includes(productData.visibility as ProductVisibility)) 
+                        ? (productData.visibility as ProductVisibility) 
+                        : ProductVisibility.VISIBLE,
                       categoryId: category.id,
                       seoTitle: productData.seoTitle,
                       seoDesc: productData.seoDesc,
@@ -567,7 +572,8 @@ export async function POST(request: NextRequest) {
                           isActive: variantData.isActive ?? true,
                         },
                         create: {
-                          productId: existing.id,
+                          id: randomUUID(),
+                          productId: updatedProduct.id,
                           size: variantData.size,
                           color: variantData.color,
                           material: variantData.material,
@@ -659,7 +665,9 @@ export async function POST(request: NextRequest) {
                     isActive: productData.isActive ?? true,
                     isFeatured: productData.isFeatured ?? false,
                     isInStock: productData.isInStock ?? true,
-                    visibility: productData.visibility || 'VISIBLE',
+                    visibility: (productData.visibility && Object.values(ProductVisibility).includes(productData.visibility as ProductVisibility)) 
+                      ? (productData.visibility as ProductVisibility) 
+                      : ProductVisibility.VISIBLE,
                     categoryId: category.id,
                     seoTitle: productData.seoTitle,
                     seoDesc: productData.seoDesc,
@@ -674,6 +682,7 @@ export async function POST(request: NextRequest) {
                   for (const variantData of productData.variants) {
                     await prisma.productVariant.create({
                       data: {
+                        id: randomUUID(),
                         productId: product.id,
                         size: variantData.size,
                         color: variantData.color,
@@ -714,7 +723,12 @@ export async function POST(request: NextRequest) {
               await prisma.setting.upsert({
                 where: { key },
                 update: { value: String(value) },
-                create: { key, value: String(value), type: 'STRING' },
+                create: { 
+                  id: randomUUID(),
+                  key, 
+                  value: String(value), 
+                  type: SettingType.STRING,
+                },
               })
             } catch (error: any) {
               result.warnings.push(`Ошибка при импорте настройки ${key}: ${error.message}`)
