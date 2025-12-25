@@ -306,6 +306,56 @@
   }
 }
 
+@media (max-width: 768px) {
+  .formSection {
+    padding: 20px 16px;
+  }
+
+  .step {
+    gap: 16px;
+  }
+
+  .stepTitle {
+    font-size: 20px;
+  }
+
+  // Для последней стадии (подтверждение) делаем более широкий дизайн
+  .confirmation {
+    gap: 16px;
+  }
+
+  .confirmationSection {
+    padding: 16px;
+  }
+
+  .confirmationSectionTitle {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .confirmationDetails {
+    gap: 8px;
+  }
+
+  .confirmationRow {
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0;
+    align-items: flex-start;
+  }
+
+  .confirmationLabel {
+    min-width: auto;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .confirmationRow > span:last-child {
+    font-size: 14px;
+    word-break: break-word;
+  }
+}
+
 
 
 

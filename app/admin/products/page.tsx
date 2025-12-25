@@ -44,6 +44,7 @@ export default function AdminProductsPage() {
     category: '',
     visibility: '',
     isActive: '',
+    stock: '',
     sortBy: 'createdAt',
     sortOrder: 'desc',
   })
@@ -84,6 +85,7 @@ export default function AdminProductsPage() {
         ...(filters.category && { category: filters.category }),
         ...(filters.visibility && { visibility: filters.visibility }),
         ...(filters.isActive && { isActive: filters.isActive }),
+        ...(filters.stock && { stock: filters.stock }),
         sortBy: filters.sortBy,
         sortOrder: filters.sortOrder,
       })
@@ -323,6 +325,16 @@ export default function AdminProductsPage() {
           <option value="">Все статусы</option>
           <option value="true">Активные</option>
           <option value="false">Неактивные</option>
+        </Select>
+        <Select
+          value={filters.stock}
+          onChange={(e) => handleFilterChange('stock', e.target.value)}
+        >
+          <option value="">Все остатки</option>
+          <option value="in_stock">В наличии (stock &gt; 0)</option>
+          <option value="out_of_stock">Нет в наличии (stock = 0)</option>
+          <option value="low">Мало (1-10)</option>
+          <option value="many">Много (&gt; 10)</option>
         </Select>
         <Select
           value={`${filters.sortBy}-${filters.sortOrder}`}

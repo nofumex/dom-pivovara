@@ -51,9 +51,11 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get('sortOrder') || 'desc'
 
     // Build where clause
+    // Для публичного API скрываем товары с остатком 0
     const where: any = {
       visibility: ProductVisibility.VISIBLE,
       isActive: true,
+      stock: { gt: 0 }, // Показываем только товары с остатком больше 0
     }
 
     if (category) {
@@ -99,9 +101,12 @@ export async function GET(request: NextRequest) {
 
     if (inStock === 'true') {
       where.isInStock = true
+      // stock > 0 уже установлен выше, но убедимся
       where.stock = { gt: 0 }
     } else if (inStock === 'false') {
+      // Если явно запрошены товары не в наличии, убираем фильтр по stock
       where.isInStock = false
+      delete where.stock
     }
 
     if (stockStatus) {

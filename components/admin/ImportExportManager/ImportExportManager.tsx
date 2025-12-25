@@ -28,6 +28,14 @@
   const [syncResult, setSyncResult] = useState<any>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [syncProgress, setSyncProgress] = useState({
+    progress: 0,
+    message: 'Инициализация...',
+  })
+  const [expandedSections, setExpandedSections] = useState({
+    notFound: false,
+    matches: false,
+  })
 
    const handleExport = async () => {
      setIsExporting(true)
@@ -168,7 +176,7 @@
     formData.append('file', syncFile)
 
     try {
-      const response = await fetch('/api/admin/analyze-excel', {
+      const response = await fetch('/api/admin/analyze-stock', {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -181,7 +189,7 @@
       }
 
       setAnalysisResult(data.data)
-      console.log('Результат анализа файла:', data.data)
+      console.log('Результат анализа сопоставления:', data.data)
     } catch (error) {
       alert(
         `Ошибка при анализе: ${
@@ -202,6 +210,7 @@
 
     setIsSyncing(true)
     setSyncResult(null)
+    setSyncProgress({ progress: 0, message: 'Инициализация...' })
 
     const formData = new FormData()
     formData.append('file', syncFile)
@@ -213,13 +222,58 @@
         body: formData,
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || 'Ошибка при синхронизации')
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      setSyncResult(data.data)
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      if (!reader) {
+        throw new Error('Не удалось получить поток данных')
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+
+              if (data.error) {
+                alert('Ошибка при синхронизации: ' + data.error)
+                setIsSyncing(false)
+                return
+              }
+
+              if (data.progress !== undefined) {
+                setSyncProgress({
+                  progress: data.progress,
+                  message: data.message || 'Обработка...',
+                })
+              }
+
+              if (data.success && data.data) {
+                setSyncResult(data.data)
+                setIsSyncing(false)
+                return
+              }
+            } catch (e) {
+              console.error('Ошибка парсинга SSE данных:', e)
+            }
+          }
+        }
+      }
     } catch (error) {
       alert(
         `Ошибка при синхронизации: ${
@@ -227,7 +281,6 @@
         }`,
       )
       console.error(error)
-    } finally {
       setIsSyncing(false)
     }
   }
@@ -254,6 +307,30 @@
             </div>
             <div className={styles.progressPercent}>
               {Math.round(importProgress.progress)}%
+            </div>
+          </div>
+        </div>
+      )}
+      {isSyncing && (
+        <div className={styles.importOverlay}>
+          <div className={styles.importProgress}>
+            {syncProgress.progress < 100 && (
+              <div className={styles.progressSpinner}>
+                <div className={styles.spinner}></div>
+              </div>
+            )}
+            <h3 className={styles.progressTitle}>Синхронизация остатков</h3>
+            <p className={styles.progressText}>
+              {syncProgress.message}
+            </p>
+            <div className={styles.progressBar}>
+              <div 
+                className={styles.progressBarFill}
+                style={{ width: `${syncProgress.progress}%` }}
+              ></div>
+            </div>
+            <div className={styles.progressPercent}>
+              {Math.round(syncProgress.progress)}%
             </div>
           </div>
         </div>
@@ -599,13 +676,162 @@
             </ul>
           </div>
 
-          <button
-            onClick={handleSync}
-            disabled={!syncFile || isSyncing}
-            className={styles.syncButton}
-          >
-            {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
-          </button>
+          <div className={styles.syncActions}>
+            <button
+              onClick={handleAnalyze}
+              disabled={!syncFile || isAnalyzing || isSyncing}
+              className={styles.analyzeButton}
+            >
+              {isAnalyzing ? 'Анализ...' : '🔍 Проанализировать файл'}
+            </button>
+            <button
+              onClick={handleSync}
+              disabled={!syncFile || isSyncing}
+              className={styles.syncButton}
+            >
+              {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
+            </button>
+          </div>
+
+          {analysisResult && (
+            <div className={`${styles.result} ${styles.analysisResult}`}>
+              <h3>📊 Результат анализа сопоставления</h3>
+              
+              <div className={styles.analysisStats}>
+                <div className={styles.statRow}>
+                  <span className={styles.statLabel}>Всего товаров в файле:</span>
+                  <span className={styles.statValue}>{analysisResult.stats?.totalInFile || 0}</span>
+                </div>
+                <div className={styles.statRow}>
+                  <span className={styles.statLabel}>Найдено совпадений:</span>
+                  <span className={styles.statValue} style={{ color: '#22c55e' }}>
+                    {analysisResult.stats?.found || 0}
+                  </span>
+                </div>
+                <div className={styles.statRow}>
+                  <span className={styles.statLabel}>Не найдено:</span>
+                  <span className={styles.statValue} style={{ color: '#ef4444' }}>
+                    {analysisResult.stats?.notFound || 0}
+                  </span>
+                </div>
+                <div className={styles.statRow}>
+                  <span className={styles.statLabel}>Процент найденных:</span>
+                  <span className={styles.statValue} style={{ color: '#3b82f6' }}>
+                    {analysisResult.stats?.foundPercent || '0'}%
+                  </span>
+                </div>
+              </div>
+
+              {analysisResult.stats?.matchTypes && (
+                <div className={styles.matchTypes}>
+                  <h4>Типы совпадений:</h4>
+                  <ul>
+                    <li>
+                      <span>Точное совпадение:</span>
+                      <strong>{analysisResult.stats.matchTypes.exact || 0}</strong>
+                    </li>
+                    <li>
+                      <span>Без префикса:</span>
+                      <strong>{analysisResult.stats.matchTypes.prefix_removed || 0}</strong>
+                    </li>
+                    <li>
+                      <span>По ключевым словам:</span>
+                      <strong>{analysisResult.stats.matchTypes.keywords || 0}</strong>
+                    </li>
+                    <li>
+                      <span>Частичное:</span>
+                      <strong>{analysisResult.stats.matchTypes.partial || 0}</strong>
+                    </li>
+                    <li>
+                      <span>По похожести:</span>
+                      <strong>{analysisResult.stats.matchTypes.similarity || 0}</strong>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {analysisResult.notFound && analysisResult.notFound.length > 0 && (
+                <div className={styles.accordionSection}>
+                  <button
+                    className={styles.accordionHeader}
+                    onClick={() => setExpandedSections({ ...expandedSections, notFound: !expandedSections.notFound })}
+                  >
+                    <span>
+                      ❌ Не найденные товары ({analysisResult.totalNotFound || analysisResult.notFound.length})
+                    </span>
+                    <span className={styles.accordionIcon}>
+                      {expandedSections.notFound ? '▼' : '▶'}
+                    </span>
+                  </button>
+                  {expandedSections.notFound && (
+                    <div className={styles.accordionContent}>
+                      <div className={styles.notFoundList}>
+                        {analysisResult.notFound.slice(0, 50).map((item: any, index: number) => (
+                          <div key={index} className={styles.notFoundItem}>
+                            <div className={styles.notFoundProduct}>
+                              <strong>{item.fileProduct}</strong>
+                            </div>
+                            {item.suggestions && item.suggestions.length > 0 && (
+                              <div className={styles.suggestions}>
+                                <span>Возможные совпадения:</span>
+                                <ul>
+                                  {item.suggestions.map((suggestion: any, idx: number) => (
+                                    <li key={idx}>
+                                      {suggestion.title} ({Math.round(suggestion.similarity * 100)}%)
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {analysisResult.notFound.length > 50 && (
+                          <p className={styles.moreItems}>
+                            ... и еще {analysisResult.notFound.length - 50} товаров
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {analysisResult.matches && analysisResult.matches.length > 0 && (
+                <div className={styles.accordionSection}>
+                  <button
+                    className={styles.accordionHeader}
+                    onClick={() => setExpandedSections({ ...expandedSections, matches: !expandedSections.matches })}
+                  >
+                    <span>
+                      ✅ Найденные совпадения ({analysisResult.totalMatches || analysisResult.matches.length})
+                    </span>
+                    <span className={styles.accordionIcon}>
+                      {expandedSections.matches ? '▼' : '▶'}
+                    </span>
+                  </button>
+                  {expandedSections.matches && (
+                    <div className={styles.accordionContent}>
+                      <div className={styles.matchesList}>
+                        {analysisResult.matches.slice(0, 20).map((match: any, index: number) => (
+                          <div key={index} className={styles.matchItem}>
+                            <span className={styles.matchFrom}>{match.fileProduct}</span>
+                            <span className={styles.matchArrow}>→</span>
+                            <span className={styles.matchTo}>{match.matchedProduct}</span>
+                            <span className={styles.matchType}>({match.matchType})</span>
+                            {match.similarity && (
+                              <span className={styles.matchSimilarity}>
+                                {Math.round(match.similarity * 100)}%
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {syncResult && (
             <div className={`${styles.result} ${styles.success}`}>
@@ -649,14 +875,46 @@
                   </div>
                 )}
 
-                {syncResult.errors && syncResult.errors.length > 0 && (
+                {syncResult.setToZeroProducts && syncResult.setToZeroProducts.length > 0 && (
+                  <div className={styles.syncMatched}>
+                    <strong>Товаров установлено в 0 (нет в файле):</strong> {syncResult.setToZeroProducts.length}
+                    {syncResult.setToZeroProducts.length <= 10 && (
+                      <ul>
+                        {syncResult.setToZeroProducts.map((product: string, i: number) => (
+                          <li key={i}>{product}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {syncResult.setToZeroProducts.length > 10 && (
+                      <p>
+                        <small>Показаны первые 10 из {syncResult.setToZeroProducts.length} товаров</small>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {syncResult.updates && syncResult.updates.length > 0 && (
                   <div className={styles.syncErrors}>
-                    <strong>Ошибки:</strong>
+                    <strong>Детали обработки (первые 20):</strong>
                     <ul>
-                      {syncResult.errors.map((error: string, i: number) => (
-                        <li key={i}>{error}</li>
+                      {syncResult.updates.slice(0, 20).map((update: any, i: number) => (
+                        <li key={i}>
+                          {update.name}
+                          {update.productTitle && ` → ${update.productTitle}`}
+                          {': '}
+                          {update.success ? (
+                            <span style={{ color: 'green' }}>✓ Остаток: {update.stock}</span>
+                          ) : (
+                            <span style={{ color: 'red' }}>✗ {update.error || 'Ошибка'}</span>
+                          )}
+                        </li>
                       ))}
                     </ul>
+                    {syncResult.updates.length > 20 && (
+                      <p>
+                        <small>Показаны первые 20 из {syncResult.updates.length} записей</small>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

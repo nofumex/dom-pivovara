@@ -21,6 +21,7 @@ export default async function SearchPage({
         ],
         isActive: true,
         visibility: 'VISIBLE',
+        stock: { gt: 0 }, // Показываем только товары с остатком больше 0
       },
       include: {
         Category: true,

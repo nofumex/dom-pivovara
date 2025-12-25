@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
         id: { in: limitedIds },
         visibility: ProductVisibility.VISIBLE,
         isActive: true,
+        stock: { gt: 0 }, // Показываем только товары с остатком больше 0
       },
       include: {
         Category: {

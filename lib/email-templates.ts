@@ -45,9 +45,9 @@ const brand: BrandConfig = {
   brandName: 'Дом Пивовара',
   logoUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru'}/images/logoPivovar.png`,
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru',
-  supportEmail: 'info@dom-pivovara.ru',
-  supportPhone: '+7 (495) 000-00-00',
-  address: 'Россия, Новосибирск',
+  supportEmail: 'dompivovar@mail.ru',
+  supportPhone: '+7 913 555-222-6, +7 913 037-32-47',
+  address: 'Россия, Красноярск',
   accentColor: '#F57C00', // главный оранжевый сайта
   neutralBg: '#F5F6F7',
 }
@@ -175,8 +175,8 @@ function renderLayout(params: BaseLayoutParams): { html: string; text: string } 
 
   const footerContacts = `
     <div style="margin-top:6px;">
-      ${brand.supportPhone ? `<span style="margin-right:10px;">${brand.supportPhone}</span>` : ''}
-      ${brand.supportEmail ? `<a href="mailto:${brand.supportEmail}" style="${baseStyles.footerLink}">${brand.supportEmail}</a>` : ''}
+      ${brand.supportPhone ? `<div style="margin-bottom:4px;">${brand.supportPhone}</div>` : ''}
+      ${brand.supportEmail ? `<div><a href="mailto:${brand.supportEmail}" style="${baseStyles.footerLink}">${brand.supportEmail}</a></div>` : ''}
     </div>
     ${brand.address ? `<div style="${baseStyles.small};margin-top:4px;">${brand.address}</div>` : ''}
   `
@@ -274,7 +274,7 @@ export function buildOrderConfirmationEmail(params: {
     },
     highlights: [
       { title: 'Чистые вкусы', description: 'Отбираем оборудование и ингредиенты под ваши задачи.' },
-      { title: 'Поддержка 7/7', description: 'Поможем подобрать, настроить и запустить.', icon: '🤝' },
+      { title: 'Поддержка 24/7', description: 'Поможем подобрать, настроить и запустить.', icon: '🤝' },
     ],
     cta: undefined, // письма информационные, без трекинга
   })

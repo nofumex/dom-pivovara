@@ -71,25 +71,42 @@
 }
 
 .socialButton {
-  flex: 1;
-  padding: 10px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-white);
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  color: var(--color-text);
+  transition: opacity 0.2s, transform 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
 
   &:hover {
-    border-color: var(--color-primary-600);
-    color: var(--color-primary-600);
-    background: var(--color-bg);
+    opacity: 0.85;
+    transform: scale(1.05);
   }
 
   &:active {
     transform: scale(0.98);
+  }
+
+  &.vk {
+    background: #0077FF;
+  }
+
+  &.telegram {
+    background: #0088cc;
+  }
+
+  &.whatsapp {
+    background: #25D366;
   }
 }
 

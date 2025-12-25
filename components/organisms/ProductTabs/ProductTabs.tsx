@@ -25,11 +25,20 @@ export function ProductTabs() {
     // Fetch products based on active tab
     const fetchProducts = async () => {
       try {
-        let tag = 'HIT'
-        if (activeTab === 'new') tag = 'NEW'
-        if (activeTab === 'sale') tag = 'SALE'
+        let url = '/api/products?limit=8&inStock=true'
         
-        const response = await fetch(`/api/products?badges=${tag}&limit=8`)
+        if (activeTab === 'new') {
+          // Новинки: товары с badge NEW, в наличии, отсортированные по дате создания (новые сначала)
+          url = '/api/products?badges=NEW&inStock=true&sortBy=createdAt&sortOrder=desc&limit=8'
+        } else if (activeTab === 'sale') {
+          // По акции: товары с badge SALE, в наличии, отсортированные по рейтингу
+          url = '/api/products?badges=SALE&inStock=true&sortBy=rating&sortOrder=desc&limit=8'
+        } else {
+          // Хиты продаж: только товары в наличии, отсортированные по рейтингу для показа популярных товаров
+          url = '/api/products?inStock=true&sortBy=rating&sortOrder=desc&limit=8'
+        }
+        
+        const response = await fetch(url)
         const data = await response.json()
         if (data.success) {
           const productsWithBadges = (data.data || []).map((p: any) => ({
