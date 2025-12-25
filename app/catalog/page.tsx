@@ -5,6 +5,8 @@ import { getCategoryProductCount, getSubcategoryImage } from '@/lib/categoryUtil
 import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
+export const dynamic = 'force-dynamic'
+
 export default async function CatalogPage() {
   const breadcrumbs = [
     { label: 'Главная', href: '/' },
