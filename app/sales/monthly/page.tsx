@@ -20,7 +20,7 @@ export default function SalesMonthlyPage() {
           <p className={styles.lead}>ВНИМАНИЕ, СКИДКИ!</p>
 
           <p className={styles.text}>
-            Летние скидки в магазине &quot;ДомПивовар&quot;.
+            Летние скидки в магазине &quot;Дом Пивовара&quot;.
           </p>
 
           <p className={styles.text}>Условия очень просты:</p>

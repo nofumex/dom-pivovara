@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
+import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/db'
 import { generateAccessToken, generateRefreshToken, createSession } from '@/lib/auth'
 import { registerSchema } from '@/lib/validations'
@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         firstName: validated.firstName,
         lastName: validated.lastName,
-        phone: validated.phone || null,
+        phone: validated.phone,
+        company: validated.company,
         role: 'CUSTOMER',
       },
       select: {
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
         lastName: true,
         role: true,
         phone: true,
+        company: true,
       },
     })
 

@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     for (const subscriber of subscribers) {
       try {
         const result = await transporter.sendMail({
-          from: `"ДомПивовар" <${emailSettings.fromEmail}>`,
+          from: `"Дом Пивовара" <${emailSettings.fromEmail}>`,
           to: subscriber.email,
           subject: built.subject,
           text: built.text,

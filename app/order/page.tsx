@@ -509,7 +509,7 @@ export default function OrderPage() {
                   label="Комментарии к заказу:"
                   value={formData.notes}
                   onChange={(e) => updateFormData('notes', e.target.value)}
-                  multiline
+                  textarea
                   rows={4}
                 />
               </div>

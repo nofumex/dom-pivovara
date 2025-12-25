@@ -8,7 +8,7 @@ import '@/styles/globals.scss'
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
 export const metadata: Metadata = {
-  title: 'ДомПивовар - Интернет-магазин товаров для пивоварения',
+  title: 'Дом Пивовара - Интернет-магазин товаров для пивоварения',
   description: 'Интернет-магазин товаров для пивоварения, самогоноварения и виноделия',
   icons: {
     icon: '/images/logoPivovar.png',

@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 import { createLeadSchema } from '@/lib/validations'
-import { sendNewLeadNotificationEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,22 +11,13 @@ export async function POST(request: NextRequest) {
     const lead = await prisma.lead.create({
       data: {
         name: validated.name,
-        phone: validated.phone ?? undefined,
-        email: validated.email ?? undefined,
-        company: validated.company ?? undefined,
-        message: validated.message ?? undefined,
-        source: validated.source ?? undefined,
+        phone: validated.phone,
+        email: validated.email,
+        company: validated.company,
+        message: validated.message,
+        source: validated.source,
       },
     })
-
-    // Отправляем уведомление в админку
-    await sendNewLeadNotificationEmail(
-      validated.source || 'unknown',
-      validated.name,
-      validated.phone || undefined,
-      validated.email || undefined,
-      validated.message || undefined
-    )
 
     return successResponse(lead, 'Заявка создана успешно')
   } catch (error: any) {

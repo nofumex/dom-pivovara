@@ -70,9 +70,12 @@ export async function POST(request: NextRequest) {
     })
 
     // Set cookies in response
+    // Используем secure только для HTTPS запросов, иначе cookies не будут работать по HTTP
+    const isSecure = request.url.startsWith('https://') || process.env.NEXT_PUBLIC_FORCE_SECURE_COOKIES === 'true'
+    
     response.cookies.set('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 15, // 15 minutes
       path: '/',
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',

@@ -13,23 +13,12 @@ import { CartIcon } from '@/components/atoms/Icons/CartIcon'
 import { UserIcon } from '@/components/atoms/Icons/UserIcon'
 import styles from './Header.module.scss'
 
-// Список всех категорий
-const allCategories = [
-  { name: 'Пивоварение', slug: 'pivovareniye' },
-  { name: 'Самогоноварение', slug: 'samogonovarenie' },
-  { name: 'Виноделие', slug: 'vinodeliye' },
-  { name: 'Шланги, соединения', slug: 'shlangi-soedineniya' },
-  { name: 'Тара и ёмкости', slug: 'tara-emkosti' },
-  { name: 'Бондарные изделия', slug: 'bondarnye-izdeliya' },
-  { name: 'Казаны, тандыры, мангалы, печи, посуда', slug: 'kazany-tandyry-mangaly-pechi-posuda' },
-  { name: 'Всё для изготовления колбас', slug: 'vse-dlya-izgotovleniya-kolbas' },
-  { name: 'Сыроделие', slug: 'syrodelie' },
-  { name: 'Измерительное оборудование', slug: 'izmeritelnoe-oborudovanie' },
-  { name: 'Автоклавы и коптильни', slug: 'avtoklavy-koptilni' },
-  { name: 'Хлеб и квас', slug: 'hleb-kvas' },
-  { name: 'Травы и специи', slug: 'travy-specii' },
-  { name: 'Литература', slug: 'literatura' },
-]
+// Интерфейс для категории
+interface Category {
+  id: string
+  name: string
+  slug: string
+}
 
 interface AutocompleteProduct {
   id: string
@@ -51,6 +40,7 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileCatalogOpen, setIsMobileCatalogOpen] = useState(false)
   const [isMobileSalesOpen, setIsMobileSalesOpen] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0, width: 0 })
   const router = useRouter()
   const pathname = usePathname()
@@ -152,6 +142,29 @@ export function Header() {
     }
   }, [isAutocompleteOpen])
 
+  // Загружаем категории из API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories')
+        const data = await response.json()
+        if (data.success && data.data) {
+          // Берем только родительские категории (parentId === null)
+          const parentCategories = data.data.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            slug: cat.slug,
+          }))
+          setCategories(parentCategories)
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setIsAutocompleteOpen(false)
@@ -237,11 +250,11 @@ export function Header() {
             <div className={styles.logoIcon}>
               <img 
                 src="/images/logoPivovar.png" 
-                alt="ДомПивовар" 
+                alt="Дом Пивовара" 
                 className={styles.logoImage}
               />
             </div>
-            <h1 className={styles.logoText}>ДомПивовар</h1>
+            <h1 className={styles.logoText}>Дом Пивовара</h1>
           </Link>
           <div ref={searchWrapperRef} className={styles.searchWrapper}>
             <form className={styles.search} onSubmit={handleSearch}>
@@ -427,16 +440,20 @@ export function Header() {
             </button>
             {isMobileCatalogOpen && (
               <div className={styles.mobileNavSublist}>
-                {allCategories.map((cat) => (
-                  <Link
-                    key={cat.slug}
-                    href={`/catalog/${cat.slug}`}
-                    className={styles.mobileNavSubitem}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+                {categories.length === 0 ? (
+                  <div className={styles.mobileNavSubitem}>Загрузка...</div>
+                ) : (
+                  categories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      href={`/catalog/${cat.slug}`}
+                      className={styles.mobileNavSubitem}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {cat.name}
+                    </Link>
+                  ))
+                )}
               </div>
             )}
 

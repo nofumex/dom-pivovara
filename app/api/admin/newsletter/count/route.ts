@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 import { getAuthUserWithRefresh } from '@/lib/auth-helpers'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { user } = await getAuthUserWithRefresh()
@@ -21,6 +23,7 @@ export async function GET(request: NextRequest) {
     return errorResponse('Ошибка при получении количества подписчиков', 500)
   }
 }
+
 
 
 

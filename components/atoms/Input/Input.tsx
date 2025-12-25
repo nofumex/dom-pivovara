@@ -1,37 +1,47 @@
 import React from 'react'
 import styles from './Input.module.scss'
 
-interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'rows'> {
+type InputPropsBase = {
   label?: string
   error?: string
-  multiline?: boolean
-  rows?: number
 }
 
-export const Input = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(
-  ({ label, error, className, multiline, rows = 4, ...props }, ref) => {
-    if (multiline) {
+type InputPropsWithTextarea = InputPropsBase & 
+  React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+    textarea: true
+  }
+
+type InputPropsWithoutTextarea = InputPropsBase & 
+  React.InputHTMLAttributes<HTMLInputElement> & {
+    textarea?: false
+  }
+
+type InputProps = InputPropsWithTextarea | InputPropsWithoutTextarea
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, className, textarea, ...props }, ref) => {
+    if (textarea) {
+      const textareaProps = props as React.TextareaHTMLAttributes<HTMLTextAreaElement>
       return (
         <div className={styles.wrapper}>
           {label && <label className={styles.label}>{label}</label>}
           <textarea
-            ref={ref as React.Ref<HTMLTextAreaElement>}
             className={`${styles.input} ${styles.textarea} ${error ? styles.error : ''} ${className || ''}`}
-            rows={rows}
-            {...(props as unknown as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+            {...textareaProps}
           />
           {error && <span className={styles.errorText}>{error}</span>}
         </div>
       )
     }
 
+    const inputProps = props as React.InputHTMLAttributes<HTMLInputElement>
     return (
       <div className={styles.wrapper}>
         {label && <label className={styles.label}>{label}</label>}
         <input
-          ref={ref as React.Ref<HTMLInputElement>}
+          ref={ref}
           className={`${styles.input} ${error ? styles.error : ''} ${className || ''}`}
-          {...props}
+          {...inputProps}
         />
         {error && <span className={styles.errorText}>{error}</span>}
       </div>
@@ -40,7 +50,3 @@ export const Input = React.forwardRef<HTMLInputElement | HTMLTextAreaElement, In
 )
 
 Input.displayName = 'Input'
-
-
-
-

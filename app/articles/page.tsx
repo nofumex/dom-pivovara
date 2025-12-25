@@ -1,12 +1,20 @@
-import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import Link from 'next/link'
-import styles from './page.module.scss'
+import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { prisma } from '@/lib/db'
+import styles from './page.module.scss'
 
 export default async function ArticlesPage() {
+  const breadcrumbs = [
+    { label: 'Главная', href: '/' },
+    { label: 'Статьи', href: '/articles' },
+  ]
+
   const articles = await prisma.article.findMany({
     where: {
       isPublished: true,
+    },
+    orderBy: {
+      date: 'desc',
     },
     select: {
       id: true,
@@ -15,72 +23,54 @@ export default async function ArticlesPage() {
       date: true,
       preview: true,
       image: true,
-      content: true,
       isPublished: true,
-      createdAt: true,
-      updatedAt: true,
-      // layout excluded as it may not exist in database
-    },
-    orderBy: {
-      date: 'desc',
     },
   })
-
-  const breadcrumbs = [
-    { label: 'Главная', href: '/' },
-    { label: 'Статьи', href: '/articles' },
-  ]
 
   return (
     <main>
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
         <h1 className={styles.title}>Статьи</h1>
-        <div className={styles.grid}>
-          {articles.map((article) => {
-            const formattedDate = new Date(article.date).toLocaleDateString('ru-RU', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })
+        
+        {articles.length === 0 ? (
+          <p>Статьи не найдены</p>
+        ) : (
+          <div className={styles.articlesGrid}>
+            {articles.map((article) => {
+              const formattedDate = new Date(article.date).toLocaleDateString('ru-RU', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })
 
-            return (
-              <Link key={article.slug} href={`/articles/${article.slug}`} className={styles.card}>
-                <div className={styles.imageWrapper}>
-                  <img
-                    src={article.image}
-                    alt={article.title}
-                    className={styles.image}
-                  />
-                </div>
-                <div className={styles.content}>
-                  <h3 className={styles.cardTitle}>{article.title}</h3>
-                  <p className={styles.date}>{formattedDate}</p>
-                  <p className={styles.preview}>{article.preview}</p>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
+              return (
+                <Link
+                  key={article.id}
+                  href={`/articles/${article.slug}`}
+                  className={styles.articleCard}
+                >
+                  {article.image && (
+                    <div className={styles.articleImage}>
+                      <img
+                        src={article.image}
+                        alt={article.title}
+                      />
+                    </div>
+                  )}
+                  <div className={styles.articleContent}>
+                    <h2 className={styles.articleTitle}>{article.title}</h2>
+                    <p className={styles.articleDate}>{formattedDate}</p>
+                    {article.preview && (
+                      <p className={styles.articleExcerpt}>{article.preview}</p>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
       </div>
     </main>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

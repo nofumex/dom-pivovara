@@ -99,14 +99,14 @@ export function Footer() {
               <div className={styles.logoWrapper}>
                 <Image
                   src="/images/logoPivovar.png"
-                  alt="ДомПивовар"
+                  alt="Дом Пивовара"
                   width={80}
                   height={80}
                   className={styles.logo}
                 />
               </div>
               <p className={styles.logoDescription}>
-                ДомПивовар — всё для домашнего пива, виноделия и дистилляции.
+                Дом Пивовара — всё для домашнего пива, виноделия и дистилляции.
                 Подберём оборудование, ингредиенты и аксессуары, чтобы ваш напиток получался идеальным каждый раз.
               </p>
             </div>

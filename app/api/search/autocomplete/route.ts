@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { ProductVisibility } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ products: [] }, { status: 500 })
   }
 }
+
 
 
 

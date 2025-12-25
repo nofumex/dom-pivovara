@@ -169,7 +169,7 @@ export function AdminSidebar({ user }: AdminSidebarProps) {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
-        <h1 className={styles.logo}>ДомПивовар</h1>
+        <h1 className={styles.logo}>Дом Пивовара</h1>
         <p className={styles.subtitle}>Админ-панель</p>
       </div>
 

@@ -47,12 +47,12 @@ export function AboutBlock() {
           <div className={styles.imageWrapper}>
             <img
               src="/images/aboutPivovar.png"
-              alt="О ДомПивоваре"
+              alt="О Доме Пивовара"
               className={styles.image}
             />
           </div>
           <div className={styles.text}>
-            <h2 className={styles.title}>О ДомПивоваре</h2>
+            <h2 className={styles.title}>О Доме Пивовара</h2>
             <div className={styles.description}>
               <p>
                 Сайт, торгующий товарами в Интернете. Позволяет пользователям сформировать заказ на покупку, выбрать способ оплаты и доставки заказа в сети Интернет. Выбрав необходимые товары или услуги, пользователь обычно имеет возможность тут же на сайте выбрать метод оплаты и доставки.

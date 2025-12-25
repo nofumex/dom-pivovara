@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { getCategoryProductCount, getSubcategoryImage } from '@/lib/categoryUtils'
 import { successResponse, errorResponse } from '@/lib/response'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams

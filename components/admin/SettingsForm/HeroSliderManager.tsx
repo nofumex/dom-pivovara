@@ -269,7 +269,7 @@ export function HeroSliderManager() {
             />
             <Input
               label="Текст"
-              multiline
+              textarea
               rows={3}
               value={editingSlide.text || ''}
               onChange={(e) => setEditingSlide({ ...editingSlide, text: e.target.value })}

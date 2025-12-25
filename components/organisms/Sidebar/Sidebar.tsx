@@ -38,7 +38,7 @@ export function Sidebar() {
   }
 
   const news = [
-    { date: '19 апреля 2022', title: 'Новый сайт ДомПивовар', slug: 'novyy-sayt' },
+    { date: '19 апреля 2022', title: 'Новый сайт Дома Пивовара', slug: 'novyy-sayt' },
   ]
 
   const articles = [

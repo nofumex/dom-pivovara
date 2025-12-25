@@ -42,7 +42,7 @@ type BrandConfig = {
 }
 
 const brand: BrandConfig = {
-  brandName: 'ДомПивовар',
+  brandName: 'Дом Пивовара',
   logoUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru'}/images/logoPivovar.png`,
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru',
   supportEmail: 'info@dom-pivovara.ru',
@@ -254,7 +254,7 @@ export function buildOrderConfirmationEmail(params: {
 
   const { html, text } = renderLayout({
     subject: `Ваш заказ №${params.orderNumber}`,
-    preheader: 'Подтверждение и детали вашего заказа ДомПивовар.',
+    preheader: 'Подтверждение и детали вашего заказа от Дома Пивовара.',
     heroTitle: `Спасибо за заказ №${params.orderNumber}!`,
     heroSubtitle: params.customerName
       ? `${safeHtml(params.customerName)}, мы соберём заказ и свяжемся для подтверждения.`
@@ -353,7 +353,7 @@ export function buildNewsletterEmail(params: {
 }): { subject: string; html: string; text: string } {
   const { html, text } = renderLayout({
     subject: params.subject,
-    preheader: params.preheader || 'Новости и предложения ДомПивовар.',
+    preheader: params.preheader || 'Новости и предложения от Дома Пивовара.',
     heroTitle: params.subject,
     badge: params.badgeLabel ? { label: params.badgeLabel, color: brand.accentColor } : undefined,
     contentHtml: params.contentHtml,
@@ -366,6 +366,7 @@ export function buildNewsletterEmail(params: {
 
   return { subject: params.subject, html, text }
 }
+
 
 
 

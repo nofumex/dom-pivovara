@@ -59,7 +59,7 @@ export function AdminMobileHeader({ user }: AdminMobileHeaderProps) {
         </button>
         <div className={styles.title}>Админ-панель</div>
       </div>
-      <div className={styles.right}>ДомПивовар</div>
+      <div className={styles.right}>Дом Пивовара</div>
 
       {open && (
         <div className={styles.dropdown}>

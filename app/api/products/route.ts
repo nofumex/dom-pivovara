@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { paginatedResponse, errorResponse } from '@/lib/response'
 import { ProductVisibility, StockStatus } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 // Рекурсивная функция для получения всех дочерних категорий
 async function getAllChildCategoryIds(categoryId: string): Promise<string[]> {
   const childCategories = await prisma.category.findMany({

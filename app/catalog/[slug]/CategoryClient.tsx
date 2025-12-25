@@ -15,7 +15,7 @@ interface CategoryClientProps {
     name: string
     slug: string
     parent?: { name: string; slug: string } | null
-    children?: Array<{ id: string; name: string; slug: string; count?: number; image?: string | null }>
+    children?: Array<{ id: string; name: string; slug: string; count?: number }>
   }
   initialProducts: any[]
 }
@@ -23,48 +23,13 @@ interface CategoryClientProps {
 export function CategoryClient({ category, initialProducts }: CategoryClientProps) {
   const [products, setProducts] = useState(initialProducts)
   const [loading, setLoading] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  
-  // Вычисляем максимальную цену из товаров на странице
-  const calculateMaxPrice = (productsList: any[]) => {
-    if (!productsList || productsList.length === 0) return 1000
-    const prices = productsList
-      .map((p) => parseFloat(p.price) || 0)
-      .filter((price) => price > 0)
-    return prices.length > 0 ? Math.max(...prices) : 1000
-  }
-  
-  // Вычисляем начальную максимальную цену
-  const initialMaxPrice = calculateMaxPrice(initialProducts)
-  const [maxPrice, setMaxPrice] = useState(initialMaxPrice)
-  
   const [filters, setFilters] = useState({
     priceMin: 0,
-    priceMax: initialMaxPrice,
+    priceMax: 100000,
     onSale: false,
   })
   const [sortBy, setSortBy] = useState<'popularity' | 'name' | 'price' | 'createdAt'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  
-  // Обновляем максимальную цену при изменении списка товаров
-  useEffect(() => {
-    const newMaxPrice = calculateMaxPrice(products)
-    if (newMaxPrice > 0) {
-      setMaxPrice((prevMaxPrice) => {
-        if (newMaxPrice !== prevMaxPrice) {
-          // Обновляем фильтр, если текущий максимум больше новой максимальной цены
-          setFilters((prevFilters) => {
-            if (prevFilters.priceMax > newMaxPrice) {
-              return { ...prevFilters, priceMax: newMaxPrice }
-            }
-            return prevFilters
-          })
-          return newMaxPrice
-        }
-        return prevMaxPrice
-      })
-    }
-  }, [products])
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -81,7 +46,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         if (filters.priceMin > 0) {
           params.append('priceMin', filters.priceMin.toString())
         }
-        if (filters.priceMax < maxPrice) {
+        if (filters.priceMax < 100000) {
           params.append('priceMax', filters.priceMax.toString())
         }
         if (filters.onSale) {
@@ -133,18 +98,9 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
               >
                 <div className={styles.subcategoryImageWrapper}>
                   <img
-                    src={child.image || getPlaceholderImage(child.name, 200)}
+                    src={getPlaceholderImage(child.name, 200)}
                     alt={child.name}
                     className={styles.subcategoryImage}
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      // Если изображение не загрузилось, используем placeholder
-                      const target = e.target as HTMLImageElement
-                      if (child.image && target.src !== getPlaceholderImage(child.name, 200)) {
-                        target.src = getPlaceholderImage(child.name, 200)
-                      }
-                    }}
                   />
                 </div>
                 <div className={styles.subcategoryContent}>
@@ -159,7 +115,6 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         )}
 
         <FiltersPanel
-          maxPrice={maxPrice}
           onFilterChange={(newFilters) => {
             setFilters(newFilters)
           }}
@@ -167,19 +122,15 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         <SortBar
           sortBy={sortBy}
           sortOrder={sortOrder}
-          viewMode={viewMode}
           onSortChange={(newSortBy, newSortOrder) => {
             setSortBy(newSortBy)
             setSortOrder(newSortOrder)
-          }}
-          onViewModeChange={(newViewMode) => {
-            setViewMode(newViewMode)
           }}
         />
         {loading ? (
           <div className={styles.loading}>Загрузка...</div>
         ) : (
-          <ProductGrid products={products} viewMode={viewMode} />
+          <ProductGrid products={products} />
         )}
       </div>
     </main>

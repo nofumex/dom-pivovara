@@ -82,7 +82,7 @@ export function SidebarSections() {
   const newsItems = [
     {
       date: '19 апреля 2022',
-      title: 'Новый сайт ДомПивовар',
+      title: 'Новый сайт Дома Пивовара',
       href: '/news/novyy-sayt-dompivovar',
     },
   ]
