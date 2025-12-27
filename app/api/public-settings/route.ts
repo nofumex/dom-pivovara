@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 
+export const dynamic = 'force-dynamic'
+
 const PUBLIC_SETTINGS_KEYS = [
   'contactEmail',
   'contactPhone',

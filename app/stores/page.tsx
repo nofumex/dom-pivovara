@@ -2,6 +2,8 @@ import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { prisma } from '@/lib/db'
 import styles from './page.module.scss'
 
+export const dynamic = 'force-dynamic'
+
 export default async function StoresPage() {
   const stores = await prisma.store.findMany({
     where: { isActive: true },

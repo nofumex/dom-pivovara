@@ -2,6 +2,8 @@ import { prisma } from '@/lib/db'
 import { ContactsContent } from './ContactsContent'
 import { SettingType } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ContactsPage() {
   // Получаем магазины
   const stores = await prisma.store.findMany({

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db'
 import { successResponse, errorResponse } from '@/lib/response'
 import { serializeObject } from '@/lib/serialize'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const stores = await prisma.store.findMany({
