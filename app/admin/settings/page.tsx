@@ -3,6 +3,7 @@ import { getAuthUserWithRefresh } from '@/lib/auth-helpers'
 import { redirect } from 'next/navigation'
 import { SettingsForm } from '@/components/admin/SettingsForm/SettingsForm'
 import { CouponsManager } from '@/components/admin/CouponsManager/CouponsManager'
+import { SettingType } from '@prisma/client'
 
 export default async function AdminSettingsPage() {
   const { user } = await getAuthUserWithRefresh()
@@ -12,10 +13,24 @@ export default async function AdminSettingsPage() {
   }
 
   const settings = await prisma.setting.findMany()
-  const settingsMap = settings.reduce((acc, setting) => {
-    acc[setting.key] = setting.value
-    return acc
-  }, {} as Record<string, string>)
+  const settingsMap: Record<string, any> = {}
+  
+  // Правильно парсим настройки в соответствии с их типами
+  for (const setting of settings) {
+    let value: any = setting.value
+    if (setting.type === SettingType.JSON) {
+      try {
+        value = JSON.parse(setting.value)
+      } catch {
+        value = setting.value
+      }
+    } else if (setting.type === SettingType.NUMBER) {
+      value = parseFloat(setting.value)
+    } else if (setting.type === SettingType.BOOLEAN) {
+      value = setting.value === 'true'
+    }
+    settingsMap[setting.key] = value
+  }
 
   return (
     <div style={{ padding: '32px' }}>

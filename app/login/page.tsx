@@ -137,6 +137,7 @@ export default function LoginPage() {
           <Input
             label="Email"
             type="email"
+            name="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             required
@@ -145,6 +146,7 @@ export default function LoginPage() {
           <Input
             label="Пароль"
             type="password"
+            name="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required
@@ -154,17 +156,6 @@ export default function LoginPage() {
             {isSubmitting ? 'Вход...' : 'Войти'}
           </Button>
         </form>
-        <div className={styles.testAccounts}>
-          <p>Тестовые аккаунты:</p>
-          <ul>
-            <li>
-              <strong>Администратор</strong>: admin@dompivovara.ru / admin123
-            </li>
-            <li>
-              <strong>Покупатель</strong>: user@test.ru / user123
-            </li>
-          </ul>
-        </div>
       </div>
     </div>
   )

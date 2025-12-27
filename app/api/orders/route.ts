@@ -5,7 +5,7 @@ import { verifyAuth } from '@/lib/auth'
 import { successResponse, errorResponse, paginatedResponse } from '@/lib/response'
 import { createOrderSchema } from '@/lib/validations'
 import { generateOrderNumber } from '@/lib/utils'
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus, SettingType } from '@prisma/client'
 import { sendOrderConfirmationEmail, sendNewOrderNotificationEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
@@ -142,6 +142,22 @@ export async function POST(request: NextRequest) {
         selectedColor: item.selectedColor,
         selectedSize: item.selectedSize,
       })
+    }
+
+    // Получаем настройки для проверки минимальной суммы заказа
+    const minOrderTotalSetting = await prisma.setting.findUnique({
+      where: { key: 'minOrderTotal' },
+    })
+    const minOrderTotal = minOrderTotalSetting && minOrderTotalSetting.type === SettingType.NUMBER 
+      ? parseFloat(minOrderTotalSetting.value) 
+      : null
+
+    // Проверяем минимальную сумму заказа
+    if (minOrderTotal !== null && minOrderTotal > 0 && subtotal < minOrderTotal) {
+      return errorResponse(
+        `Минимальная сумма заказа составляет ${minOrderTotal} ₽. Текущая сумма: ${subtotal.toFixed(2)} ₽`,
+        400
+      )
     }
 
     const deliveryCost = validated.deliveryType === 'PICKUP' ? 0 : 300

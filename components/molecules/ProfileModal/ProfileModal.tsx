@@ -207,18 +207,25 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      await fetch('/api/auth/logout', { 
+        method: 'POST',
+        credentials: 'include',
+      })
       clearAuth()
       // Clear cookies
-      document.cookie = 'accessToken=; path=/; max-age=0'
-      document.cookie = 'refreshToken=; path=/; max-age=0'
+      document.cookie = 'accessToken=; path=/; max-age=0; SameSite=Lax'
+      document.cookie = 'refreshToken=; path=/; max-age=0; SameSite=Lax'
       onClose()
+      // Полная перезагрузка страницы для очистки состояния
+      window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)
       clearAuth()
-      document.cookie = 'accessToken=; path=/; max-age=0'
-      document.cookie = 'refreshToken=; path=/; max-age=0'
+      document.cookie = 'accessToken=; path=/; max-age=0; SameSite=Lax'
+      document.cookie = 'refreshToken=; path=/; max-age=0; SameSite=Lax'
       onClose()
+      // Полная перезагрузка страницы для очистки состояния
+      window.location.href = '/'
     }
   }
 
@@ -275,21 +282,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   // Show login form if not authenticated
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isLogin ? 'Вход' : 'Регистрация'}>
-      {isLogin && (
-        <div style={{ 
-          marginBottom: '16px', 
-          padding: '12px', 
-          background: '#FFF5EB', 
-          borderRadius: '8px',
-          fontSize: '14px'
-        }}>
-          <strong>Тестовые аккаунты:</strong>
-          <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-            <li>Пользователь: <code>user@test.ru</code> / <code>user123</code></li>
-            <li>Админ: <code>admin@dompivovara.ru</code> / <code>admin123</code></li>
-          </ul>
-        </div>
-      )}
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}
         {!isLogin && (
@@ -297,18 +289,22 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             <Input
               type="text"
               label="Имя"
+              name="firstName"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               required
               placeholder="Иван"
+              autoComplete="given-name"
             />
             <Input
               type="text"
               label="Фамилия"
+              name="lastName"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               required
               placeholder="Иванов"
+              autoComplete="family-name"
             />
           </>
         )}
@@ -316,29 +312,35 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <Input
           type="email"
           label="Email"
+          name="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           required
           placeholder="your@email.com"
+          autoComplete="email"
         />
 
         {!isLogin && (
           <Input
-            type="text"
+            type="tel"
             label="Телефон"
+            name="phone"
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             placeholder="+7 (999) 000-00-00"
+            autoComplete="tel"
           />
         )}
 
         <Input
           type="password"
           label="Пароль"
+          name="password"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           required
           placeholder="••••••••"
+          autoComplete={isLogin ? "current-password" : "new-password"}
         />
 
         <div className={styles.actions}>

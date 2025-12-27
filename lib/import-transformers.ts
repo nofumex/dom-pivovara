@@ -32,6 +32,7 @@ interface ExportCatalogSection {
   SORT: string | number
   DESCRIPTION?: string
   PICTURE?: string | null
+  IMAGE?: string // Полный URL изображения категории
   DATE_CREATE?: string
   TIMESTAMP_X?: string
   ACTIVE_FROM?: string | null
@@ -64,13 +65,27 @@ interface ExportCatalogProduct {
     VALUE_ENUM?: string
     VALUE_NUM?: number
   }>
+  PROPERTIES?: {
+    MORE_PHOTO?: {
+      VALUE?: string[] // Массив ID изображений
+    }
+    [key: string]: any
+  }
+  PICTURE?: string | string[] // URL или массив URL изображений
   IMAGES?: string[] // Массив URL изображений
+  PRICES?: Array<{
+    PRICE_TYPE?: string
+    PRICE?: string | number
+    CURRENCY?: string
+  }>
 }
 
 interface ExportCatalogData {
   iblocks?: number[]
   sections?: ExportCatalogSection[]
   products?: ExportCatalogProduct[]
+  elements?: ExportCatalogProduct[] // Альтернативное название для товаров
+  images?: Record<string, { ID: string; FULL_PATH: string }> // Маппинг ID изображений на URL
 }
 
 interface StandardCategory {
@@ -145,7 +160,11 @@ const PROPERTY_MAPPING: Record<string, keyof StandardProduct> = {
 /**
  * Преобразует раздел из формата export_catalog.json в стандартный формат
  */
-function transformSection(section: ExportCatalogSection, sectionIdMap: Map<string, string>): StandardCategory {
+function transformSection(
+  section: ExportCatalogSection, 
+  sectionIdMap: Map<string, string>,
+  imagesMap?: Map<string, string>
+): StandardCategory {
   const slug = section.CODE || `section-${section.ID}`
   // parentId будет slug родительской категории, который потом будет преобразован в ID при импорте
   // Конвертируем IBLOCK_SECTION_ID в строку для поиска в Map
@@ -154,11 +173,26 @@ function transformSection(section: ExportCatalogSection, sectionIdMap: Map<strin
     ? sectionIdMap.get(parentSectionId)
     : undefined
 
+  // Обработка изображения: приоритет IMAGE (полный URL), затем PICTURE через imagesMap, затем локальный путь
+  let imageUrl: string | undefined = undefined
+  if (section.IMAGE) {
+    imageUrl = section.IMAGE
+  } else if (section.PICTURE) {
+    const pictureId = String(section.PICTURE)
+    // Проверяем imagesMap
+    if (imagesMap?.has(pictureId)) {
+      imageUrl = imagesMap.get(pictureId)!
+    } else {
+      // Fallback на локальный путь
+      imageUrl = `/uploads/${pictureId}`
+    }
+  }
+
   return {
     name: section.NAME,
     slug,
     description: section.DESCRIPTION || undefined,
-    image: section.PICTURE ? `/uploads/${section.PICTURE}` : undefined,
+    image: imageUrl,
     parentId: parentSlug, // Временно храним slug, будет преобразован в ID при импорте
     isActive: section.ACTIVE === 'Y' && (section.GLOBAL_ACTIVE !== 'N'),
     sortOrder: typeof section.SORT === 'string' ? parseInt(section.SORT) || 0 : section.SORT || 0,
@@ -188,24 +222,56 @@ function transformProduct(
     }
   }
 
-  // Определение цены из свойств или дефолтных значений
-  // Маппинг: MINIMUM_PRICE/MAXIMUM_PRICE по CODE, или 45/46 по ID
-  const price = props['MINIMUM_PRICE'] || props['45'] || props['price'] || props['PRICE'] || 0
-  const oldPrice = props['MAXIMUM_PRICE'] || props['46'] || props['oldPrice'] || props['OLD_PRICE'] || undefined
+  // Определение цены из PRICES или свойств
+  let price = 0
+  let oldPrice: number | undefined = undefined
+  
+  // Сначала пробуем получить цену из PRICES
+  if (product.PRICES && Array.isArray(product.PRICES) && product.PRICES.length > 0) {
+    const mainPrice = product.PRICES[0]
+    if (mainPrice.PRICE) {
+      price = typeof mainPrice.PRICE === 'string' ? parseFloat(mainPrice.PRICE) || 0 : mainPrice.PRICE
+    }
+  }
+  
+  // Если не нашли цену в PRICES, ищем в свойствах
+  if (price === 0) {
+    price = props['MINIMUM_PRICE'] || props['45'] || props['price'] || props['PRICE'] || 0
+    oldPrice = props['MAXIMUM_PRICE'] || props['46'] || props['oldPrice'] || props['OLD_PRICE'] || undefined
+  }
 
   // Обработка изображений
-  // Приоритет: сначала используем массив IMAGES, затем PREVIEW_PICTURE и DETAIL_PICTURE
+  // Приоритет: PICTURE (массив URL), IMAGES, PROPERTIES.MORE_PHOTO, PREVIEW_PICTURE/DETAIL_PICTURE
   const images: string[] = []
   
-  // Если есть массив IMAGES, используем его
-  if (product.IMAGES && Array.isArray(product.IMAGES) && product.IMAGES.length > 0) {
+  // 1. Если есть PICTURE как массив URL
+  if (product.PICTURE && Array.isArray(product.PICTURE)) {
+    for (const imageUrl of product.PICTURE) {
+      if (imageUrl && typeof imageUrl === 'string' && !images.includes(imageUrl)) {
+        images.push(imageUrl)
+      }
+    }
+  }
+  // 2. Если есть массив IMAGES
+  else if (product.IMAGES && Array.isArray(product.IMAGES) && product.IMAGES.length > 0) {
     for (const imageUrl of product.IMAGES) {
       if (imageUrl && typeof imageUrl === 'string' && !images.includes(imageUrl)) {
         images.push(imageUrl)
       }
     }
-  } else {
-    // Fallback на старый формат с PREVIEW_PICTURE и DETAIL_PICTURE
+  }
+  // 3. Если есть PROPERTIES.MORE_PHOTO (массив ID изображений)
+  else if (product.PROPERTIES?.MORE_PHOTO?.VALUE && Array.isArray(product.PROPERTIES.MORE_PHOTO.VALUE)) {
+    for (const imageId of product.PROPERTIES.MORE_PHOTO.VALUE) {
+      const imageIdStr = String(imageId)
+      const imageUrl = imageIdMap?.get(imageIdStr) || imageIdMap?.get(imageIdStr.replace(/\.[^/.]+$/, ''))
+      if (imageUrl && !images.includes(imageUrl)) {
+        images.push(imageUrl)
+      }
+    }
+  }
+  // 4. Fallback на старый формат с PREVIEW_PICTURE и DETAIL_PICTURE
+  else {
     if (product.PREVIEW_PICTURE) {
       const previewImageId = String(product.PREVIEW_PICTURE)
       const previewImage = imageIdMap?.get(previewImageId) || 
@@ -287,9 +353,10 @@ export function detectImportFormat(data: any): 'export_catalog' | 'standard' {
     return 'standard'
   }
 
-  // Если есть только products с полями IBLOCK_SECTION_ID, это export_catalog
-  if (data.products && Array.isArray(data.products) && data.products.length > 0) {
-    const firstProduct = data.products[0]
+  // Если есть products или elements с полями IBLOCK_SECTION_ID, это export_catalog
+  const productsArray = data.products || data.elements
+  if (productsArray && Array.isArray(productsArray) && productsArray.length > 0) {
+    const firstProduct = productsArray[0]
     if (firstProduct.IBLOCK_SECTION_ID !== undefined) {
       return 'export_catalog'
     }
@@ -309,6 +376,26 @@ export function transformExportCatalogData(
   const products: StandardProduct[] = []
   const sectionIdMap = new Map<string, string>() // Map<originalId, newSlug>
 
+  // Создаем маппинг изображений из объекта images, если он есть
+  const imagesMap = new Map<string, string>()
+  if (data.images && typeof data.images === 'object') {
+    for (const [imageId, imageData] of Object.entries(data.images)) {
+      if (imageData && typeof imageData === 'object' && 'FULL_PATH' in imageData) {
+        imagesMap.set(String(imageId), imageData.FULL_PATH)
+        // Также добавляем по ID для совместимости
+        if ('ID' in imageData) {
+          imagesMap.set(String(imageData.ID), imageData.FULL_PATH)
+        }
+      }
+    }
+  }
+  // Если был передан imageIdMap, объединяем его с imagesMap
+  if (imageIdMap) {
+    imageIdMap.forEach((value, key) => {
+      imagesMap.set(key, value)
+    })
+  }
+
   // Сначала обрабатываем разделы, создавая маппинг ID -> slug
   if (data.sections && Array.isArray(data.sections)) {
     // Сортируем разделы по DEPTH_LEVEL для правильной обработки иерархии
@@ -319,19 +406,20 @@ export function transformExportCatalogData(
     })
 
     for (const section of sortedSections) {
-      const transformed = transformSection(section, sectionIdMap)
+      const transformed = transformSection(section, sectionIdMap, imagesMap)
       // Убеждаемся, что ключ всегда строка
       sectionIdMap.set(String(section.ID), transformed.slug)
       categories.push(transformed)
     }
   }
 
-  // Затем обрабатываем товары
-  if (data.products && Array.isArray(data.products)) {
+  // Затем обрабатываем товары (используем elements или products)
+  const productsArray = data.elements || data.products || []
+  if (Array.isArray(productsArray) && productsArray.length > 0) {
     let productsWithoutCategory = 0
-    for (const product of data.products) {
+    for (const product of productsArray) {
       try {
-        const transformed = transformProduct(product, sectionIdMap, imageIdMap)
+        const transformed = transformProduct(product, sectionIdMap, imagesMap)
         if (!transformed.categoryObj) {
           productsWithoutCategory++
           if (productsWithoutCategory <= 5) {
@@ -344,7 +432,7 @@ export function transformExportCatalogData(
       }
     }
     if (productsWithoutCategory > 0) {
-      console.warn(`[TRANSFORM] Всего ${productsWithoutCategory} товаров не нашли категорию из ${data.products.length}`)
+      console.warn(`[TRANSFORM] Всего ${productsWithoutCategory} товаров не нашли категорию из ${productsArray.length}`)
     }
   }
 

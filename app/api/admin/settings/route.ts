@@ -21,12 +21,9 @@ const settingsSchema = z
     contactEmail: optionalEmailSchema,
     contactPhone: z.string().optional(),
     contactPhone2: z.string().optional(),
-    address: z.string().optional(),
     workingHours: z.string().optional(),
 
     minOrderTotal: optionalNumberSchema,
-    freeDeliveryThreshold: optionalNumberSchema,
-    deliveryPrice: optionalNumberSchema,
 
     socialLinks: z
       .array(
@@ -34,15 +31,6 @@ const settingsSchema = z
           label: z.string(),
           // В UI по умолчанию URL может быть пустым, поэтому разрешаем '' и валидный URL
           url: z.string().url().or(z.literal('')),
-        }),
-      )
-      .optional(),
-
-    extraContacts: z
-      .array(
-        z.object({
-          title: z.string(),
-          values: z.array(z.string()),
         }),
       )
       .optional(),
@@ -58,15 +46,6 @@ const settingsSchema = z
         companyEmail: optionalEmailSchema,
       })
       .optional(),
-
-    popupEnabled: z.coerce.boolean().optional(),
-    popupTemplate: z.string().optional(),
-    popupTitle: z.string().optional(),
-    popupText: z.string().optional(),
-    popupImageUrl: z.string().optional(),
-    popupButtonLabel: z.string().optional(),
-    popupButtonUrl: z.string().optional(),
-    popupDelaySeconds: optionalNumberSchema,
 
     // Интервал слайдера главного баннера
     heroSliderInterval: optionalNumberSchema,
