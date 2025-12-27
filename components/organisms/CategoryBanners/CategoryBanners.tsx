@@ -20,13 +20,25 @@ export function CategoryBanners() {
   useEffect(() => {
     const fetchTiles = async () => {
       try {
-        const response = await fetch('/api/featured-categories')
+        const response = await fetch('/api/featured-categories', { 
+          cache: 'no-store'
+        })
+        
+        if (!response.ok) {
+          console.error('[CategoryBanners] API request failed:', response.status, response.statusText)
+          return
+        }
+        
         const data = await response.json()
+        
         if (data.success && Array.isArray(data.data)) {
+          console.log(`[CategoryBanners] Loaded ${data.data.length} category tiles`)
           setTiles(data.data)
+        } else {
+          console.warn('[CategoryBanners] Unexpected API response format:', data)
         }
       } catch (error) {
-        console.error('Error fetching featured categories for homepage:', error)
+        console.error('[CategoryBanners] Error fetching featured categories:', error)
       }
     }
 

@@ -29,8 +29,8 @@ export function HeroSlider() {
     const fetchSlides = async () => {
       try {
         const [slidesResponse, settingsResponse] = await Promise.all([
-          fetch('/api/hero-images'),
-          fetch('/api/public-settings'),
+          fetch('/api/hero-images', { cache: 'no-store' }),
+          fetch('/api/public-settings', { cache: 'no-store' }),
         ])
 
         const slidesData = await slidesResponse.json()

@@ -43,8 +43,8 @@ type BrandConfig = {
 
 const brand: BrandConfig = {
   brandName: 'Дом Пивовара',
-  logoUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru'}/images/logoPivovar.png`,
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru',
+  logoUrl: `${process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru'}/images/logoPivovar.png`,
+  siteUrl: process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru',
   supportEmail: 'dompivovar@mail.ru',
   supportPhone: '+7 913 555-222-6, +7 913 037-32-47',
   address: 'Россия, Красноярск',

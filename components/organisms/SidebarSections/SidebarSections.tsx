@@ -92,7 +92,7 @@ export function SidebarSections() {
 
     const loadArticles = async () => {
       try {
-        const res = await fetch('/api/articles/sidebar')
+        const res = await fetch('/api/articles/sidebar', { cache: 'no-store' })
         if (!res.ok) return
         const data = await res.json()
 

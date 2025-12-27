@@ -25,32 +25,75 @@ export function ProductTabs() {
     // Fetch products based on active tab
     const fetchProducts = async () => {
       try {
-        let url = '/api/products?limit=8&inStock=true'
+        let url = ''
         
-        if (activeTab === 'new') {
+        if (activeTab === 'hits') {
+          // Хиты продаж: товары в наличии, отсортированные по рейтингу (топ товаров)
+          url = '/api/products?inStock=true&sortBy=rating&sortOrder=desc&limit=8'
+        } else if (activeTab === 'new') {
           // Новинки: товары с badge NEW, в наличии, отсортированные по дате создания (новые сначала)
           url = '/api/products?badges=NEW&inStock=true&sortBy=createdAt&sortOrder=desc&limit=8'
         } else if (activeTab === 'sale') {
           // По акции: товары с badge SALE, в наличии, отсортированные по рейтингу
           url = '/api/products?badges=SALE&inStock=true&sortBy=rating&sortOrder=desc&limit=8'
-        } else {
-          // Хиты продаж: только товары в наличии, отсортированные по рейтингу для показа популярных товаров
-          url = '/api/products?inStock=true&sortBy=rating&sortOrder=desc&limit=8'
         }
         
+        console.log(`[ProductTabs] Fetching products for tab "${activeTab}": ${url}`)
         const response = await fetch(url)
+        
+        if (!response.ok) {
+          console.error(`[ProductTabs] API request failed:`, response.status, response.statusText)
+          setProducts([])
+          return
+        }
+        
         const data = await response.json()
-        if (data.success) {
-          const productsWithBadges = (data.data || []).map((p: any) => ({
+        if (data.success && Array.isArray(data.data)) {
+          let productsList = data.data || []
+          
+          // Fallback: если товаров с нужным badge нет, загружаем без фильтра по badge
+          if (productsList.length === 0 && (activeTab === 'new' || activeTab === 'sale')) {
+            console.log(`[ProductTabs] No products with badge found for "${activeTab}", using fallback`)
+            let fallbackUrl = ''
+            
+            if (activeTab === 'new') {
+              // Новинки: товары отсортированные по дате создания (новые сначала)
+              fallbackUrl = '/api/products?inStock=true&sortBy=createdAt&sortOrder=desc&limit=8'
+            } else if (activeTab === 'sale') {
+              // По акции: товары отсортированные по рейтингу
+              fallbackUrl = '/api/products?inStock=true&sortBy=rating&sortOrder=desc&limit=8'
+            }
+            
+            if (fallbackUrl) {
+              try {
+                const fallbackResponse = await fetch(fallbackUrl)
+                if (fallbackResponse.ok) {
+                  const fallbackData = await fallbackResponse.json()
+                  if (fallbackData.success && Array.isArray(fallbackData.data)) {
+                    productsList = fallbackData.data
+                    console.log(`[ProductTabs] Loaded ${productsList.length} products using fallback for "${activeTab}"`)
+                  }
+                }
+              } catch (fallbackError) {
+                console.error(`[ProductTabs] Fallback request failed for "${activeTab}":`, fallbackError)
+              }
+            }
+          }
+          
+          console.log(`[ProductTabs] Loaded ${productsList.length} products for tab "${activeTab}"`)
+          const productsWithBadges = productsList.map((p: any) => ({
             ...p,
-            badges: p.tags || [],
+            badges: p.badges || [], // Используем badges из API, а не tags
             stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
             rating: p.rating ? Number(p.rating) : 0,
           }))
           setProducts(productsWithBadges)
+        } else {
+          console.warn(`[ProductTabs] Unexpected API response format for tab "${activeTab}":`, data)
+          setProducts([])
         }
       } catch (error) {
-        console.error('Error fetching products:', error)
+        console.error(`[ProductTabs] Error fetching products for tab "${activeTab}":`, error)
         // Set empty array on error
         setProducts([])
       }
