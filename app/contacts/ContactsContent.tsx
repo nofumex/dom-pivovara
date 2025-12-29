@@ -37,12 +37,20 @@ export function ContactsContent({
     name: '',
     phone: '',
     email: '',
+    privacyConsent: false,
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Проверка согласия с политикой
+    if (!formData.privacyConsent) {
+      alert('Для отправки формы необходимо согласиться с Политикой обработки персональных данных')
+      return
+    }
+    
     setIsSubmitting(true)
 
     try {
@@ -80,6 +88,7 @@ export function ContactsContent({
       name: '',
       phone: '',
       email: '',
+      privacyConsent: false,
     })
   }
 
@@ -192,7 +201,24 @@ export function ContactsContent({
                 />
               </div>
 
-              <p className={styles.requiredNote}>* обязательные поля</p>
+              <div className={styles.formField}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formData.privacyConsent}
+                    onChange={(e) => setFormData({ ...formData, privacyConsent: e.target.checked })}
+                    required
+                    className={styles.checkbox}
+                  />
+                  <span>
+                    Я согласен с{' '}
+                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className={styles.privacyLink}>
+                      Политикой обработки персональных данных
+                    </a>
+                    {' '}и использованием cookie <span className={styles.required}>*</span>
+                  </span>
+                </label>
+              </div>
 
               <div className={styles.formActions}>
                 <Button type="submit" variant="primary" disabled={isSubmitting}>

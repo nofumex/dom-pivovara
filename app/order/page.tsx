@@ -36,6 +36,9 @@ interface OrderFormData {
   
   // Купон
   couponCode: string
+  
+  // Согласие с политикой
+  privacyConsent: boolean
 }
 
 export default function OrderPage() {
@@ -63,6 +66,7 @@ export default function OrderPage() {
     address: '',
     notes: '',
     couponCode: '',
+    privacyConsent: false,
   })
 
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null)
@@ -177,6 +181,12 @@ export default function OrderPage() {
   }
 
   const handleSubmit = async () => {
+    // Проверка согласия с политикой
+    if (!formData.privacyConsent) {
+      alert('Для оформления заказа необходимо согласиться с Политикой обработки персональных данных')
+      return
+    }
+    
     setIsSubmitting(true)
     try {
       // Преобразуем deliveryType перед отправкой
@@ -640,6 +650,25 @@ export default function OrderPage() {
                       </div>
                     </div>
                   </div>
+                </div>
+                
+                <div className={styles.privacyConsent}>
+                  <label className={styles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={formData.privacyConsent}
+                      onChange={(e) => updateFormData('privacyConsent', e.target.checked)}
+                      required
+                      className={styles.checkbox}
+                    />
+                    <span>
+                      Я согласен с{' '}
+                      <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className={styles.privacyLink}>
+                        Политикой обработки персональных данных
+                      </a>
+                      {' '}и использованием cookie <span className={styles.required}>*</span>
+                    </span>
+                  </label>
                 </div>
               </div>
             )}

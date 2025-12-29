@@ -7,6 +7,7 @@ import { RightDock } from '@/components/organisms/RightDock/RightDock'
 import { CatalogSidebar } from '@/components/organisms/CatalogSidebar/CatalogSidebar'
 import { PageWrapper } from '@/components/organisms/PageWrapper/PageWrapper'
 import { ScrollToTop } from '@/components/atoms/ScrollToTop/ScrollToTop'
+import { CookieBanner } from '@/components/molecules/CookieBanner/CookieBanner'
 
 interface ConditionalSiteLayoutProps {
   children: React.ReactNode
@@ -34,6 +35,7 @@ export function ConditionalSiteLayout({ children }: ConditionalSiteLayoutProps) 
       <Footer />
       <RightDock />
       <ScrollToTop />
+      <CookieBanner />
     </>
   )
 }

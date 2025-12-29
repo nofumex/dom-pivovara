@@ -90,7 +90,6 @@ export function QuestionModal({ isOpen, onClose }: QuestionModalProps) {
             placeholder="Введите ваш вопрос..."
           />
         </div>
-        <div className={styles.requiredNote}>* обязательные поля</div>
         <div className={styles.actions}>
           <Button type="submit" variant="primary" disabled={isSubmitting || !formData.agree}>
             {isSubmitting ? 'Отправка...' : 'Отправить'}

@@ -154,6 +154,39 @@
   margin: -8px 0 0 0;
 }
 
+.checkboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: var(--font-small-size);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+
+  &:hover {
+    color: var(--color-text);
+  }
+}
+
+.checkbox {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: var(--color-primary-600);
+}
+
+.privacyLink {
+  color: var(--color-accent-blue);
+  text-decoration: underline;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--color-accent-blue-light);
+  }
+}
+
 .formActions {
   display: flex;
   gap: 16px;
