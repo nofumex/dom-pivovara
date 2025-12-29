@@ -11,6 +11,7 @@ import styles from './Footer.module.scss'
 export function Footer() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
   const [recentProducts, setRecentProducts] = useState<any[]>([])
+  const [phoneNumbers, setPhoneNumbers] = useState<{ contactPhone?: string; contactPhone2?: string }>({})
   const recentIds = useRecentlyViewedStore((state) => state.getRecent(6))
 
   useEffect(() => {
@@ -41,6 +42,26 @@ export function Footer() {
 
     loadRecentProducts()
   }, [recentIds.join(',')]) // Обновляем при изменении списка ID
+
+  // Загружаем номера телефонов из настроек
+  useEffect(() => {
+    const fetchPhoneNumbers = async () => {
+      try {
+        const response = await fetch('/api/public-settings')
+        const data = await response.json()
+        if (data.success && data.data) {
+          setPhoneNumbers({
+            contactPhone: data.data.contactPhone,
+            contactPhone2: data.data.contactPhone2,
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching phone numbers:', error)
+      }
+    }
+
+    fetchPhoneNumbers()
+  }, [])
 
   // Всегда показываем 6 слотов
   const slots = Array.from({ length: 6 }, (_, i) => {
@@ -144,10 +165,12 @@ export function Footer() {
                       <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="currentColor"/>
                     </svg>
                   </div>
-                  <div className={styles.phoneNumbers}>
-                    <div>+7 913 555-222-6</div>
-                    <div>+7 913 037-32-47</div>
-                  </div>
+                  {(phoneNumbers.contactPhone || phoneNumbers.contactPhone2) && (
+                    <div className={styles.phoneNumbers}>
+                      {phoneNumbers.contactPhone && <div>{phoneNumbers.contactPhone}</div>}
+                      {phoneNumbers.contactPhone2 && <div>{phoneNumbers.contactPhone2}</div>}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => setIsCallbackModalOpen(true)}

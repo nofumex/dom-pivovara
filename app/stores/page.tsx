@@ -14,12 +14,14 @@ export default async function StoresPage() {
     { label: 'Магазины', href: '/stores' },
   ]
 
+  const isSingleStore = stores.length === 1
+
   return (
     <main>
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
         <h1 className={styles.title}>Магазины</h1>
-        <div className={styles.grid}>
+        <div className={`${styles.grid} ${isSingleStore ? styles.gridFull : ''}`}>
           {stores.map((store) => (
             <div key={store.id} className={styles.card}>
               <h3 className={styles.cardTitle}>{store.address}</h3>

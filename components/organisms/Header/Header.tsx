@@ -42,6 +42,7 @@ export function Header() {
   const [isMobileSalesOpen, setIsMobileSalesOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0, width: 0 })
+  const [phoneNumbers, setPhoneNumbers] = useState<{ contactPhone?: string; contactPhone2?: string }>({})
   const router = useRouter()
   const pathname = usePathname()
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -163,6 +164,26 @@ export function Header() {
     }
 
     fetchCategories()
+  }, [])
+
+  // Загружаем номера телефонов из настроек
+  useEffect(() => {
+    const fetchPhoneNumbers = async () => {
+      try {
+        const response = await fetch('/api/public-settings')
+        const data = await response.json()
+        if (data.success && data.data) {
+          setPhoneNumbers({
+            contactPhone: data.data.contactPhone,
+            contactPhone2: data.data.contactPhone2,
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching phone numbers:', error)
+      }
+    }
+
+    fetchPhoneNumbers()
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {
@@ -349,10 +370,12 @@ export function Header() {
               <PhoneIcon />
             </div>
             <div>
-              <div className={styles.phoneNumbers}>
-                <div>+7 913 555-222-6</div>
-                <div>+7 913 037-32-47</div>
-              </div>
+              {(phoneNumbers.contactPhone || phoneNumbers.contactPhone2) && (
+                <div className={styles.phoneNumbers}>
+                  {phoneNumbers.contactPhone && <div>{phoneNumbers.contactPhone}</div>}
+                  {phoneNumbers.contactPhone2 && <div>{phoneNumbers.contactPhone2}</div>}
+                </div>
+              )}
               <button
                 onClick={() => setIsCallbackModalOpen(true)}
                 className={styles.callbackLink}

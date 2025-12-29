@@ -91,13 +91,15 @@ export function ContactsContent({
     ))
   }
 
+  const isSingleStore = stores.length === 1
+
   return (
     <main>
       <div className="container">
         <Breadcrumbs items={breadcrumbs} />
         <h1 className={styles.title}>Контакты</h1>
         
-        <div className={styles.layout}>
+        <div className={styles.topSection}>
           <div className={styles.contactInfo}>
             {stores.length > 0 && (
               <div className={styles.contactBlock}>
@@ -202,7 +204,9 @@ export function ContactsContent({
               </div>
             </form>
           </div>
+        </div>
 
+        <div className={`${styles.mapsSection} ${isSingleStore ? styles.mapsSectionFull : ''}`}>
           {stores.map((store) => (
             <div key={store.id} className={styles.mapContainer}>
               <h3 className={styles.mapTitle}>{store.address}</h3>

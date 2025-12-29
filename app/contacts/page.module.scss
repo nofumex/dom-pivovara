@@ -5,12 +5,22 @@
   color: var(--color-text);
 }
 
-.layout {
+.topSection {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 48px;
   margin-bottom: 48px;
   align-items: start;
+}
+
+.mapsSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 32px;
+  
+  &.mapsSectionFull {
+    grid-template-columns: 1fr;
+  }
 }
 
 .contactInfo {
@@ -85,7 +95,11 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   align-self: flex-start;
-  margin-top: -8px; // чуть поднимаем форму ближе к заголовку
+  margin-top: -96px;
+
+  @media (max-width: 1023px) {
+    margin-top: 0;
+  }
 }
 
 .formTitle {
@@ -147,9 +161,18 @@
 }
 
 @media (max-width: 1023px) {
-  .layout {
+  .topSection {
     grid-template-columns: 1fr;
     gap: 32px;
+  }
+
+  .formContainer {
+    position: static;
+    margin-top: 0;
+  }
+
+  .mapsSection {
+    grid-template-columns: 1fr;
   }
 }
 

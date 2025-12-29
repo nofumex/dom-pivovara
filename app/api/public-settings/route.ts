@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 const PUBLIC_SETTINGS_KEYS = [
   'contactEmail',
   'contactPhone',
+  'contactPhone2',
   'address',
   'socialLinks',
   'extraContacts',

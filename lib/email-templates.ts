@@ -43,7 +43,7 @@ type BrandConfig = {
 
 const brand: BrandConfig = {
   brandName: 'Дом Пивовара',
-  logoUrl: `${process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru'}/images/logoPivovar.png`,
+  logoUrl: 'https://dompivovara.ru/images/logoPivovar.png',
   siteUrl: process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://dom-pivovara.ru',
   supportEmail: 'dompivovar@mail.ru',
   supportPhone: '+7 913 555-222-6, +7 913 037-32-47',
@@ -66,7 +66,7 @@ const baseStyles = {
   card: `max-width:640px;margin:0 auto;background:${brandColors.card};border-radius:8px;overflow:hidden;border:1px solid ${brandColors.border};box-shadow:0 8px 28px rgba(0,0,0,0.06);`,
   header: `padding:16px 28px 14px 28px;background:${brandColors.card};border-bottom:1px solid ${brandColors.border};`,
   accentBar: `height:4px;background:${brand.accentColor};margin:-16px -28px 14px -28px;`,
-  logo: `display:flex;align-items:center;gap:10px;color:${brandColors.text};text-decoration:none;font-weight:800;font-size:22px;letter-spacing:-0.3px;line-height:1.2;font-family:Inter,Arial,Helvetica,sans-serif;`,
+  logo: `display:flex;align-items:center;gap:16px;color:${brandColors.text};text-decoration:none;font-weight:800;font-size:22px;letter-spacing:-0.3px;line-height:1.2;font-family:Inter,Arial,Helvetica,sans-serif;`,
   hero: 'padding:18px 28px 10px 28px;',
   title: `margin:0;font-size:24px;line-height:1.3;color:${brandColors.text};font-weight:800;`,
   subtitle: `margin:8px 0 0 0;font-size:15px;line-height:1.6;color:${brandColors.muted};`,
