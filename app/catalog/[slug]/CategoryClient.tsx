@@ -15,7 +15,7 @@ interface CategoryClientProps {
     name: string
     slug: string
     parent?: { name: string; slug: string } | null
-    children?: Array<{ id: string; name: string; slug: string; count?: number }>
+    children?: Array<{ id: string; name: string; slug: string; image?: string | null; count?: number }>
   }
   initialProducts: any[]
 }
@@ -98,9 +98,19 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
               >
                 <div className={styles.subcategoryImageWrapper}>
                   <img
-                    src={getPlaceholderImage(child.name, 200)}
+                    src={child.image || getPlaceholderImage(child.name, 200)}
                     alt={child.name}
                     className={styles.subcategoryImage}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      // Если изображение не загрузилось, используем placeholder
+                      const target = e.target as HTMLImageElement
+                      const placeholderUrl = getPlaceholderImage(child.name, 200)
+                      if (target.src !== placeholderUrl) {
+                        target.src = placeholderUrl
+                      }
+                    }}
                   />
                 </div>
                 <div className={styles.subcategoryContent}>
