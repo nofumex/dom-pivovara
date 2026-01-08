@@ -32,6 +32,9 @@
     progress: 0,
     message: 'Инициализация...',
   })
+  const [syncOptions, setSyncOptions] = useState({
+    setMissingToZero: false, // По умолчанию НЕ устанавливаем в 0 товары, которых нет в файле
+  })
   const [expandedSections, setExpandedSections] = useState({
     notFound: false,
     matches: false,
@@ -214,16 +217,33 @@
 
     const formData = new FormData()
     formData.append('file', syncFile)
+    formData.append('options', JSON.stringify(syncOptions))
+
+    // Создаем AbortController для возможности отмены запроса
+    const abortController = new AbortController()
+    // Убираем таймаут - операция может занимать много времени для больших файлов
+    // Вместо этого полагаемся на keepalive и проверку прогресса
 
     try {
       const response = await fetch('/api/admin/sync-stock', {
         method: 'POST',
         credentials: 'include',
         body: formData,
+        signal: abortController.signal,
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text().catch(() => 'Неизвестная ошибка')
+        let errorMessage = `HTTP error! status: ${response.status}`
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          errorMessage = errorText || errorMessage
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const reader = response.body?.getReader()
@@ -234,6 +254,9 @@
         throw new Error('Не удалось получить поток данных')
       }
 
+      let lastProgressTime = Date.now()
+      const progressTimeout = 5 * 60 * 1000 // 5 минут без обновления прогресса
+
       while (true) {
         const { done, value } = await reader.read()
 
@@ -241,11 +264,19 @@
           break
         }
 
+        // Обновляем время последнего прогресса
+        lastProgressTime = Date.now()
+
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
         for (const line of lines) {
+          // Пропускаем keepalive сообщения
+          if (line.trim() === ': keepalive' || line.trim() === '') {
+            continue
+          }
+
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
@@ -261,6 +292,7 @@
                   progress: data.progress,
                   message: data.message || 'Обработка...',
                 })
+                lastProgressTime = Date.now()
               }
 
               if (data.success && data.data) {
@@ -269,18 +301,33 @@
                 return
               }
             } catch (e) {
-              console.error('Ошибка парсинга SSE данных:', e)
+              console.error('Ошибка парсинга SSE данных:', e, 'Строка:', line)
             }
           }
         }
+
+        // Проверяем, не завис ли процесс (нет обновлений прогресса)
+        if (Date.now() - lastProgressTime > progressTimeout) {
+          throw new Error('Процесс синхронизации завис. Нет обновлений прогресса более 5 минут.')
+        }
       }
     } catch (error) {
-      alert(
-        `Ошибка при синхронизации: ${
-          error instanceof Error ? error.message : 'Неизвестная ошибка'
-        }`,
-      )
-      console.error(error)
+      let errorMessage = 'Неизвестная ошибка'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          errorMessage = 'Операция была прервана из-за таймаута. Файл слишком большой или операция занимает слишком много времени. Попробуйте разбить файл на части или повторить позже.'
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+          errorMessage = 'Ошибка сети. Проверьте подключение к интернету и попробуйте повторить операцию. Если проблема сохраняется, возможно, сервер перегружен - попробуйте позже.'
+        } else if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
+          errorMessage = 'Превышено время ожидания. Файл слишком большой. Попробуйте разбить файл на части или повторить позже.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      alert(`Ошибка при синхронизации: ${errorMessage}`)
+      console.error('Ошибка синхронизации:', error)
       setIsSyncing(false)
     }
   }
@@ -674,6 +721,27 @@
               <li>Поддерживаются форматы: .xls, .xlsx</li>
               <li>Товары сопоставляются по названию (точное или частичное совпадение)</li>
             </ul>
+          </div>
+
+          <div className={styles.syncOptions}>
+            <label className={styles.optionLabel}>
+              <input
+                type="checkbox"
+                checked={syncOptions.setMissingToZero}
+                onChange={(e) =>
+                  setSyncOptions({ ...syncOptions, setMissingToZero: e.target.checked })
+                }
+                disabled={isSyncing}
+              />
+              <span>
+                <strong>Установить в 0 товары, которых нет в файле</strong>
+                <br />
+                <small style={{ color: '#666', fontWeight: 'normal' }}>
+                  Если включено, все товары из каталога, которых нет в файле, будут установлены в 0.
+                  Если выключено, будут обновлены только товары, найденные в файле.
+                </small>
+              </span>
+            </label>
           </div>
 
           <div className={styles.syncActions}>

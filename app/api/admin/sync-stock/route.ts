@@ -1,9 +1,13 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/db'
+import { prisma, withRetry } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { errorResponse } from '@/lib/response'
 import * as XLSX from 'xlsx'
+
+// Увеличиваем максимальное время выполнения до 20 минут для больших файлов
+export const maxDuration = 1200 // 20 минут в секундах
+export const runtime = 'nodejs' // Используем nodejs runtime для длительных операций
 
 /**
  * Функция для отправки прогресса через SSE
@@ -261,11 +265,32 @@ export async function POST(request: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
+      
+      // Отправляем keepalive каждые 30 секунд, чтобы соединение не закрывалось
+      const keepAliveInterval = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(': keepalive\n\n'))
+        } catch (error) {
+          // Соединение закрыто, очищаем интервал
+          clearInterval(keepAliveInterval)
+        }
+      }, 30000) // Каждые 30 секунд
 
       try {
         console.log('[SYNC-STOCK] Пользователь авторизован, получение файла...')
         const formData = await request.formData()
         const file = formData.get('file') as File
+        const optionsStr = formData.get('options') as string | null
+        
+        // Парсим опции синхронизации
+        let syncOptions = { setMissingToZero: false }
+        if (optionsStr) {
+          try {
+            syncOptions = JSON.parse(optionsStr)
+          } catch (e) {
+            console.warn('[SYNC-STOCK] Ошибка парсинга опций, используем значения по умолчанию')
+          }
+        }
 
         if (!file) {
           const error = JSON.stringify({ error: 'Файл не предоставлен', progress: 0 })
@@ -528,6 +553,10 @@ export async function POST(request: NextRequest) {
           if (matchedProduct) {
             const stockStatus = calculateStockStatus(stock)
 
+            // ВАЖНО: Добавляем товар в fileProducts ПЕРЕД добавлением в productsToUpdate
+            // Это гарантирует, что товар не будет установлен в 0, даже если обновление не удастся
+            fileProducts.set(matchedProduct.id, stock)
+
             // Добавляем в список для batch update
             productsToUpdate.push({
               id: matchedProduct.id,
@@ -536,7 +565,6 @@ export async function POST(request: NextRequest) {
               stockStatus: stockStatus,
             })
 
-            fileProducts.set(matchedProduct.id, stock)
             matchedProducts.push(matchedProduct.title)
             updatedCount++
 
@@ -566,131 +594,137 @@ export async function POST(request: NextRequest) {
 
         sendProgress(controller, 70, 'Обновление товаров в базе данных...')
 
-        // Batch update товаров из файла
-        // Уменьшаем размер батча для Neon (serverless PostgreSQL) чтобы не перегружать пул соединений
-        const BATCH_SIZE = 20
-        const CONCURRENT_UPDATES = 5 // Максимум 5 параллельных обновлений в батче
+        // Удаляем дубликаты из productsToUpdate (если один товар найден несколько раз в файле)
+        // Берем последнее значение для каждого товара
+        const uniqueProductsToUpdate = new Map<string, typeof productsToUpdate[0]>()
+        for (const product of productsToUpdate) {
+          uniqueProductsToUpdate.set(product.id, product)
+        }
+        const deduplicatedProductsToUpdate = Array.from(uniqueProductsToUpdate.values())
         
-        for (let i = 0; i < productsToUpdate.length; i += BATCH_SIZE) {
-          const batch = productsToUpdate.slice(i, i + BATCH_SIZE)
+        console.log(`[SYNC-STOCK] Всего товаров для обновления: ${productsToUpdate.length}, после дедупликации: ${deduplicatedProductsToUpdate.length}`)
+
+        // Batch update товаров из файла
+        // Используем транзакции для уменьшения нагрузки на пул соединений
+        const BATCH_SIZE = 10 // Уменьшаем размер батча
+        const BATCH_DELAY = 500 // Увеличиваем задержку между батчами
+        
+        for (let i = 0; i < deduplicatedProductsToUpdate.length; i += BATCH_SIZE) {
+          const batch = deduplicatedProductsToUpdate.slice(i, i + BATCH_SIZE)
 
           try {
-            // Обрабатываем батч с ограничением параллелизма
-            for (let j = 0; j < batch.length; j += CONCURRENT_UPDATES) {
-              const concurrentBatch = batch.slice(j, j + CONCURRENT_UPDATES)
-              
-              await Promise.all(
-                concurrentBatch.map(async (product) => {
-                  let retries = 3
-                  while (retries > 0) {
-                    try {
-                      await prisma.product.update({
-                        where: { id: product.id },
-                        data: {
-                          stock: product.stock,
-                          isInStock: product.isInStock,
-                          stockStatus: product.stockStatus,
-                        },
-                      })
-                      break
-                    } catch (error: any) {
-                      retries--
-                      if (retries === 0) {
-                        throw error
-                      }
-                      // Ждем перед повтором (exponential backoff)
-                      await new Promise((resolve) => setTimeout(resolve, 1000 * (3 - retries)))
-                    }
-                  }
-                }),
+            // Используем транзакцию для batch update - это более эффективно и не перегружает пул соединений
+            await withRetry(async () => {
+              await prisma.$transaction(
+                batch.map((product) =>
+                  prisma.product.update({
+                    where: { id: product.id },
+                    data: {
+                      stock: product.stock,
+                      isInStock: product.isInStock,
+                      stockStatus: product.stockStatus,
+                    },
+                  })
+                )
               )
-              
-              // Небольшая задержка между группами параллельных обновлений
-              if (j + CONCURRENT_UPDATES < batch.length) {
-                await new Promise((resolve) => setTimeout(resolve, 100))
-              }
-            }
+            }, 3, 2000) // 3 попытки с задержкой 2 секунды
 
             // Отправляем прогресс
-            const progress = Math.min(85, 70 + Math.floor((i / productsToUpdate.length) * 15))
-            sendProgress(controller, progress, `Обновлено товаров: ${Math.min(i + BATCH_SIZE, productsToUpdate.length)} из ${productsToUpdate.length}...`)
+            const progress = Math.min(85, 70 + Math.floor((i / deduplicatedProductsToUpdate.length) * 15))
+            sendProgress(controller, progress, `Обновлено товаров: ${Math.min(i + BATCH_SIZE, deduplicatedProductsToUpdate.length)} из ${deduplicatedProductsToUpdate.length}...`)
           } catch (error: any) {
             console.error(`[SYNC-STOCK] Ошибка при обновлении батча ${i}-${i + BATCH_SIZE}:`, error)
+            
+            // Если это ошибка подключения, пробуем переподключиться
+            if (error.code === 'P1017' || error.message?.includes('Server has closed the connection')) {
+              console.log('[SYNC-STOCK] Попытка переподключения к БД...')
+              try {
+                await prisma.$disconnect()
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                // Prisma автоматически переподключится при следующем запросе
+              } catch (reconnectError) {
+                console.error('[SYNC-STOCK] Ошибка при переподключении:', reconnectError)
+              }
+            }
+            
             // Продолжаем обработку следующих батчей
           }
           
           // Задержка между батчами для снижения нагрузки на БД
           if (i + BATCH_SIZE < productsToUpdate.length) {
-            await new Promise((resolve) => setTimeout(resolve, 200))
+            await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY))
           }
         }
 
-        sendProgress(controller, 85, 'Установка остатка в 0 для товаров, отсутствующих в файле...')
-
-        // Устанавливаем остаток в 0 для товаров, которых нет в файле
-        const productsToSetZero = allProducts.filter((product) => !fileProducts.has(product.id))
+        // Устанавливаем остаток в 0 для товаров, которых нет в файле (только если опция включена)
         let setToZeroCount = 0
         const setToZeroProducts: string[] = []
 
-        // Batch update для установки остатка в 0
-        const ZERO_BATCH_SIZE = 20
-        const ZERO_CONCURRENT_UPDATES = 5
-        
-        for (let i = 0; i < productsToSetZero.length; i += ZERO_BATCH_SIZE) {
-          const batch = productsToSetZero.slice(i, i + ZERO_BATCH_SIZE)
+        if (syncOptions.setMissingToZero) {
+          sendProgress(controller, 85, 'Установка остатка в 0 для товаров, отсутствующих в файле...')
 
-          try {
-            // Обрабатываем батч с ограничением параллелизма
-            for (let j = 0; j < batch.length; j += ZERO_CONCURRENT_UPDATES) {
-              const concurrentBatch = batch.slice(j, j + ZERO_CONCURRENT_UPDATES)
-              
-              await Promise.all(
-                concurrentBatch.map(async (product) => {
-                  let retries = 3
-                  while (retries > 0) {
-                    try {
-                      await prisma.product.update({
-                        where: { id: product.id },
-                        data: {
-                          stock: 0,
-                          isInStock: false,
-                          stockStatus: 'NONE',
-                        },
-                      })
-                      break
-                    } catch (error: any) {
-                      retries--
-                      if (retries === 0) {
-                        throw error
-                      }
-                      // Ждем перед повтором (exponential backoff)
-                      await new Promise((resolve) => setTimeout(resolve, 1000 * (3 - retries)))
-                    }
-                  }
-                }),
-              )
-              
-              // Небольшая задержка между группами параллельных обновлений
-              if (j + ZERO_CONCURRENT_UPDATES < batch.length) {
-                await new Promise((resolve) => setTimeout(resolve, 100))
-              }
-            }
-
-            setToZeroCount += batch.length
-            batch.forEach((product) => setToZeroProducts.push(product.title))
-
-            // Отправляем прогресс
-            const progress = Math.min(95, 85 + Math.floor((i / productsToSetZero.length) * 10))
-            sendProgress(controller, progress, `Установлено в 0: ${Math.min(i + ZERO_BATCH_SIZE, productsToSetZero.length)} из ${productsToSetZero.length}...`)
-          } catch (error: any) {
-            console.error(`[SYNC-STOCK] Ошибка при установке остатка в 0 для батча ${i}-${i + ZERO_BATCH_SIZE}:`, error)
-            // Продолжаем обработку следующих батчей
-          }
+          // Фильтруем товары, которых НЕТ в fileProducts
+          // fileProducts содержит ВСЕ товары, которые были найдены в файле (независимо от типа совпадения)
+          const productsToSetZero = allProducts.filter((product) => !fileProducts.has(product.id))
           
-          // Задержка между батчами
-          if (i + ZERO_BATCH_SIZE < productsToSetZero.length) {
-            await new Promise((resolve) => setTimeout(resolve, 200))
+          console.log(`[SYNC-STOCK] Всего товаров в БД: ${allProducts.length}, найдено в файле: ${fileProducts.size}, будет установлено в 0: ${productsToSetZero.length}`)
+          
+          // Batch update для установки остатка в 0
+          const ZERO_BATCH_SIZE = 10 // Уменьшаем размер батча
+          const ZERO_BATCH_DELAY = 500 // Увеличиваем задержку
+          
+          for (let i = 0; i < productsToSetZero.length; i += ZERO_BATCH_SIZE) {
+            const batch = productsToSetZero.slice(i, i + ZERO_BATCH_SIZE)
+
+            try {
+              // Используем транзакцию для batch update
+              await withRetry(async () => {
+                await prisma.$transaction(
+                  batch.map((product) =>
+                    prisma.product.update({
+                      where: { id: product.id },
+                      data: {
+                        stock: 0,
+                        isInStock: false,
+                        stockStatus: 'NONE',
+                      },
+                    })
+                  )
+                )
+              }, 3, 2000) // 3 попытки с задержкой 2 секунды
+
+              setToZeroCount += batch.length
+              batch.forEach((product) => setToZeroProducts.push(product.title))
+
+              // Отправляем прогресс
+              const progress = Math.min(95, 85 + Math.floor((i / productsToSetZero.length) * 10))
+              sendProgress(controller, progress, `Установлено в 0: ${Math.min(i + ZERO_BATCH_SIZE, productsToSetZero.length)} из ${productsToSetZero.length}...`)
+            } catch (error: any) {
+              console.error(`[SYNC-STOCK] Ошибка при установке остатка в 0 для батча ${i}-${i + ZERO_BATCH_SIZE}:`, error)
+              
+              // Если это ошибка подключения, пробуем переподключиться
+              if (error.code === 'P1017' || error.message?.includes('Server has closed the connection')) {
+                console.log('[SYNC-STOCK] Попытка переподключения к БД...')
+                try {
+                  await prisma.$disconnect()
+                  await new Promise((resolve) => setTimeout(resolve, 2000))
+                  // Prisma автоматически переподключится при следующем запросе
+                } catch (reconnectError) {
+                  console.error('[SYNC-STOCK] Ошибка при переподключении:', reconnectError)
+                }
+              }
+              
+              // Продолжаем обработку следующих батчей
+            }
+            
+            // Задержка между батчами
+            if (i + ZERO_BATCH_SIZE < productsToSetZero.length) {
+              await new Promise((resolve) => setTimeout(resolve, ZERO_BATCH_DELAY))
+            }
           }
+        } else {
+          // Если опция отключена, просто пропускаем этот шаг
+          sendProgress(controller, 95, 'Пропуск установки в 0 (опция отключена)...')
         }
 
         const result = {
@@ -708,11 +742,17 @@ export async function POST(request: NextRequest) {
           `[SYNC-STOCK] Синхронизация завершена: обновлено ${updatedCount}, установлено в 0: ${setToZeroCount}, не найдено: ${notFoundCount}, ошибок: ${errorCount}`,
         )
 
+        // Очищаем keepalive перед закрытием
+        clearInterval(keepAliveInterval)
+        
         sendProgress(controller, 100, 'Синхронизация завершена!', { result })
         const finalData = JSON.stringify({ success: true, data: result, progress: 100 })
         controller.enqueue(encoder.encode(`data: ${finalData}\n\n`))
         controller.close()
       } catch (error: any) {
+        // Очищаем keepalive при ошибке
+        clearInterval(keepAliveInterval)
+        
         console.error('[SYNC-STOCK] Ошибка при синхронизации остатков:', error)
         
         // Обработка ошибок подключения к БД
@@ -721,14 +761,23 @@ export async function POST(request: NextRequest) {
           errorMessage = 'Ошибка подключения к базе данных. Убедитесь, что база данных запущена и доступна. Попробуйте повторить операцию через несколько секунд.'
         } else if (error.code?.startsWith('P')) {
           errorMessage = `Ошибка базы данных (${error.code}). Попробуйте повторить операцию позже.`
+        } else if (error.message?.includes('timeout') || error.message?.includes('TIMEOUT')) {
+          errorMessage = 'Превышено время ожидания. Файл слишком большой или операция занимает слишком много времени. Попробуйте разбить файл на части или повторить позже.'
+        } else if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+          errorMessage = 'Операция была прервана. Возможно, соединение было разорвано. Попробуйте повторить операцию.'
         }
         
         const errorData = JSON.stringify({
           error: `Ошибка при синхронизации: ${errorMessage}`,
           progress: 0,
         })
-        controller.enqueue(encoder.encode(`data: ${errorData}\n\n`))
-        controller.close()
+        try {
+          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`))
+          controller.close()
+        } catch (closeError) {
+          // Игнорируем ошибки при закрытии уже закрытого потока
+          console.error('[SYNC-STOCK] Ошибка при закрытии потока:', closeError)
+        }
       }
     },
   })
