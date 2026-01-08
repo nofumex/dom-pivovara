@@ -254,30 +254,58 @@ function calculateStockStatus(stock: number): 'MANY' | 'ENOUGH' | 'FEW' | 'NONE'
 export async function POST(request: NextRequest) {
   console.log('[SYNC-STOCK] Начало синхронизации')
 
-  // Проверка авторизации
-  const user = await verifyRole(request, [UserRole.ADMIN])
-  if (!user) {
-    console.log('[SYNC-STOCK] Ошибка авторизации')
-    return errorResponse('Не авторизован', 401)
-  }
-
-  // Создаем streaming response
+  // Создаем streaming response СРАЗУ, чтобы клиент мог подключиться
+  // Проверку авторизации делаем внутри потока, чтобы ошибки отправлялись через SSE
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       
-      // Отправляем keepalive каждые 30 секунд, чтобы соединение не закрывалось
-      const keepAliveInterval = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(': keepalive\n\n'))
-        } catch (error) {
-          // Соединение закрыто, очищаем интервал
-          clearInterval(keepAliveInterval)
-        }
-      }, 30000) // Каждые 30 секунд
-
+      // Объявляем переменные keepalive вне try-catch, чтобы они были доступны в catch
+      let keepAliveInterval: NodeJS.Timeout | null = null
+      let longKeepAliveInterval: NodeJS.Timeout | null = null
+      
       try {
+        // Проверка авторизации внутри потока
+        const user = await verifyRole(request, [UserRole.ADMIN])
+        if (!user) {
+          console.log('[SYNC-STOCK] Ошибка авторизации')
+          const error = JSON.stringify({ error: 'Не авторизован', progress: 0 })
+          controller.enqueue(encoder.encode(`data: ${error}\n\n`))
+          controller.close()
+          return
+        }
+
+        // Отправляем первый прогресс сразу после авторизации
+        sendProgress(controller, 1, 'Инициализация синхронизации...')
+        
+        // Отправляем keepalive каждые 10 секунд в начале, затем каждые 30 секунд
+        // Это помогает поддерживать соединение на ранних этапах
+        let keepAliveCount = 0
+        keepAliveInterval = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(': keepalive\n\n'))
+            keepAliveCount++
+            // После первых 3 keepalive (30 секунд) переключаемся на 30 секунд интервал
+            if (keepAliveCount >= 3) {
+              if (keepAliveInterval) clearInterval(keepAliveInterval)
+              longKeepAliveInterval = setInterval(() => {
+                try {
+                  controller.enqueue(encoder.encode(': keepalive\n\n'))
+                } catch (error) {
+                  if (longKeepAliveInterval) clearInterval(longKeepAliveInterval)
+                }
+              }, 30000)
+            }
+          } catch (error) {
+            // Соединение закрыто, очищаем интервал
+            if (keepAliveInterval) clearInterval(keepAliveInterval)
+            if (longKeepAliveInterval) clearInterval(longKeepAliveInterval)
+          }
+        }, 10000) // Каждые 10 секунд в начале
+
         console.log('[SYNC-STOCK] Пользователь авторизован, получение файла...')
+        sendProgress(controller, 2, 'Получение файла...')
+        
         const formData = await request.formData()
         const file = formData.get('file') as File
         const optionsStr = formData.get('options') as string | null
@@ -743,7 +771,8 @@ export async function POST(request: NextRequest) {
         )
 
         // Очищаем keepalive перед закрытием
-        clearInterval(keepAliveInterval)
+        if (keepAliveInterval) clearInterval(keepAliveInterval)
+        if (longKeepAliveInterval) clearInterval(longKeepAliveInterval)
         
         sendProgress(controller, 100, 'Синхронизация завершена!', { result })
         const finalData = JSON.stringify({ success: true, data: result, progress: 100 })
@@ -751,7 +780,13 @@ export async function POST(request: NextRequest) {
         controller.close()
       } catch (error: any) {
         // Очищаем keepalive при ошибке
-        clearInterval(keepAliveInterval)
+        // keepAliveInterval может быть не определен, если ошибка произошла до его создания
+        try {
+          clearInterval(keepAliveInterval)
+          if (longKeepAliveInterval) clearInterval(longKeepAliveInterval)
+        } catch (e) {
+          // Игнорируем ошибки очистки
+        }
         
         console.error('[SYNC-STOCK] Ошибка при синхронизации остатков:', error)
         
