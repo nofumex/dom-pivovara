@@ -634,8 +634,9 @@ export async function POST(request: NextRequest) {
 
         // Batch update товаров из файла
         // Используем транзакции для уменьшения нагрузки на пул соединений
+        // Увеличиваем задержки для работы с удаленной БД (российский сервер -> иностранная БД)
         const BATCH_SIZE = 10 // Уменьшаем размер батча
-        const BATCH_DELAY = 500 // Увеличиваем задержку между батчами
+        const BATCH_DELAY = 1000 // Увеличиваем задержку между батчами для международных соединений
         
         for (let i = 0; i < deduplicatedProductsToUpdate.length; i += BATCH_SIZE) {
           const batch = deduplicatedProductsToUpdate.slice(i, i + BATCH_SIZE)
@@ -655,7 +656,7 @@ export async function POST(request: NextRequest) {
                   })
                 )
               )
-            }, 3, 2000) // 3 попытки с задержкой 2 секунды
+            }, 5, 2000) // 5 попыток с задержкой 2 секунды (увеличено для международных соединений)
 
             // Отправляем прогресс
             const progress = Math.min(85, 70 + Math.floor((i / deduplicatedProductsToUpdate.length) * 15))
@@ -697,9 +698,9 @@ export async function POST(request: NextRequest) {
           
           console.log(`[SYNC-STOCK] Всего товаров в БД: ${allProducts.length}, найдено в файле: ${fileProducts.size}, будет установлено в 0: ${productsToSetZero.length}`)
           
-          // Batch update для установки остатка в 0
-          const ZERO_BATCH_SIZE = 10 // Уменьшаем размер батча
-          const ZERO_BATCH_DELAY = 500 // Увеличиваем задержку
+        // Batch update для установки остатка в 0
+        const ZERO_BATCH_SIZE = 10 // Уменьшаем размер батча
+        const ZERO_BATCH_DELAY = 1000 // Увеличиваем задержку для международных соединений
           
           for (let i = 0; i < productsToSetZero.length; i += ZERO_BATCH_SIZE) {
             const batch = productsToSetZero.slice(i, i + ZERO_BATCH_SIZE)
@@ -719,7 +720,7 @@ export async function POST(request: NextRequest) {
                     })
                   )
                 )
-              }, 3, 2000) // 3 попытки с задержкой 2 секунды
+              }, 5, 2000) // 5 попыток с задержкой 2 секунды (увеличено для международных соединений)
 
               setToZeroCount += batch.length
               batch.forEach((product) => setToZeroProducts.push(product.title))
