@@ -5,9 +5,14 @@ import { UserRole } from '@prisma/client'
 import { errorResponse } from '@/lib/response'
 import * as XLSX from 'xlsx'
 
-// Увеличиваем максимальное время выполнения до 20 минут для больших файлов
-export const maxDuration = 1200 // 20 минут в секундах
+// Увеличиваем максимальное время выполнения до 30 минут для больших файлов
+export const maxDuration = 1800 // 30 минут в секундах
 export const runtime = 'nodejs' // Используем nodejs runtime для длительных операций
+
+// Отключаем body parsing для больших файлов (Next.js App Router)
+// Файл будет читаться через FormData напрямую
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 /**
  * Функция для отправки прогресса через SSE
@@ -339,22 +344,80 @@ export async function POST(request: NextRequest) {
         }
 
         sendProgress(controller, 2, 'Чтение файла...')
-        console.log(`[SYNC-STOCK] Начало синхронизации остатков из файла: ${file.name}`)
+        console.log(`[SYNC-STOCK] Начало синхронизации остатков из файла: ${file.name}, размер: ${(file.size / 1024 / 1024).toFixed(2)} MB`)
 
-        // Чтение файла
-        const buffer = Buffer.from(await file.arrayBuffer())
-        let workbook: XLSX.WorkBook
+        // Проверяем размер файла (предупреждение для очень больших файлов)
+        const fileSizeMB = file.size / 1024 / 1024
+        if (fileSizeMB > 50) {
+          console.warn(`[SYNC-STOCK] ⚠️ Большой файл: ${fileSizeMB.toFixed(2)} MB. Это может занять много времени и памяти.`)
+          sendProgress(controller, 2, `Чтение большого файла (${fileSizeMB.toFixed(2)} MB)...`)
+        }
 
+        // Чтение файла с обработкой ошибок памяти и таймаутов
+        let buffer: Buffer
+        const fileReadStartTime = Date.now()
         try {
+          sendProgress(controller, 3, 'Загрузка файла в память...')
+          console.log(`[SYNC-STOCK] Начало загрузки файла в память, размер: ${fileSizeMB.toFixed(2)} MB`)
+          
+          // Добавляем таймаут для чтения файла (5 минут)
+          const fileReadPromise = file.arrayBuffer()
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('TIMEOUT: Превышено время ожидания при загрузке файла (5 минут)')), 5 * 60 * 1000)
+          )
+          
+          const arrayBuffer = await Promise.race([fileReadPromise, timeoutPromise]) as ArrayBuffer
+          buffer = Buffer.from(arrayBuffer)
+          
+          const fileReadDuration = ((Date.now() - fileReadStartTime) / 1000).toFixed(2)
+          console.log(`[SYNC-STOCK] ✓ Файл загружен в память: ${(buffer.length / 1024 / 1024).toFixed(2)} MB за ${fileReadDuration} сек`)
+        } catch (error: any) {
+          const fileReadDuration = ((Date.now() - fileReadStartTime) / 1000).toFixed(2)
+          console.error(`[SYNC-STOCK] ОШИБКА при загрузке файла в память (через ${fileReadDuration} сек):`, error)
+          console.error(`[SYNC-STOCK] Детали ошибки:`, {
+            name: error.name,
+            message: error.message,
+            code: error.code,
+            stack: error.stack?.substring(0, 500),
+          })
+          
+          let errorMessage = 'Ошибка при загрузке файла'
+          if (error.message?.includes('TIMEOUT') || error.message?.includes('timeout')) {
+            errorMessage = `Превышено время ожидания при загрузке файла (${fileSizeMB.toFixed(2)} MB). Файл слишком большой или соединение слишком медленное. Попробуйте разбить файл на части.`
+          } else if (error.message?.includes('memory') || error.message?.includes('Memory') || error.message?.includes('ENOMEM')) {
+            errorMessage = `Файл слишком большой для обработки (${fileSizeMB.toFixed(2)} MB). Недостаточно памяти на сервере. Попробуйте разбить файл на части.`
+          } else if (error.message?.includes('413') || error.message?.includes('Payload Too Large') || error.code === 413) {
+            errorMessage = `Файл слишком большой (${fileSizeMB.toFixed(2)} MB). Увеличьте лимит размера запроса на сервере (nginx/proxy) или разбейте файл на части.`
+          } else if (error.message?.includes('network') || error.message?.includes('Network') || error.code === 'ECONNRESET') {
+            errorMessage = `Ошибка сети при загрузке файла. Соединение было разорвано. Попробуйте повторить операцию.`
+          } else {
+            errorMessage = `Ошибка при загрузке файла: ${error.message || 'Неизвестная ошибка'}. Размер файла: ${fileSizeMB.toFixed(2)} MB.`
+          }
+          
+          const errorData = JSON.stringify({
+            error: errorMessage,
+            progress: 0,
+            fileSize: fileSizeMB.toFixed(2) + ' MB',
+          })
+          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`))
+          controller.close()
+          return
+        }
+
+        let workbook: XLSX.WorkBook
+        try {
+          sendProgress(controller, 4, 'Парсинг Excel файла...')
           workbook = XLSX.read(buffer, {
             type: 'buffer',
             cellDates: false,
             cellNF: false,
             cellText: false,
+            // Оптимизации для больших файлов
+            dense: false, // Не использовать dense mode для экономии памяти
           })
-          console.log(`[SYNC-STOCK] ✓ Файл успешно прочитан`)
+          console.log(`[SYNC-STOCK] ✓ Файл успешно прочитан, листов: ${workbook.SheetNames.length}`)
         } catch (error) {
-          console.error('[SYNC-STOCK] ОШИБКА при чтении файла:', error)
+          console.error('[SYNC-STOCK] ОШИБКА при парсинге файла:', error)
           const errorData = JSON.stringify({
             error: `Ошибка при чтении файла: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
             progress: 0,
@@ -822,7 +885,9 @@ export async function POST(request: NextRequest) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Отключаем буферизацию для nginx
+      'Transfer-Encoding': 'chunked', // Используем chunked encoding для streaming
     },
   })
 }

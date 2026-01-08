@@ -11,6 +11,12 @@ const nextConfig = {
       },
     ],
   },
+  // Увеличиваем лимиты для больших файлов (для Server Actions)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
 }
 
 module.exports = nextConfig
