@@ -9,7 +9,8 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "migrate:images:test": "tsx scripts/migrate-product-images-test.ts",
-    "migrate:images:full": "tsx scripts/migrate-product-images-full.ts"
+    "migrate:images:full": "tsx scripts/migrate-product-images-full.ts",
+    "migrate:categories:full": "tsx scripts/migrate-category-images-full.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
