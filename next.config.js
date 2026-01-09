@@ -2,12 +2,20 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost', 'via.placeholder.com', 'dummyimage.com', 'images.unsplash.com', 'picsum.photos'],
+    domains: ['localhost', 'via.placeholder.com', 'dummyimage.com', 'images.unsplash.com', 'picsum.photos', 'dompivovar.ru'],
     unoptimized: false,
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dompivovar.ru',
+      },
+      {
+        protocol: 'http',
+        hostname: 'dompivovar.ru',
       },
     ],
   },

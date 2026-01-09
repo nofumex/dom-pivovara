@@ -2,26 +2,37 @@ import { prisma } from '@/lib/db'
 
 /**
  * Recursively gets all child category IDs for a given category
+ * Оптимизированная версия: получает все категории одним запросом
  */
-async function getAllChildCategoryIds(categoryId: string): Promise<string[]> {
-  const childCategories = await prisma.category.findMany({
-    where: {
-      parentId: categoryId,
-      isActive: true,
-    },
-    select: {
-      id: true,
-    },
+export async function getAllChildCategoryIds(categoryId: string): Promise<string[]> {
+  // Получаем все категории одним запросом
+  const allCategories = await prisma.category.findMany({
+    where: { isActive: true },
+    select: { id: true, parentId: true },
   })
-
-  const childIds = childCategories.map((cat) => cat.id)
   
-  // Recursively get children of children
-  const nestedChildIds = await Promise.all(
-    childIds.map((id) => getAllChildCategoryIds(id))
-  )
+  // Строим мапу parentId -> children
+  const categoryTree = new Map<string, string[]>()
+  for (const cat of allCategories) {
+    if (cat.parentId) {
+      if (!categoryTree.has(cat.parentId)) {
+        categoryTree.set(cat.parentId, [])
+      }
+      categoryTree.get(cat.parentId)!.push(cat.id)
+    }
+  }
   
-  return [...childIds, ...nestedChildIds.flat()]
+  // Рекурсивно получаем все дочерние категории
+  const getAllChildren = (id: string): string[] => {
+    const children = categoryTree.get(id) || []
+    const allChildren = [...children]
+    for (const childId of children) {
+      allChildren.push(...getAllChildren(childId))
+    }
+    return allChildren
+  }
+  
+  return getAllChildren(categoryId)
 }
 
 /**

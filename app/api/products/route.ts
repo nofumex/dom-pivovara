@@ -3,7 +3,8 @@ import { prisma } from '@/lib/db'
 import { paginatedResponse, errorResponse } from '@/lib/response'
 import { ProductVisibility, StockStatus } from '@prisma/client'
 
-export const dynamic = 'force-dynamic'
+// Кешируем на 60 секунд для улучшения производительности
+export const revalidate = 60
 
 // Рекурсивная функция для получения всех дочерних категорий
 async function getAllChildCategoryIds(categoryId: string): Promise<string[]> {
@@ -149,13 +150,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Get products and count
+    // Используем select вместо include для оптимизации - не загружаем description и content
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         skip,
         take: limit,
         orderBy,
-        include: {
+        select: {
+          id: true,
+          sku: true,
+          title: true,
+          slug: true,
+          price: true,
+          oldPrice: true,
+          stock: true,
+          isInStock: true,
+          images: true,
+          badges: true,
+          tags: true,
+          rating: true,
+          createdAt: true,
           Category: {
             select: {
               id: true,
@@ -163,6 +178,7 @@ export async function GET(request: NextRequest) {
               slug: true,
             },
           },
+          // НЕ загружаем description и content для списка товаров
         },
       }),
       prisma.product.count({ where }),

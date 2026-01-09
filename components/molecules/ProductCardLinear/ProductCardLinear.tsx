@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Badge } from '@/components/atoms/Badge/Badge'
 import { Button } from '@/components/atoms/Button/Button'
 import { RatingStars } from '@/components/atoms/RatingStars/RatingStars'
@@ -25,7 +26,7 @@ interface ProductCardLinearProps {
   }
 }
 
-export function ProductCardLinear({ product }: ProductCardLinearProps) {
+export const ProductCardLinear = memo(function ProductCardLinear({ product }: ProductCardLinearProps) {
   const addItem = useCartStore((state) => state.addItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
   const removeItem = useCartStore((state) => state.removeItem)
@@ -114,13 +115,15 @@ export function ProductCardLinear({ product }: ProductCardLinearProps) {
       <Link href={`/product/${product.slug}`} className={styles.imageLink}>
         {badgeType && <Badge type={badgeType} />}
         <div className={styles.imageWrapper}>
-          <div
+          <Image
+            src={imageUrl}
+            alt={product.title}
+            width={400}
+            height={400}
             className={styles.image}
+            loading="lazy"
             style={{
-              backgroundImage: `url(${imageUrl})`,
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
+              objectFit: 'contain',
               backgroundColor: '#fff',
             }}
           />
@@ -174,5 +177,5 @@ export function ProductCardLinear({ product }: ProductCardLinearProps) {
       </div>
     </div>
   )
-}
+})
 

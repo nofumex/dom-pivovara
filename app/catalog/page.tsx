@@ -1,11 +1,13 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { prisma } from '@/lib/db'
 import { getCategoryProductCount, getSubcategoryImage } from '@/lib/categoryUtils'
 import { getPlaceholderImage } from '@/lib/catalogData'
 import styles from './page.module.scss'
 
-export const dynamic = 'force-dynamic'
+// Кешируем страницу на 5 минут
+export const revalidate = 300
 
 export default async function CatalogPage() {
   const breadcrumbs = [
@@ -34,25 +36,17 @@ export default async function CatalogPage() {
     },
   })
 
-  // Подсчитываем товары для каждой подкатегории с учетом дочерних категорий
-  // И получаем изображения подкатегорий из товаров
-  const categoriesWithCounts = await Promise.all(
-    categories.map(async (category) => ({
-      ...category,
-      subcategoriesWithCounts: await Promise.all(
-        category.other_Category.map(async (subcategory) => {
-          // Получаем изображение подкатегории из товара, если у самой подкатегории нет изображения
-          const subcategoryImage = subcategory.image || await getSubcategoryImage(subcategory.id)
-          
-          return {
-            ...subcategory,
-            image: subcategoryImage,
-            productCount: await getCategoryProductCount(subcategory.id),
-          }
-        })
-      ),
-    }))
-  )
+  // Упрощаем: не загружаем счетчики и изображения для главной страницы каталога
+  // Это ускорит загрузку и уменьшит нагрузку на БД
+  // Счетчики и изображения будут загружаться на страницах категорий
+  const categoriesWithCounts = categories.map((category) => ({
+    ...category,
+    subcategoriesWithCounts: category.other_Category.map((subcategory) => ({
+      ...subcategory,
+      image: subcategory.image || null, // Используем только существующие изображения
+      productCount: 0, // Не загружаем счетчики на главной странице
+    })),
+  }))
 
   return (
     <main>
@@ -66,11 +60,14 @@ export default async function CatalogPage() {
               href={`/catalog/${category.slug}`}
                 className={styles.cardLink}
             >
-                <img
+                <Image
                   src={category.image || getPlaceholderImage(category.name, 140)}
                   alt={category.name}
-                className={styles.image}
-              />
+                  width={280}
+                  height={140}
+                  className={styles.image}
+                  loading="lazy"
+                />
               <div className={styles.content}>
                 <h2 className={styles.cardTitle}>{category.name}</h2>
                 </div>
@@ -84,20 +81,19 @@ export default async function CatalogPage() {
                       className={styles.subcategoryItem}
                     >
                       {subcategory.image && (
-                        <img
+                        <Image
                           src={subcategory.image}
                           alt={subcategory.name}
+                          width={40}
+                          height={40}
                           className={styles.subcategoryImage}
+                          loading="lazy"
                         />
                       )}
                       <span className={styles.subcategoryName}>
                         {subcategory.name}
                       </span>
-                      {subcategory.productCount > 0 && (
-                        <span className={styles.subcategoryCount}>
-                          {subcategory.productCount}
-                        </span>
-                      )}
+                      {/* Счетчики товаров не показываем на главной странице для оптимизации */}
                     </Link>
                   ))}
                 </div>

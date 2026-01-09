@@ -7,7 +7,9 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "migrate:images:test": "tsx scripts/migrate-product-images-test.ts",
+    "migrate:images:full": "tsx scripts/migrate-product-images-full.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

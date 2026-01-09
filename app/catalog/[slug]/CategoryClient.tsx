@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import { FiltersPanel } from '@/components/organisms/FiltersPanel/FiltersPanel'
@@ -23,6 +24,9 @@ interface CategoryClientProps {
 export function CategoryClient({ category, initialProducts }: CategoryClientProps) {
   const [products, setProducts] = useState(initialProducts)
   const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState({
     priceMin: 0,
     priceMax: 100000,
@@ -34,11 +38,12 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true)
+      setPage(1) // Сбрасываем страницу при изменении фильтров
       try {
         const params = new URLSearchParams({
           category: category.slug,
           page: '1',
-          limit: '50',
+          limit: '20', // Уменьшили лимит с 50 до 20
           sortBy,
           sortOrder,
         })
@@ -64,6 +69,8 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
             rating: p.rating ? Number(p.rating) : 0,
           }))
           setProducts(productsWithBadges)
+          setTotal(data.total || 0)
+          setHasMore((data.data || []).length === 20 && (data.data || []).length < (data.total || 0))
         }
       } catch (error) {
         console.error('Error fetching products:', error)
@@ -74,6 +81,51 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
 
     fetchProducts()
   }, [category.slug, filters, sortBy, sortOrder])
+
+  const loadMore = async () => {
+    if (loading || !hasMore) return
+    
+    setLoading(true)
+    try {
+      const nextPage = page + 1
+      const params = new URLSearchParams({
+        category: category.slug,
+        page: nextPage.toString(),
+        limit: '20',
+        sortBy,
+        sortOrder,
+      })
+
+      if (filters.priceMin > 0) {
+        params.append('priceMin', filters.priceMin.toString())
+      }
+      if (filters.priceMax < 100000) {
+        params.append('priceMax', filters.priceMax.toString())
+      }
+      if (filters.onSale) {
+        params.append('tags', 'SALE')
+      }
+
+      const response = await fetch(`/api/products?${params.toString()}`)
+      const data = await response.json()
+
+      if (data.success) {
+        const newProducts = (data.data || []).map((p: any) => ({
+          ...p,
+          badges: p.tags || [],
+          stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
+          rating: p.rating ? Number(p.rating) : 0,
+        }))
+        setProducts(prev => [...prev, ...newProducts])
+        setPage(nextPage)
+        setHasMore(newProducts.length === 20 && products.length + newProducts.length < (data.total || 0))
+      }
+    } catch (error) {
+      console.error('Error loading more products:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const breadcrumbs = [
     { label: 'Главная', href: '/' },
@@ -97,12 +149,13 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
                 className={styles.subcategoryCard}
               >
                 <div className={styles.subcategoryImageWrapper}>
-                  <img
+                  <Image
                     src={child.image || getPlaceholderImage(child.name, 200)}
                     alt={child.name}
+                    width={200}
+                    height={200}
                     className={styles.subcategoryImage}
                     loading="lazy"
-                    decoding="async"
                     onError={(e) => {
                       // Если изображение не загрузилось, используем placeholder
                       const target = e.target as HTMLImageElement
@@ -137,10 +190,23 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
             setSortOrder(newSortOrder)
           }}
         />
-        {loading ? (
+        {loading && page === 1 ? (
           <div className={styles.loading}>Загрузка...</div>
         ) : (
-          <ProductGrid products={products} />
+          <>
+            <ProductGrid products={products} />
+            {hasMore && (
+              <div className={styles.loadMoreWrapper}>
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className={styles.loadMoreButton}
+                >
+                  {loading ? 'Загрузка...' : 'Показать еще'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

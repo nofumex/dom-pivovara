@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Badge } from '@/components/atoms/Badge/Badge'
 import { Button } from '@/components/atoms/Button/Button'
 import { RatingStars } from '@/components/atoms/RatingStars/RatingStars'
@@ -24,7 +25,7 @@ interface ProductCardProps {
   }
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem)
   const updateQuantity = useCartStore((state) => state.updateQuantity)
   const removeItem = useCartStore((state) => state.removeItem)
@@ -124,13 +125,15 @@ export function ProductCard({ product }: ProductCardProps) {
           >
             ♥
           </button>
-          <div
+          <Image
+            src={imageUrl}
+            alt={product.title}
+            width={400}
+            height={400}
             className={styles.image}
+            loading="lazy"
             style={{
-              backgroundImage: `url(${imageUrl})`,
-              backgroundSize: 'contain',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
+              objectFit: 'contain',
               backgroundColor: '#fff',
             }}
           />
@@ -170,5 +173,5 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
     </div>
   )
-}
+})
 
