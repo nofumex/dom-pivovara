@@ -212,7 +212,7 @@ export function ContactsContent({
                   />
                   <span>
                     Я согласен с{' '}
-                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className={styles.privacyLink}>
+                    <a href="/privaci" target="_blank" rel="noopener noreferrer" className={styles.privacyLink}>
                       Политикой обработки персональных данных
                     </a>
                     {' '}и использованием cookie <span className={styles.required}>*</span>

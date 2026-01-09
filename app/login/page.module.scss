@@ -71,6 +71,33 @@
   margin-top: 0.5rem;
 }
 
+.recaptchaContainer {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.privacyNote {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  margin: 12px 0;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+.privacyLink {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--color-primary-700);
+  }
+}
+
 
 
 

@@ -32,7 +32,7 @@ export function CookieBanner() {
       <div className={styles.content}>
         <p className={styles.text}>
           Мы используем файлы cookie для работы сайта, аналитики и улучшения сервиса. Продолжая пользоваться сайтом, вы соглашаетесь с использованием cookie. Подробнее — в{' '}
-          <Link href="/privacy-policy" className={styles.link}>
+          <Link href="/privaci" className={styles.link}>
             Политике обработки персональных данных
           </Link>
           .

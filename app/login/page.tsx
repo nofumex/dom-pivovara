@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import ReCAPTCHA from 'react-google-recaptcha'
 import { useAuthStore } from '@/store/auth-store'
 import { Input } from '@/components/atoms/Input/Input'
 import { Button } from '@/components/atoms/Button/Button'
+import Link from 'next/link'
 import styles from './page.module.scss'
 
 export default function LoginPage() {
@@ -17,6 +19,8 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isChecking, setIsChecking] = useState(true)
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   // Проверяем, авторизован ли пользователь через cookies
   useEffect(() => {
@@ -49,6 +53,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    if (!recaptchaToken) {
+      setError('Пожалуйста, подтвердите, что вы не робот')
+      return
+    }
+    
     setIsSubmitting(true)
 
     try {
@@ -57,7 +67,10 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken: recaptchaToken,
+        }),
       })
 
       console.log('Login: Response status:', response.status)
@@ -109,11 +122,19 @@ export default function LoginPage() {
       } else {
         console.error('Login: Failed:', data.error || data.message)
         setError(data.error || data.message || 'Неверный email или пароль')
+        setRecaptchaToken(null)
+        if (recaptchaRef.current) {
+          recaptchaRef.current.reset()
+        }
         setIsSubmitting(false)
       }
     } catch (error) {
       console.error('Login error:', error)
       setError('Ошибка при входе. Попробуйте позже.')
+      setRecaptchaToken(null)
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset()
+      }
       setIsSubmitting(false)
     }
   }
@@ -152,6 +173,27 @@ export default function LoginPage() {
             required
             autoComplete="current-password"
           />
+          {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+            <div className={styles.recaptchaContainer}>
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                onChange={(token) => setRecaptchaToken(token)}
+              />
+            </div>
+          ) : (
+            <div className={styles.error}>
+              Ошибка: reCAPTCHA не настроена. Проверьте переменную NEXT_PUBLIC_RECAPTCHA_SITE_KEY в .env файле.
+            </div>
+          )}
+          <div className={styles.privacyNote}>
+            <p>
+              Нажимая кнопку «Войти», вы соглашаетесь с{' '}
+              <Link href="/privaci" target="_blank" rel="noopener noreferrer" className={styles.privacyLink}>
+                условиями конфиденциальности
+              </Link>
+            </p>
+          </div>
           <Button type="submit" variant="primary" disabled={isSubmitting} className={styles.submitButton}>
             {isSubmitting ? 'Вход...' : 'Войти'}
           </Button>

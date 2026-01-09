@@ -14,6 +14,8 @@ const settingValueSchema = z.union([
   z.array(z.any()),
 ])
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { key: string } }

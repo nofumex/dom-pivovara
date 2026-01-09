@@ -47,7 +47,7 @@ export function Footer() {
   useEffect(() => {
     const fetchPhoneNumbers = async () => {
       try {
-        const response = await fetch('/api/public-settings')
+        const response = await fetch('/api/public-settings', { cache: 'no-store' })
         const data = await response.json()
         if (data.success && data.data) {
           setPhoneNumbers({
@@ -224,25 +224,36 @@ export function Footer() {
       </div>
 
       <div className={styles.bottom}>
-        <div className={styles.bottomContent}>
-          <a
-            href="https://casadigital.ru/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.developerBadge}
-            aria-label="Сайт разработан агентством Casa Digital"
-          >
-            <span className={styles.devIcon}>
-              <Image
-                src="/images/logo.png"
-                alt="Casa Digital"
-                width={24}
-                height={24}
-              />
-            </span>
-            <span className={styles.devText}>Сайт разработан агентством</span>
-            <span className={styles.devBrand}>Casa Digital</span>
-          </a>
+        <div className="container">
+          <div className={styles.bottomContent}>
+            <div className={styles.footerLinks}>
+              <Link href="/privaci" className={styles.footerLink}>
+                Политика конфиденциальности
+              </Link>
+              <span className={styles.footerLinkSeparator}>|</span>
+              <Link href="/user-agreement" className={styles.footerLink}>
+                Пользовательское соглашение
+              </Link>
+            </div>
+            <a
+              href="https://casadigital.ru/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.developerBadge}
+              aria-label="Сайт разработан агентством Casa Digital"
+            >
+              <span className={styles.devIcon}>
+                <Image
+                  src="/images/logo.png"
+                  alt="Casa Digital"
+                  width={24}
+                  height={24}
+                />
+              </span>
+              <span className={styles.devText}>Сайт разработан агентством</span>
+              <span className={styles.devBrand}>Casa Digital</span>
+            </a>
+          </div>
         </div>
       </div>
     </footer>

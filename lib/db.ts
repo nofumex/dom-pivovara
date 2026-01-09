@@ -57,6 +57,16 @@ const getDatabaseUrl = () => {
     params.set('pgbouncer', 'true')
   }
   
+  // Ограничиваем количество соединений в пуле для избежания таймаутов
+  if (!params.has('connection_limit')) {
+    params.set('connection_limit', '10') // Максимум 10 соединений в пуле
+  }
+  
+  // Увеличиваем таймаут получения соединения из пула
+  if (!params.has('pool_timeout')) {
+    params.set('pool_timeout', '20') // 20 секунд на получение соединения
+  }
+  
   const newUrl = `${baseUrlWithoutParams}?${params.toString()}`
   if (process.env.NODE_ENV === 'development') {
     console.log('[DB] Database URL configured with extended timeouts for international connections')
@@ -67,7 +77,9 @@ const getDatabaseUrl = () => {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'development' 
+      ? ['error', 'warn'] // Убираем 'query' чтобы уменьшить нагрузку
+      : ['error'],
     datasources: {
       db: {
         url: getDatabaseUrl(),

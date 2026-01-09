@@ -405,7 +405,7 @@ async function main() {
     { key: 'contactPhone', value: '+7 913 555-222-6', type: 'STRING' as const },
     { key: 'contactPhone2', value: '+7 913 555-222-7', type: 'STRING' as const },
     { key: 'address', value: 'г. Москва, ул. Примерная, д. 1', type: 'STRING' as const },
-    { key: 'workingHours', value: 'Пн-Пт: 9:00-18:00, Сб-Вс: 10:00-16:00', type: 'STRING' as const },
+    { key: 'workingHours', value: 'Пн-Пт – с 10:00 до 20:00\nСб – с 10:00 до 18:00\nВс – с 10:00 до 16:00', type: 'STRING' as const },
     
     // Социальные сети
     {

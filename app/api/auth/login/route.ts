@@ -9,6 +9,32 @@ export async function POST(request: NextRequest) {
   try {
     console.log('Login API: Starting login request')
     const body = await request.json()
+    
+    // Verify reCAPTCHA if token is provided
+    if (body.recaptchaToken) {
+      const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY?.trim()
+      if (!RECAPTCHA_SECRET_KEY) {
+        console.error('[reCAPTCHA] Secret key not found in environment variables')
+        return errorResponse('reCAPTCHA не настроена на сервере', 500)
+      }
+      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `secret=${RECAPTCHA_SECRET_KEY}&response=${body.recaptchaToken}`,
+      })
+      const recaptchaData = await recaptchaResponse.json()
+      console.log('[reCAPTCHA] Verification response:', { success: recaptchaData.success, errors: recaptchaData['error-codes'] })
+      if (!recaptchaData.success) {
+        const errorCodes = recaptchaData['error-codes'] || []
+        if (errorCodes.includes('invalid-input-secret')) {
+          return errorResponse('Неверный секретный ключ reCAPTCHA. Проверьте настройки в .env файле.', 400)
+        }
+        return errorResponse('Ошибка проверки reCAPTCHA. Пожалуйста, подтвердите, что вы не робот.', 400)
+      }
+    }
+    
     const validated = loginSchema.parse(body)
     console.log('Login API: Validated email:', validated.email)
 

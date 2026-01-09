@@ -118,6 +118,7 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify(payload),
       })
 
@@ -226,9 +227,13 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
       />
       <Input
               label="Режим работы"
+              textarea={true}
+              rows={4}
               value={formData.workingHours}
               onChange={(e) => setFormData({ ...formData, workingHours: e.target.value })}
-              placeholder="Пн-Пт: 9:00-18:00, Сб-Вс: 10:00-16:00"
+              placeholder="Пн-Пт – с 10:00 до 20:00
+Сб – с 10:00 до 18:00
+Вс – с 10:00 до 16:00"
             />
 
             <h3 className={styles.subsectionTitle}>Социальные сети</h3>

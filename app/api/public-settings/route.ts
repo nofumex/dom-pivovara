@@ -8,6 +8,7 @@ const PUBLIC_SETTINGS_KEYS = [
   'contactEmail',
   'contactPhone',
   'contactPhone2',
+  'workingHours',
   'address',
   'socialLinks',
   'extraContacts',

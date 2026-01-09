@@ -8,6 +8,8 @@ import { generateOrderNumber } from '@/lib/utils'
 import { OrderStatus, SettingType } from '@prisma/client'
 import { sendOrderConfirmationEmail, sendNewOrderNotificationEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const user = await verifyAuth(request)

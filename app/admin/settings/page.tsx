@@ -5,6 +5,8 @@ import { SettingsForm } from '@/components/admin/SettingsForm/SettingsForm'
 import { CouponsManager } from '@/components/admin/CouponsManager/CouponsManager'
 import { SettingType } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminSettingsPage() {
   const { user } = await getAuthUserWithRefresh()
 

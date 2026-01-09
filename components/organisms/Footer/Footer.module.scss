@@ -291,13 +291,37 @@
 .bottom {
   padding: 10px 0 14px;
   background: #E0E2E6;
+  border-top: 1px solid var(--color-border);
 }
 
 .bottomContent {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  margin: 0 16px 0 auto;
+  gap: 16px;
+}
+
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footerLink {
+  font-size: var(--font-small-size);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--color-primary-600);
+    text-decoration: underline;
+  }
+}
+
+.footerLinkSeparator {
+  color: var(--color-text-secondary);
+  font-size: var(--font-small-size);
 }
 
 .developerBadge {
@@ -574,6 +598,20 @@
 
   .bottom {
     padding: 12px 0;
+  }
+
+  .bottomContent {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .footerLinks {
+    order: 2;
+  }
+
+  .developerBadge {
+    order: 1;
   }
 
   .copyright {

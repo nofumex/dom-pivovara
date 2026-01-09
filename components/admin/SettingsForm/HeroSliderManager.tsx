@@ -51,6 +51,7 @@ export function HeroSliderManager() {
     try {
       const response = await fetch('/api/admin/settings', {
         credentials: 'include',
+        cache: 'no-store',
       })
       const data = await response.json()
       if (data.success && data.data.heroSliderInterval) {

@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import ReCAPTCHA from 'react-google-recaptcha'
 import { Modal } from '@/components/molecules/Modal/Modal'
 import { Input } from '@/components/atoms/Input/Input'
 import { Button } from '@/components/atoms/Button/Button'
 import { useAuthStore } from '@/store/auth-store'
+import Link from 'next/link'
 import styles from './ProfileModal.module.scss'
 
 interface ProfileModalProps {
@@ -30,6 +32,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   // Reset error when modal opens/closes and check auth
   useEffect(() => {
@@ -62,6 +66,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    // Check reCAPTCHA for both login and registration
+    if (!recaptchaToken) {
+      setError('Пожалуйста, подтвердите, что вы не робот')
+      return
+    }
+    
     setIsSubmitting(true)
 
     try {
@@ -72,6 +83,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           body: JSON.stringify({
             email: formData.email,
             password: formData.password,
+            recaptchaToken: recaptchaToken || undefined,
           }),
         })
 
@@ -110,6 +122,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           
           // Reset form
           setFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', code: '' })
+          setRecaptchaToken(null)
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset()
+          }
           setError('')
           onClose()
           
@@ -143,6 +159,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             email: formData.email,
             password: formData.password,
             phone: formData.phone || undefined,
+            recaptchaToken: recaptchaToken,
           }),
         })
 
@@ -179,6 +196,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           }
 
           setFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', code: '' })
+          setRecaptchaToken(null)
+          if (recaptchaRef.current) {
+            recaptchaRef.current.reset()
+          }
           setError('')
           onClose()
           window.location.reload()
@@ -343,6 +364,32 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           autoComplete={isLogin ? "current-password" : "new-password"}
         />
 
+        {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && (
+          <div className={styles.recaptchaContainer}>
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+              onChange={(token) => setRecaptchaToken(token)}
+            />
+          </div>
+        )}
+        {!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && (
+          <div className={styles.error}>
+            Ошибка: reCAPTCHA не настроена. Проверьте переменную NEXT_PUBLIC_RECAPTCHA_SITE_KEY в .env файле.
+          </div>
+        )}
+
+        {!isLogin && (
+          <div className={styles.privacyNote}>
+            <p>
+              Нажимая кнопку «Зарегистрироваться», вы соглашаетесь с{' '}
+              <Link href="/privaci" target="_blank" rel="noopener noreferrer" className={styles.privacyLink}>
+                условиями конфиденциальности
+              </Link>
+            </p>
+          </div>
+        )}
+
         <div className={styles.actions}>
           <Button type="submit" variant="primary" disabled={isSubmitting}>
             {isLogin ? (isSubmitting ? 'Вход...' : 'Войти') : isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
@@ -350,7 +397,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           <button
             type="button"
             className={styles.switchButton}
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => {
+              setIsLogin(!isLogin)
+              setRecaptchaToken(null)
+              if (recaptchaRef.current) {
+                recaptchaRef.current.reset()
+              }
+            }}
           >
             {isLogin ? 'Нет аккаунта? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}
           </button>

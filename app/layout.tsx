@@ -11,8 +11,15 @@ export const metadata: Metadata = {
   title: 'Дом Пивовара - Интернет-магазин товаров для пивоварения',
   description: 'Интернет-магазин товаров для пивоварения, самогоноварения и виноделия',
   icons: {
-    icon: '/images/logoPivovar.png',
-    apple: '/images/logoPivovar.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/images/logoPivovar.png', type: 'image/png', sizes: '32x32' },
+      { url: '/images/logoPivovar.png', type: 'image/png', sizes: '16x16' },
+    ],
+    apple: [
+      { url: '/images/logoPivovar.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/images/logoPivovar.png',
   },
 }
 
