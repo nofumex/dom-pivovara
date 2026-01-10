@@ -92,17 +92,21 @@ export function ProductVariantsManager({
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        // Добавляем заголовок для предотвращения кеширования
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
       })
 
       const data = await response.json()
       if (data.success) {
         handleUpdateVariant(index, 'imageUrl', data.data.url)
       } else {
-        alert('Ошибка при загрузке изображения')
+        alert('Ошибка при загрузке изображения: ' + (data.error || 'Неизвестная ошибка'))
       }
     } catch (error) {
-      alert('Ошибка при загрузке изображения')
-      console.error(error)
+      console.error('Upload error:', error)
+      alert('Ошибка при загрузке изображения: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'))
     }
   }
 
