@@ -17,7 +17,6 @@
 
 .content {
   max-width: 900px;
-  margin: 0 auto;
 }
 
 .section {
@@ -102,5 +101,12 @@
   strong {
     color: var(--color-text);
   }
+}
+
+// Мягкое желтое выделение (как маркером)
+.highlight {
+  background-color: #fff9c4;
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
