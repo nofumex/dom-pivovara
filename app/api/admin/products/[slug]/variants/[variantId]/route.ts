@@ -60,6 +60,15 @@ export async function PUT(
     if (validated.price !== undefined) {
       updateData.price = validated.price.toString()
     }
+    
+    // Удаляем undefined поля и нормализуем null значения
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key]
+      } else if (updateData[key] === '') {
+        updateData[key] = null
+      }
+    })
 
     const updated = await prisma.productVariant.update({
       where: { id: params.variantId },

@@ -332,7 +332,7 @@ export function Header() {
                             alt={product.title}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement
-                              target.src = `https://picsum.photos/seed/${product.id}/60/60`
+                              target.style.display = 'none'
                             }}
                           />
                         </div>

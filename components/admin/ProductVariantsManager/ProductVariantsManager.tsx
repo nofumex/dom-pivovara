@@ -87,6 +87,7 @@ export function ProductVariantsManager({
     try {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('subfolder', 'products') // Сохраняем изображения вариантов товаров в подпапку products
 
       const response = await fetch('/api/upload', {
         method: 'POST',

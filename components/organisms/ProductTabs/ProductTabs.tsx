@@ -84,7 +84,7 @@ export function ProductTabs() {
           const productsWithBadges = productsList.map((p: any) => ({
             ...p,
             badges: p.badges || [], // Используем badges из API, а не tags
-            stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
+            stockStatus: p.stockStatus || (p.isInStock ? (p.stock === 0 ? 'NONE' : p.stock >= 1 && p.stock <= 2 ? 'FEW' : p.stock >= 3 && p.stock <= 10 ? 'ENOUGH' : 'MANY') : 'NONE'),
             rating: p.rating ? Number(p.rating) : 0,
           }))
           setProducts(productsWithBadges)

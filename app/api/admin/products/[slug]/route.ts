@@ -5,6 +5,7 @@ import { UserRole } from '@prisma/client'
 import { successResponse, errorResponse } from '@/lib/response'
 import { createProductSchema } from '@/lib/validations'
 import { serializeObject } from '@/lib/serialize'
+import { calculateStockStatus } from '@/lib/stock'
 
 export async function GET(
   request: NextRequest,
@@ -91,15 +92,32 @@ export async function PUT(
 
     const { category, ...rest } = validated
     const updateData: any = { ...rest }
+    
+    // Обновляем updatedAt при любом изменении
+    updateData.updatedAt = new Date()
+    
+    // Автоматически обновляем stockStatus при изменении stock
+    if (validated.stock !== undefined) {
+      updateData.stockStatus = calculateStockStatus(validated.stock)
+      updateData.isInStock = validated.stock > 0
+    }
+    
     if (validated.price !== undefined) {
       updateData.price = validated.price.toString()
     }
     if (validated.oldPrice !== undefined) {
-      updateData.oldPrice = validated.oldPrice?.toString()
+      updateData.oldPrice = validated.oldPrice?.toString() || null
     }
     if (validated.weight !== undefined) {
-      updateData.weight = validated.weight?.toString()
+      updateData.weight = validated.weight ? validated.weight.toString() : null
     }
+
+    // Удаляем undefined поля
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key]
+      }
+    })
 
     const updated = await prisma.product.update({
       where: { slug: params.slug },

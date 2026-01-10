@@ -3,6 +3,9 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import sharp from 'sharp'
 
+// ВАЖНО: При работе локально, но с продакшн БД, файлы будут сохраняться локально.
+// Для продакшн сервера файлы должны загружаться на продакшн сервер через его API или напрямую.
+// UPLOAD_DIR можно настроить через переменную окружения для указания пути на продакшн сервере
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './public/uploads'
 const MAX_FILE_SIZE = parseInt(process.env.MAX_FILE_SIZE || '5242880', 10) // 5MB default
 

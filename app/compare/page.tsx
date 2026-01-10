@@ -59,7 +59,7 @@ export default function ComparePage() {
           const productsWithBadges = (data.data || []).map((p: any) => ({
             ...p,
             badges: p.badges || p.tags || [],
-            stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
+            stockStatus: p.stockStatus || (p.isInStock ? (p.stock === 0 ? 'NONE' : p.stock >= 1 && p.stock <= 2 ? 'FEW' : p.stock >= 3 && p.stock <= 10 ? 'ENOUGH' : 'MANY') : 'NONE'),
             rating: p.rating ? Number(p.rating) : 0,
             price: Number(p.price),
             oldPrice: p.oldPrice ? Number(p.oldPrice) : null,
@@ -164,7 +164,7 @@ export default function ComparePage() {
                             alt={product.title}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement
-                              target.src = `https://picsum.photos/seed/${product.id}/200/200`
+                              target.style.display = 'none'
                             }}
                           />
                         </Link>

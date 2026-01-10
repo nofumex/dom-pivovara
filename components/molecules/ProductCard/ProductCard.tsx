@@ -100,18 +100,17 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
     ? 'sale'
     : null
 
-  // Используем реальные изображения из product.images, если есть и это не placeholder, иначе fallback
+  // Используем только реальные изображения с сервера, без интернет-плейсхолдеров
   const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null
-  const isPlaceholder = firstImage && (
-    firstImage.includes('placeholder') || 
-    firstImage.startsWith('/uploads/placeholder') ||
-    firstImage === '' ||
-    firstImage.trim() === ''
-  )
+  const hasValidImage = firstImage && 
+    !firstImage.includes('placeholder') && 
+    !firstImage.startsWith('/uploads/placeholder') &&
+    firstImage !== '' &&
+    firstImage.trim() !== '' &&
+    !firstImage.startsWith('http://') &&
+    !firstImage.startsWith('https://')
   
-  const imageUrl = firstImage && !isPlaceholder
-    ? firstImage
-    : `https://picsum.photos/seed/${product.id}/400/400`
+  const imageUrl = hasValidImage ? firstImage : null
 
   return (
     <div className={styles.cardWrapper}>
@@ -125,18 +124,22 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
           >
             ♥
           </button>
-          <Image
-            src={imageUrl}
-            alt={product.title}
-            width={400}
-            height={400}
-            className={styles.image}
-            loading="lazy"
-            style={{
-              objectFit: 'contain',
-              backgroundColor: '#fff',
-            }}
-          />
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={product.title}
+              width={400}
+              height={400}
+              className={styles.image}
+              loading="lazy"
+              style={{
+                objectFit: 'contain',
+                backgroundColor: '#fff',
+              }}
+            />
+          ) : (
+            <div className={styles.imagePlaceholder} />
+          )}
         </div>
         <div className={styles.content}>
           <h3 className={styles.title}>{product.title}</h3>

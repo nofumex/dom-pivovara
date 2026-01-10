@@ -91,10 +91,15 @@ export function ComparisonDrawer({ isOpen, onClose }: ComparisonDrawerProps) {
             <>
               <div className={styles.items}>
                 {products.map((product) => {
-                  const image =
-                    product.images && product.images.length > 0
-                      ? product.images[0]
-                      : `https://picsum.photos/seed/${product.id}/200/200`
+                  const firstImage = product.images && product.images.length > 0 ? product.images[0] : null
+                  const hasValidImage = firstImage && 
+                    !firstImage.includes('placeholder') &&
+                    !firstImage.startsWith('/uploads/placeholder') &&
+                    firstImage !== '' &&
+                    firstImage.trim() !== '' &&
+                    !firstImage.startsWith('http://') &&
+                    !firstImage.startsWith('https://')
+                  const image = hasValidImage ? firstImage : null
 
                   const stock = (product.stockStatus || 'ENOUGH').toLowerCase()
 
@@ -113,15 +118,19 @@ export function ComparisonDrawer({ isOpen, onClose }: ComparisonDrawerProps) {
                         onClick={onClose}
                       >
                         <div className={styles.itemImageWrapper}>
-                          <img
-                            src={image}
-                            alt={product.title}
-                            className={styles.itemImage}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = `https://picsum.photos/seed/${product.id}/200/200`
-                            }}
-                          />
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={product.title}
+                              className={styles.itemImage}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <div className={styles.itemImagePlaceholder} />
+                          )}
                         </div>
                         <h4 className={styles.itemTitle}>{product.title}</h4>
                         <div className={styles.itemMeta}>

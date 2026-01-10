@@ -3,6 +3,7 @@ import { prisma, withRetry } from '@/lib/db'
 import { verifyRole } from '@/lib/auth'
 import { UserRole } from '@prisma/client'
 import { errorResponse } from '@/lib/response'
+import { calculateStockStatus } from '@/lib/stock'
 import * as XLSX from 'xlsx'
 
 // Увеличиваем максимальное время выполнения до 30 минут для больших файлов
@@ -244,16 +245,6 @@ function findBestMatch(
   }
 
   return bestMatch
-}
-
-/**
- * Вычисляет статус остатка на основе количества
- */
-function calculateStockStatus(stock: number): 'MANY' | 'ENOUGH' | 'FEW' | 'NONE' {
-  if (stock > 10) return 'MANY'
-  if (stock > 0) return 'ENOUGH'
-  if (stock === 0) return 'NONE'
-  return 'FEW'
 }
 
 export async function POST(request: NextRequest) {

@@ -55,7 +55,7 @@ export default async function ProductPage({
     badges: product.badges || [],
     images: product.images || [],
     stock: product.stock || 0,
-    stockStatus: product.isInStock ? (product.stock > 10 ? 'MANY' : product.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE',
+    stockStatus: product.isInStock ? (product.stock === 0 ? 'NONE' : product.stock >= 1 && product.stock <= 2 ? 'FEW' : product.stock >= 3 && product.stock <= 10 ? 'ENOUGH' : 'MANY') : 'NONE',
     reviews: product.Review.map((review) => ({
       id: review.id,
       rating: review.rating,

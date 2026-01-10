@@ -81,27 +81,28 @@ export function ProductDetails({ product }: ProductDetailsProps) {
       <div className={styles.images}>
         <div className={styles.mainImage}>
           {(() => {
-            const hasRealImage = product.images && 
-              product.images.length > 0 && 
-              product.images[selectedImage] && 
-              !product.images[selectedImage].includes('placeholder') &&
-              !product.images[selectedImage].startsWith('/uploads/placeholder')
+            const currentImage = product.images && product.images[selectedImage]
+            const hasRealImage = currentImage && 
+              !currentImage.includes('placeholder') &&
+              !currentImage.startsWith('/uploads/placeholder') &&
+              currentImage !== '' &&
+              currentImage.trim() !== '' &&
+              !currentImage.startsWith('http://') &&
+              !currentImage.startsWith('https://')
             
-            const imageUrl = hasRealImage
-              ? product.images[selectedImage]
-              : `https://picsum.photos/seed/${product.id}/800/800`
-            
-            return (
+            return hasRealImage ? (
               <div
                 className={styles.image}
                 style={{
-                  backgroundImage: `url(${imageUrl})`,
+                  backgroundImage: `url(${currentImage})`,
                   backgroundSize: 'contain',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
                   backgroundColor: '#fff',
                 }}
               />
+            ) : (
+              <div className={styles.imagePlaceholder} />
             )
           })()}
         </div>
@@ -119,10 +120,12 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                     backgroundImage: (() => {
                       const hasRealImage = image && 
                         !image.includes('placeholder') &&
-                        !image.startsWith('/uploads/placeholder')
-                      return hasRealImage
-                        ? `url(${image})`
-                        : `url(https://picsum.photos/seed/${product.id}-${index}/200/200)`
+                        !image.startsWith('/uploads/placeholder') &&
+                        image !== '' &&
+                        image.trim() !== '' &&
+                        !image.startsWith('http://') &&
+                        !image.startsWith('https://')
+                      return hasRealImage ? `url(${image})` : 'none'
                     })(),
                     backgroundSize: 'contain',
                     backgroundPosition: 'center',

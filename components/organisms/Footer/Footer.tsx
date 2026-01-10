@@ -94,7 +94,7 @@ export function Footer() {
                               return `url(${product.images[0]})`
                             }
 
-                            return `url(https://picsum.photos/seed/${product.id}/400/400)`
+                            return 'none'
                           })(),
                         }}
                       />

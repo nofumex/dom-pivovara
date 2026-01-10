@@ -5,6 +5,7 @@ import { UserRole, ProductVisibility } from '@prisma/client'
 import { paginatedResponse, errorResponse, successResponse } from '@/lib/response'
 import { serializeObject } from '@/lib/serialize'
 import { createProductSchema } from '@/lib/validations'
+import { calculateStockStatus } from '@/lib/stock'
 import { randomUUID } from 'crypto'
 
 export async function GET(request: NextRequest) {
@@ -149,31 +150,52 @@ export async function POST(request: NextRequest) {
     }
 
     const { category, ...rest } = validated
+    const now = new Date()
     const productData: any = {
       id: randomUUID(),
       ...rest,
       price: validated.price.toString(),
-      oldPrice: validated.oldPrice?.toString(),
-      weight: validated.weight?.toString(),
+      oldPrice: validated.oldPrice?.toString() || null,
+      weight: validated.weight ? validated.weight.toString() : null,
+      updatedAt: now,
+      createdAt: now,
     }
+
+    // Автоматически рассчитываем stockStatus если не указан явно
+    if (!productData.stockStatus && validated.stock !== undefined) {
+      productData.stockStatus = calculateStockStatus(validated.stock)
+      productData.isInStock = validated.stock > 0
+    }
+
+    // Удаляем undefined поля
+    Object.keys(productData).forEach(key => {
+      if (productData[key] === undefined) {
+        delete productData[key]
+      }
+    })
+
+    // Prepare variants data
+    const variantsData = variants && Array.isArray(variants) && variants.length > 0
+      ? {
+          create: variants.map((variant: any) => ({
+            id: randomUUID(),
+            size: variant.size || null,
+            color: variant.color || null,
+            material: variant.material || null,
+            price: (variant.price || validated.price).toString(),
+            stock: variant.stock || 0,
+            sku: variant.sku || `${validated.sku}-${randomUUID().substring(0, 8)}`,
+            imageUrl: variant.imageUrl || null,
+            isActive: variant.isActive !== undefined ? variant.isActive : true,
+          })),
+        }
+      : undefined
 
     // Create product with variants
     const product = await prisma.product.create({
       data: {
         ...productData,
-        ProductVariant: variants && Array.isArray(variants) && variants.length > 0 ? {
-          create: variants.map((variant: any) => ({
-            id: randomUUID(),
-            size: variant.size,
-            color: variant.color,
-            material: variant.material,
-            price: (variant.price || validated.price).toString(),
-            stock: variant.stock || 0,
-            sku: variant.sku || `${validated.sku}-${randomUUID().substring(0, 8)}`,
-            imageUrl: variant.imageUrl,
-            isActive: variant.isActive !== undefined ? variant.isActive : true,
-          })),
-        } : undefined,
+        ...(variantsData && { ProductVariant: variantsData }),
       },
       include: {
         Category: true,

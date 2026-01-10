@@ -61,16 +61,14 @@ export function FavoritesDrawer({ isOpen, onClose }: FavoritesDrawerProps) {
             <div className={styles.items}>
               {products.map((product) => {
                 const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null
-                const isPlaceholder = firstImage && (
-                  firstImage.includes('placeholder') || 
-                  firstImage.startsWith('/uploads/placeholder') ||
-                  firstImage === '' ||
-                  firstImage.trim() === ''
-                )
-                
-                const imageUrl = firstImage && !isPlaceholder
-                  ? firstImage
-                  : `https://picsum.photos/seed/${product.id}/200/200`
+                const hasValidImage = firstImage && 
+                  !firstImage.includes('placeholder') && 
+                  !firstImage.startsWith('/uploads/placeholder') &&
+                  firstImage !== '' &&
+                  firstImage.trim() !== '' &&
+                  !firstImage.startsWith('http://') &&
+                  !firstImage.startsWith('https://')
+                const imageUrl = hasValidImage ? firstImage : null
 
                 return (
                   <Link
@@ -79,14 +77,18 @@ export function FavoritesDrawer({ isOpen, onClose }: FavoritesDrawerProps) {
                     className={styles.item}
                     onClick={onClose}
                   >
-                    <div
-                      className={styles.itemImage}
-                      style={{
-                        backgroundImage: `url(${imageUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    />
+                    {imageUrl ? (
+                      <div
+                        className={styles.itemImage}
+                        style={{
+                          backgroundImage: `url(${imageUrl})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }}
+                      />
+                    ) : (
+                      <div className={styles.itemImagePlaceholder} />
+                    )}
                     <div className={styles.itemInfo}>
                       <h4 className={styles.itemTitle}>{product.title}</h4>
                       <p className={styles.itemPrice}>{formatPrice(product.price)}</p>

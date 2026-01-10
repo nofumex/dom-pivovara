@@ -65,7 +65,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
           const productsWithBadges = (data.data || []).map((p: any) => ({
             ...p,
             badges: p.tags || [],
-            stockStatus: p.stockStatus || (p.isInStock ? (p.stock > 10 ? 'MANY' : p.stock > 0 ? 'ENOUGH' : 'FEW') : 'NONE'),
+            stockStatus: p.stockStatus || (p.isInStock ? (p.stock === 0 ? 'NONE' : p.stock >= 1 && p.stock <= 2 ? 'FEW' : p.stock >= 3 && p.stock <= 10 ? 'ENOUGH' : 'MANY') : 'NONE'),
             rating: p.rating ? Number(p.rating) : 0,
           }))
           setProducts(productsWithBadges)

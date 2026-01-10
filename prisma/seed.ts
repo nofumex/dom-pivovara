@@ -18,7 +18,8 @@ function generateProduct(
   const oldPrice = hasOldPrice ? basePrice * 1.3 : null
   const stock = Math.floor(Math.random() * 100)
   const stockStatuses: StockStatus[] = ['MANY', 'ENOUGH', 'FEW', 'NONE']
-  const stockStatus = stock > 50 ? 'MANY' : stock > 20 ? 'ENOUGH' : stock > 0 ? 'FEW' : 'NONE'
+  // Новая градация: 0=NONE, 1-2=FEW, 3-10=ENOUGH, >10=MANY
+  const stockStatus = stock === 0 ? 'NONE' : stock >= 1 && stock <= 2 ? 'FEW' : stock >= 3 && stock <= 10 ? 'ENOUGH' : 'MANY'
   const badges: ProductBadge[] = []
   if (Math.random() > 0.7) badges.push('HIT')
   if (Math.random() > 0.8) badges.push('NEW')

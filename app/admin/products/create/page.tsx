@@ -71,6 +71,7 @@ export default function CreateProductPage() {
     try {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('subfolder', 'products') // Сохраняем изображения товаров в подпапку products
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -110,15 +111,15 @@ export default function CreateProductPage() {
           oldPrice: formData.oldPrice ? parseFloat(formData.oldPrice) : undefined,
           stock: parseInt(formData.stock),
           minOrder: parseInt(formData.minOrder || '1'),
-          // Простейшая логика статуса склада по количеству
+          // Расчет статуса склада по новой градации: 0=NONE, 1-2=FEW, 3-10=ENOUGH, >10=MANY
           stockStatus:
-            parseInt(formData.stock) > 50
-              ? 'MANY'
-              : parseInt(formData.stock) > 20
-              ? 'ENOUGH'
-              : parseInt(formData.stock) > 0
+            parseInt(formData.stock) === 0
+              ? 'NONE'
+              : parseInt(formData.stock) >= 1 && parseInt(formData.stock) <= 2
               ? 'FEW'
-              : 'NONE',
+              : parseInt(formData.stock) >= 3 && parseInt(formData.stock) <= 10
+              ? 'ENOUGH'
+              : 'MANY',
           weight: formData.weight ? parseFloat(formData.weight) : undefined,
           tags: tagsArray,
           images,
