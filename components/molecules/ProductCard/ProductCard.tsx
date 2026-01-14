@@ -21,6 +21,7 @@ interface ProductCardProps {
     images?: string[]
     badges?: string[]
     stockStatus?: string
+    stock?: number
     rating?: number
   }
 }
@@ -37,6 +38,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const [quantity, setQuantity] = useState(getCartItem?.quantity || 1)
 
   const stockStatus = (product.stockStatus || 'ENOUGH').toLowerCase() as 'many' | 'enough' | 'few' | 'none'
+  const availableStock = product.stock ?? 0
 
   useEffect(() => {
     const cartItem = useCartStore.getState().items.find((item) => item.productId === product.id)
@@ -48,9 +50,21 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    // Проверяем остатки
+    if (availableStock > 0 && quantity > availableStock) {
+      alert(`Доступно только ${availableStock} шт.`)
+      setQuantity(availableStock)
+      return
+    }
     const cartItem = useCartStore.getState().items.find((item) => item.productId === product.id)
     if (cartItem) {
-      updateQuantity(cartItem.id, quantity)
+      const newQuantity = cartItem.quantity + quantity
+      if (availableStock > 0 && newQuantity > availableStock) {
+        alert(`Доступно только ${availableStock} шт.`)
+        updateQuantity(cartItem.id, availableStock)
+      } else {
+        updateQuantity(cartItem.id, newQuantity)
+      }
     } else {
       addItem({
         productId: product.id,
@@ -61,7 +75,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
           title: product.title,
           slug: product.slug,
           images: Array.isArray(product.images) ? product.images : [],
-          stock: 0,
+          stock: availableStock,
           stockStatus: stockStatus,
         },
       })
@@ -72,6 +86,12 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
     e.preventDefault()
     e.stopPropagation()
     if (newQuantity < 1) return
+    // Проверяем остатки
+    if (availableStock > 0 && newQuantity > availableStock) {
+      alert(`Доступно только ${availableStock} шт.`)
+      setQuantity(availableStock)
+      return
+    }
     setQuantity(newQuantity)
     const cartItem = useCartStore.getState().items.find((item) => item.productId === product.id)
     if (cartItem) {
@@ -161,6 +181,7 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
           <button
             className={styles.quantityButton}
             onClick={(e) => handleQuantityChange(quantity + 1, e)}
+            disabled={availableStock > 0 && quantity >= availableStock}
           >
             +
           </button>

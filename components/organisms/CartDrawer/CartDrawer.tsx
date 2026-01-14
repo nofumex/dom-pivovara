@@ -102,7 +102,15 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         <span className={styles.quantityValue}>{item.quantity}</span>
                         <button
                           className={styles.quantityButton}
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => {
+                            const availableStock = item.product.stock ?? 0
+                            if (availableStock > 0 && item.quantity >= availableStock) {
+                              alert(`Доступно только ${availableStock} шт.`)
+                              return
+                            }
+                            updateQuantity(item.id, item.quantity + 1)
+                          }}
+                          disabled={item.product.stock !== undefined && item.product.stock > 0 && item.quantity >= item.product.stock}
                         >
                           +
                         </button>

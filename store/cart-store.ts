@@ -72,6 +72,15 @@ export const useCartStore = create<CartStore>()(
           get().removeItem(id)
           return
         }
+        // Проверяем остатки перед обновлением количества
+        const item = get().items.find((i) => i.id === id)
+        if (item) {
+          const availableStock = item.product.stock ?? 0
+          if (availableStock > 0 && quantity > availableStock) {
+            // Ограничиваем количество доступным остатком
+            quantity = availableStock
+          }
+        }
         set({
           items: get().items.map((item) =>
             item.id === id ? { ...item, quantity } : item

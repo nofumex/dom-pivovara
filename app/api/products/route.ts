@@ -194,11 +194,13 @@ export async function GET(request: NextRequest) {
       tags: product.tags || [],
       // Единая логика статуса наличия, как в карточке товара и сравнении
       stockStatus: product.isInStock
-        ? product.stock > 10
-          ? 'MANY'
-          : product.stock > 0
-            ? 'ENOUGH'
-            : 'FEW'
+        ? product.stock === 0
+          ? 'NONE'
+          : product.stock >= 1 && product.stock <= 2
+            ? 'FEW'
+            : product.stock >= 3 && product.stock <= 10
+              ? 'ENOUGH'
+              : 'MANY'
         : 'NONE',
     }))
 

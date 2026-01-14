@@ -12,6 +12,7 @@ interface Product {
   images?: string[]
   badges?: string[]
   stockStatus?: string
+  stock?: number
   rating?: number | null
   description?: string
 }

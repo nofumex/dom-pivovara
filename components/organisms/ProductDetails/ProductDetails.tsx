@@ -44,21 +44,40 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   const isFavorite = useFavoritesStore((state) => state.has(product.id))
 
   const stockStatus = ((product.stockStatus || 'ENOUGH').toLowerCase()) as 'many' | 'enough' | 'few' | 'none'
+  const availableStock = product.stock ?? 0
   
   const handleAddToCart = () => {
-    addItem({
-      productId: product.id,
-      quantity,
-      price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
-      product: {
-        id: product.id,
-        title: product.title,
-        slug: product.slug,
-        images: Array.isArray(product.images) ? product.images : [],
-        stock: product.stock || 0,
-        stockStatus: stockStatus,
-      },
-    })
+    // Проверяем остатки
+    if (availableStock > 0 && quantity > availableStock) {
+      alert(`Доступно только ${availableStock} шт.`)
+      setQuantity(availableStock)
+      return
+    }
+    
+    const cartItem = useCartStore.getState().items.find((item) => item.productId === product.id)
+    if (cartItem) {
+      const newQuantity = cartItem.quantity + quantity
+      if (availableStock > 0 && newQuantity > availableStock) {
+        alert(`Доступно только ${availableStock} шт.`)
+        useCartStore.getState().updateQuantity(cartItem.id, availableStock)
+      } else {
+        useCartStore.getState().updateQuantity(cartItem.id, newQuantity)
+      }
+    } else {
+      addItem({
+        productId: product.id,
+        quantity,
+        price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+        product: {
+          id: product.id,
+          title: product.title,
+          slug: product.slug,
+          images: Array.isArray(product.images) ? product.images : [],
+          stock: availableStock,
+          stockStatus: stockStatus,
+        },
+      })
+    }
     alert('Товар добавлен в корзину')
   }
 
@@ -176,14 +195,28 @@ export function ProductDetails({ product }: ProductDetailsProps) {
             value={quantity}
             onChange={(e) => {
               const val = parseInt(e.target.value) || 1
-              setQuantity(Math.max(1, val))
+              const newQuantity = Math.max(1, val)
+              if (availableStock > 0 && newQuantity > availableStock) {
+                alert(`Доступно только ${availableStock} шт.`)
+                setQuantity(availableStock)
+              } else {
+                setQuantity(newQuantity)
+              }
             }}
             className={styles.quantityInput}
             min="1"
+            max={availableStock > 0 ? availableStock : undefined}
           />
           <button
             className={styles.quantityButton}
-            onClick={() => setQuantity(quantity + 1)}
+            onClick={() => {
+              if (availableStock > 0 && quantity >= availableStock) {
+                alert(`Доступно только ${availableStock} шт.`)
+              } else {
+                setQuantity(quantity + 1)
+              }
+            }}
+            disabled={availableStock > 0 && quantity >= availableStock}
           >
             +
           </button>

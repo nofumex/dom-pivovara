@@ -9,7 +9,7 @@ import { Input } from '@/components/atoms/Input/Input'
 import { Breadcrumbs } from '@/components/molecules/Breadcrumbs/Breadcrumbs'
 import styles from './page.module.scss'
 
-type DeliveryType = 'PICKUP' | 'PICKUP_SEMAFORNAYA' | 'PICKUP_MOLOKOVA' | 'COURIER' | 'TRANSPORT'
+type DeliveryType = 'PICKUP' | 'PICKUP_SEMAFORNAYA' | 'COURIER' | 'TRANSPORT'
 type PaymentMethod = 'CARD' | 'CASH_COURIER' | 'CASH_PICKUP'
 
 interface OrderFormData {
@@ -73,7 +73,7 @@ export default function OrderPage() {
   const [couponError, setCouponError] = useState<string>('')
 
   const subtotal = mounted ? getTotalPrice() : 0
-  const deliveryCost = formData.deliveryType === 'PICKUP' || formData.deliveryType === 'PICKUP_SEMAFORNAYA' || formData.deliveryType === 'PICKUP_MOLOKOVA' ? 0 : 300
+  const deliveryCost = formData.deliveryType === 'PICKUP' || formData.deliveryType === 'PICKUP_SEMAFORNAYA' ? 0 : formData.deliveryType === 'COURIER' ? 350 : 0
   const discount = appliedCoupon ? appliedCoupon.discount : 0
   const total = subtotal + deliveryCost - discount
 
@@ -147,8 +147,7 @@ export default function OrderPage() {
     if (currentStep === 2) {
       // Шаг 2 - регион доставки
       const isPickup = formData.deliveryType === 'PICKUP' || 
-                      formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
-                      formData.deliveryType === 'PICKUP_MOLOKOVA'
+                      formData.deliveryType === 'PICKUP_SEMAFORNAYA'
       
       // Для самовывоза регион не обязателен, для доставки - обязателен
       if (!isPickup && (!formData.location || !formData.zipCode)) {
@@ -165,8 +164,7 @@ export default function OrderPage() {
       
       // Адрес обязателен только для доставки (не для самовывоза)
       const isPickup = formData.deliveryType === 'PICKUP' || 
-                      formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
-                      formData.deliveryType === 'PICKUP_MOLOKOVA'
+                      formData.deliveryType === 'PICKUP_SEMAFORNAYA'
       
       if (!isPickup && !formData.address) {
         alert('Заполните адрес доставки')
@@ -196,9 +194,6 @@ export default function OrderPage() {
       if (formData.deliveryType === 'PICKUP_SEMAFORNAYA') {
         deliveryType = 'PICKUP'
         pickupNote = '\nПункт самовывоза: Семафорная 271, стр. 7'
-      } else if (formData.deliveryType === 'PICKUP_MOLOKOVA') {
-        deliveryType = 'PICKUP'
-        pickupNote = '\nПункт самовывоза: Молокова 17'
       } else if (formData.deliveryType === 'COURIER') {
         deliveryType = 'COURIER'
       } else if (formData.deliveryType === 'TRANSPORT') {
@@ -276,12 +271,12 @@ export default function OrderPage() {
                       onChange={(e) => updateFormData('deliveryType', e.target.value as DeliveryType)}
                     />
                     <div>
-                      <span className={styles.deliveryPrice}>300 ₽</span>
+                      <span className={styles.deliveryPrice}>350 ₽</span>
                       <span>Доставка курьером</span>
                       <p className={styles.deliveryDescription}>
                         Доставка осуществляется в течение дня в удобное для вас время.
                         <br />
-                        Стоимость: 300 ₽
+                        Стоимость: 350 ₽
                         <br />
                         Срок доставки: до 2 дней
                       </p>
@@ -300,19 +295,6 @@ export default function OrderPage() {
                       <span>Самовывоз Семафорная 271, стр. 7</span>
                     </div>
                   </label>
-                  <label className={styles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="deliveryType"
-                      value="PICKUP_MOLOKOVA"
-                      checked={formData.deliveryType === 'PICKUP_MOLOKOVA'}
-                      onChange={(e) => updateFormData('deliveryType', e.target.value as DeliveryType)}
-                    />
-                    <div>
-                      <span className={styles.deliveryPrice}>0 ₽</span>
-                      <span>Самовывоз Молокова 17</span>
-                    </div>
-                  </label>
                 </div>
               </div>
             )}
@@ -322,8 +304,7 @@ export default function OrderPage() {
               <div className={styles.step}>
                 {(() => {
                   const isPickup = formData.deliveryType === 'PICKUP' || 
-                                  formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
-                                  formData.deliveryType === 'PICKUP_MOLOKOVA'
+                                  formData.deliveryType === 'PICKUP_SEMAFORNAYA'
                   
                   if (isPickup) {
                     // Для самовывоза регион необязателен
@@ -499,8 +480,7 @@ export default function OrderPage() {
                 />
                 {(() => {
                   const isPickup = formData.deliveryType === 'PICKUP' || 
-                                  formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
-                                  formData.deliveryType === 'PICKUP_MOLOKOVA'
+                                  formData.deliveryType === 'PICKUP_SEMAFORNAYA'
                   
                   if (!isPickup) {
                     return (
@@ -573,8 +553,7 @@ export default function OrderPage() {
                       )}
                       {(() => {
                         const isPickup = formData.deliveryType === 'PICKUP' || 
-                                        formData.deliveryType === 'PICKUP_SEMAFORNAYA' || 
-                                        formData.deliveryType === 'PICKUP_MOLOKOVA'
+                                        formData.deliveryType === 'PICKUP_SEMAFORNAYA'
                         
                         if (!isPickup && formData.address) {
                           return (
@@ -595,9 +574,8 @@ export default function OrderPage() {
                       <div className={styles.confirmationRow}>
                         <span className={styles.confirmationLabel}>Тип доставки:</span>
                         <span>
-                          {formData.deliveryType === 'COURIER' && 'Доставка курьером (300 ₽)'}
+                          {formData.deliveryType === 'COURIER' && 'Доставка курьером (350 ₽)'}
                           {formData.deliveryType === 'PICKUP_SEMAFORNAYA' && 'Самовывоз: Семафорная 271, стр. 7 (0 ₽)'}
-                          {formData.deliveryType === 'PICKUP_MOLOKOVA' && 'Самовывоз: Молокова 17 (0 ₽)'}
                           {formData.deliveryType === 'TRANSPORT' && 'Транспортная компания'}
                         </span>
                       </div>
