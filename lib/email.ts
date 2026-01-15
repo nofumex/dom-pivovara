@@ -16,6 +16,7 @@ interface EmailSettings {
   smtpPassword: string
   fromEmail: string
   companyEmail: string
+  companyEmail2?: string
 }
 
 async function getEmailSettings(): Promise<EmailSettings | null> {
@@ -284,7 +285,7 @@ export async function testSMTPConnection(settings: EmailSettings): Promise<{ suc
 }
 
 export async function sendEmail(
-  to: string,
+  to: string | string[],
   subject: string,
   html: string,
   text?: string
@@ -308,9 +309,12 @@ export async function sendEmail(
     
     transporter = await createTransporter(settings)
 
+    // Нормализуем to в массив
+    const recipients = Array.isArray(to) ? to : [to]
+
     const result = await transporter.sendMail({
       from: settings.fromEmail,
-      to,
+      to: recipients,
       subject,
       text: text || html.replace(/<[^>]*>/g, ''),
       html,
@@ -409,7 +413,13 @@ export async function sendNewOrderNotificationEmail(
     deliveryAddress,
   })
 
-  return sendEmail(settings.companyEmail, built.subject, built.html, built.text)
+  // Формируем список получателей: основной email и дополнительный (если указан)
+  const recipients: string[] = [settings.companyEmail]
+  if (settings.companyEmail2 && settings.companyEmail2.trim()) {
+    recipients.push(settings.companyEmail2.trim())
+  }
+
+  return sendEmail(recipients, built.subject, built.html, built.text)
 }
 
 export async function sendNewLeadNotificationEmail(
@@ -441,7 +451,13 @@ export async function sendNewLeadNotificationEmail(
     message,
   })
 
-  return sendEmail(settings.companyEmail, built.subject, built.html, built.text)
+  // Формируем список получателей: основной email и дополнительный (если указан)
+  const recipients: string[] = [settings.companyEmail]
+  if (settings.companyEmail2 && settings.companyEmail2.trim()) {
+    recipients.push(settings.companyEmail2.trim())
+  }
+
+  return sendEmail(recipients, built.subject, built.html, built.text)
 }
 
 // Унифицированный конструктор для маркетинговой рассылки

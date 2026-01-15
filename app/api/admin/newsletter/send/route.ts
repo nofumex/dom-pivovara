@@ -25,6 +25,7 @@ interface EmailSettings {
   smtpPassword: string
   fromEmail: string
   companyEmail: string
+  companyEmail2?: string
 }
 
 async function getEmailSettings(): Promise<EmailSettings | null> {

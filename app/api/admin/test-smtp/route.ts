@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       smtpPassword: validated.smtpPassword,
       fromEmail: '', // Не требуется для теста подключения
       companyEmail: '', // Не требуется для теста подключения
+      companyEmail2: '', // Не требуется для теста подключения
     })
 
     if (result.success) {

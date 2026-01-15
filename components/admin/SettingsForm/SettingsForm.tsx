@@ -63,6 +63,7 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
     fromEmail: initialSettings.emailSettings?.fromEmail || '',
     fromName: initialSettings.emailSettings?.fromName || '',
     companyEmail: initialSettings.emailSettings?.companyEmail || '',
+    companyEmail2: initialSettings.emailSettings?.companyEmail2 || '',
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -97,6 +98,7 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
           fromEmail: emailSettingsData.fromEmail || '',
           fromName: emailSettingsData.fromName || '',
           companyEmail: emailSettingsData.companyEmail || '',
+          companyEmail2: emailSettingsData.companyEmail2 || '',
         })
       }
     }
@@ -312,6 +314,16 @@ export function SettingsForm({ settings: initialSettings }: SettingsFormProps) {
               value={emailSettings.companyEmail}
               onChange={(e) => setEmailSettings({ ...emailSettings, companyEmail: e.target.value })}
             />
+            <Input
+              label="Email компании (дополнительный)"
+              type="email"
+              value={emailSettings.companyEmail2}
+              onChange={(e) => setEmailSettings({ ...emailSettings, companyEmail2: e.target.value })}
+              placeholder="Письма будут дублироваться на этот адрес"
+            />
+            <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginTop: '8px', marginBottom: '16px' }}>
+              Если указан дополнительный email, все письма, отправляемые на Email компании, будут автоматически дублироваться на этот адрес.
+            </p>
             
             <div style={{ marginTop: '20px', padding: '16px', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
               <h3 style={{ marginBottom: '12px', fontSize: '16px', fontWeight: 600 }}>Тестирование SMTP подключения</h3>

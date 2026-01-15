@@ -44,6 +44,7 @@ const settingsSchema = z
         fromEmail: optionalEmailSchema,
         fromName: z.string().optional(),
         companyEmail: optionalEmailSchema,
+        companyEmail2: optionalEmailSchema,
       })
       .optional(),
 
