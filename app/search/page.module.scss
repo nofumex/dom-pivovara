@@ -43,22 +43,27 @@
 
 .loadMoreButton {
   padding: 12px 24px;
-  background-color: var(--color-primary);
-  color: #fff;
-  border: none;
+  background-color: #ff9800 !important;
+  color: #fff !important;
+  border: 1px solid #f57c00;
   border-radius: 8px;
   cursor: pointer;
   font-size: var(--font-base-size);
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
 
   &:hover:not(:disabled) {
-    background-color: var(--color-primary-dark);
+    background-color: #f57c00 !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     transform: translateY(-1px);
   }
 
   &:disabled {
-    background-color: var(--color-muted);
+    background-color: var(--color-muted) !important;
+    color: #fff !important;
     cursor: not-allowed;
+    box-shadow: none;
   }
 }
 
