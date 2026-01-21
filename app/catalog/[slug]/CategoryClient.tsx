@@ -22,6 +22,7 @@ interface CategoryClientProps {
 }
 
 export function CategoryClient({ category, initialProducts }: CategoryClientProps) {
+  const LIMIT = 20
   const [products, setProducts] = useState(initialProducts)
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -43,7 +44,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
         const params = new URLSearchParams({
           category: category.slug,
           page: '1',
-          limit: '20', // Уменьшили лимит с 50 до 20
+          limit: LIMIT.toString(), // Уменьшили лимит с 50 до 20
           sortBy,
           sortOrder,
         })
@@ -68,9 +69,38 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
             stockStatus: p.stockStatus || (p.isInStock ? (p.stock === 0 ? 'NONE' : p.stock >= 1 && p.stock <= 2 ? 'FEW' : p.stock >= 3 && p.stock <= 10 ? 'ENOUGH' : 'MANY') : 'NONE'),
             rating: p.rating ? Number(p.rating) : 0,
           }))
+
+          // Отладка
+          console.log('API Response:', {
+            pagination: data.pagination,
+            dataLength: productsWithBadges.length,
+            total: data.total,
+            fullData: data
+          })
+
+          const totalItems = data.pagination?.total ?? data.total ?? 0
+          const totalPages = data.pagination?.pages ?? (totalItems > 0 ? Math.ceil(totalItems / LIMIT) : 1)
+          
+          // Упрощенная логика: показываем кнопку если:
+          // 1. Есть pagination.total и он больше загруженных товаров
+          // 2. ИЛИ есть pagination.pages и страниц больше 1
+          // 3. ИЛИ загружено ровно LIMIT товаров (значит могут быть еще)
+          const hasMoreProducts = 
+            (totalItems > 0 && totalItems > productsWithBadges.length) ||
+            (totalPages > 1) ||
+            (productsWithBadges.length === LIMIT)
+
+          console.log('hasMore calculation:', {
+            totalItems,
+            loaded: productsWithBadges.length,
+            totalPages,
+            hasMoreProducts
+          })
+
           setProducts(productsWithBadges)
-          setTotal(data.total || 0)
-          setHasMore((data.data || []).length === 20 && (data.data || []).length < (data.total || 0))
+          setTotal(totalItems)
+          setHasMore(hasMoreProducts)
+          setPage(1)
         }
       } catch (error) {
         console.error('Error fetching products:', error)
@@ -91,7 +121,7 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
       const params = new URLSearchParams({
         category: category.slug,
         page: nextPage.toString(),
-        limit: '20',
+        limit: LIMIT.toString(),
         sortBy,
         sortOrder,
       })
@@ -116,9 +146,31 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
           stockStatus: p.stockStatus || (p.isInStock ? (p.stock === 0 ? 'NONE' : p.stock >= 1 && p.stock <= 2 ? 'FEW' : p.stock >= 3 && p.stock <= 10 ? 'ENOUGH' : 'MANY') : 'NONE'),
           rating: p.rating ? Number(p.rating) : 0,
         }))
-        setProducts(prev => [...prev, ...newProducts])
+
+        const totalItems = data.pagination?.total ?? data.total ?? 0
+        const totalPages = data.pagination?.pages ?? (totalItems > 0 ? Math.ceil(totalItems / LIMIT) : nextPage)
+
+        setProducts((prev) => {
+          const updated = [...prev, ...newProducts]
+          // Если API вернул пусто — больше грузить нечего
+          if (newProducts.length === 0) {
+            setHasMore(false)
+            return updated
+          }
+
+          const hasMoreCalculated = 
+            (totalItems > 0 && totalItems > updated.length) ||
+            (nextPage < totalPages) ||
+            (newProducts.length === LIMIT)
+          
+          setHasMore(hasMoreCalculated)
+          return updated
+        })
+        
+        if (totalItems > 0) {
+          setTotal(totalItems)
+        }
         setPage(nextPage)
-        setHasMore(newProducts.length === 20 && products.length + newProducts.length < (data.total || 0))
       }
     } catch (error) {
       console.error('Error loading more products:', error)
@@ -190,20 +242,41 @@ export function CategoryClient({ category, initialProducts }: CategoryClientProp
             setSortOrder(newSortOrder)
           }}
         />
+
+        <div className={styles.toolbar}>
+          <span className={styles.countInfo}>
+            Показано {products.length}{total ? ` из ${total}` : ''} товаров
+          </span>
+          {products.length > 0 && (
+            <button
+              onClick={loadMore}
+              disabled={loading || (!hasMore && products.length < LIMIT)}
+              className={styles.loadMoreButtonInline}
+            >
+              {loading ? 'Загрузка...' : hasMore || products.length >= LIMIT ? 'Показать еще' : 'Обновить'}
+            </button>
+          )}
+        </div>
         {loading && page === 1 ? (
           <div className={styles.loading}>Загрузка...</div>
         ) : (
           <>
             <ProductGrid products={products} />
-            {hasMore && (
+            {products.length > 0 && (
               <div className={styles.loadMoreWrapper}>
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className={styles.loadMoreButton}
-                >
-                  {loading ? 'Загрузка...' : 'Показать еще'}
-                </button>
+                {hasMore || products.length >= LIMIT ? (
+                  <button
+                    onClick={loadMore}
+                    disabled={loading}
+                    className={styles.loadMoreButton}
+                  >
+                    {loading ? 'Загрузка...' : 'Показать еще'}
+                  </button>
+                ) : (
+                  <p style={{ textAlign: 'center', color: 'var(--color-muted)' }}>
+                    Показано {products.length} {total > 0 ? `из ${total}` : ''} товаров
+                  </p>
+                )}
               </div>
             )}
           </>

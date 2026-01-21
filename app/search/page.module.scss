@@ -35,6 +35,33 @@
   }
 }
 
+.loadMoreWrapper {
+  display: flex;
+  justify-content: center;
+  margin: 32px 0 48px;
+}
+
+.loadMoreButton {
+  padding: 12px 24px;
+  background-color: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: var(--font-base-size);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-dark);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background-color: var(--color-muted);
+    cursor: not-allowed;
+  }
+}
+
 
 
 
