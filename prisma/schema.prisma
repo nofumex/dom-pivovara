@@ -51,6 +51,8 @@ model Category {
   Category       Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
   other_Category Category[] @relation("CategoryToCategory")
   Product        Product[]
+
+  @@index([parentId, isActive, sortOrder])
 }
 
 model HeroImage {
@@ -212,6 +214,10 @@ model Product {
   Category       Category          @relation(fields: [categoryId], references: [id])
   ProductVariant ProductVariant[]
   Review         Review[]
+
+  @@index([categoryId, isActive, visibility, createdAt])
+  @@index([categoryId, isActive, visibility, price])
+  @@index([isActive, visibility, stock])
 }
 
 model ProductVariant {
