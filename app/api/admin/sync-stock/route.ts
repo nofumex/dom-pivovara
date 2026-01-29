@@ -160,7 +160,9 @@ function calculateLevenshteinSimilarity(str1: string, str2: string): number {
 }
 
 /**
- * Находит наиболее похожий товар по названию (многоуровневый поиск)
+ * Находит товар по названию (только 100% точное совпадение)
+ * Требует полного совпадения нормализованных названий для предотвращения
+ * неправильного сопоставления товаров с похожими названиями
  */
 function findBestMatch(
   productName: string,
@@ -168,83 +170,14 @@ function findBestMatch(
   normalizedProductMap: Map<string, Array<{ id: string; title: string; sku: string; stock: number }>>,
   allProducts: Array<{ id: string; title: string; sku: string; stock: number }>,
 ): { id: string; title: string; sku: string; stock: number } | null {
-  // 1. Точное совпадение по нормализованному названию
+  // Только точное совпадение по нормализованному названию (100% совпадение)
   const exactMatch = normalizedProductMap.get(normalizedName)
   if (exactMatch && exactMatch.length > 0) {
     return exactMatch[0]
   }
 
-  // 2. Совпадение без общих префиксов
-  const nameWithoutPrefix = removeCommonPrefixes(normalizedName)
-  if (nameWithoutPrefix !== normalizedName) {
-    for (const [normalizedTitle, products] of Array.from(normalizedProductMap.entries())) {
-      const titleWithoutPrefix = removeCommonPrefixes(normalizedTitle)
-      if (nameWithoutPrefix === titleWithoutPrefix) {
-        return products[0]
-      }
-    }
-  }
-
-  // 3. Совпадение по ключевым словам (без веса, размеров и т.д.)
-  const keywords1 = extractKeywords(normalizedName)
-  if (keywords1 !== normalizedName && keywords1.length > 5) {
-    for (const product of allProducts) {
-      const normalizedProductTitle = normalizeProductName(product.title)
-      const keywords2 = extractKeywords(normalizedProductTitle)
-      if (keywords1 === keywords2) {
-        return product
-      }
-    }
-  }
-
-  // 4. Частичное совпадение (одна строка содержит другую)
-  for (const [normalizedTitle, products] of Array.from(normalizedProductMap.entries())) {
-    if (normalizedTitle.includes(normalizedName) || normalizedName.includes(normalizedTitle)) {
-      const lengthDiff = Math.abs(normalizedTitle.length - normalizedName.length)
-      const avgLength = (normalizedTitle.length + normalizedName.length) / 2
-      // Увеличиваем допустимую разницу до 60%
-      if (avgLength > 0 && lengthDiff / avgLength < 0.6) {
-        return products[0]
-      }
-    }
-  }
-
-  // 5. Поиск по похожести (общие слова) - снижаем порог до 40%
-  let bestMatch: typeof allProducts[0] | null = null
-  let bestSimilarity = 0.4 // Снижен порог до 40%
-
-  for (const product of allProducts) {
-    const normalizedProductTitle = normalizeProductName(product.title)
-    const similarity = calculateSimilarity(normalizedName, normalizedProductTitle)
-    
-    if (similarity > bestSimilarity) {
-      bestSimilarity = similarity
-      bestMatch = product
-    }
-  }
-
-  // 6. Если не нашли по словам, пробуем fuzzy matching (Левенштейна)
-  if (!bestMatch || bestSimilarity < 0.6) {
-    let fuzzyBestMatch: typeof allProducts[0] | null = null
-    let fuzzyBestSimilarity = 0.75 // Порог для fuzzy matching выше
-
-    for (const product of allProducts) {
-      const normalizedProductTitle = normalizeProductName(product.title)
-      const fuzzySimilarity = calculateLevenshteinSimilarity(normalizedName, normalizedProductTitle)
-      
-      if (fuzzySimilarity > fuzzyBestSimilarity) {
-        fuzzyBestSimilarity = fuzzySimilarity
-        fuzzyBestMatch = product
-      }
-    }
-
-    // Используем fuzzy match если он лучше
-    if (fuzzyBestMatch && (!bestMatch || fuzzyBestSimilarity > bestSimilarity)) {
-      return fuzzyBestMatch
-    }
-  }
-
-  return bestMatch
+  // Если точного совпадения нет, возвращаем null
+  return null
 }
 
 export async function POST(request: NextRequest) {
@@ -307,6 +240,8 @@ export async function POST(request: NextRequest) {
         const optionsStr = formData.get('options') as string | null
         
         // Парсим опции синхронизации
+        // Примечание: массовую установку "в 0" отключаем ниже, т.к. синхронизация обновляет
+        // только товары с 100% совпадением названий и не должна менять остатки остальных.
         let syncOptions = { setMissingToZero: false }
         if (optionsStr) {
           try {
@@ -600,36 +535,22 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Ищем товар по названию с улучшенным алгоритмом
+      // Ищем товар по названию (только 100% точное совпадение нормализованных названий)
       const matchedProduct = findBestMatch(productName, normalizedName, normalizedProductMap, allProducts)
       
       if (matchedProduct) {
-        const matchedNormalized = normalizeProductName(matchedProduct.title)
-        // Логируем несовпадения названий для отладки (первые 20 для лучшей диагностики)
-        if (matchedNormalized !== normalizedName && updatedCount < 20) {
-          const similarity = calculateSimilarity(normalizedName, matchedNormalized)
+        // Товар найден по 100% точному совпадению нормализованного названия
+        // Логируем первые 20 для отладки
+        if (updatedCount < 20) {
           console.log(
-            `[SYNC-STOCK] Найдено совпадение (${Math.round(similarity * 100)}%): "${productName}" → "${matchedProduct.title}"`,
+            `[SYNC-STOCK] Найдено точное совпадение (100%): "${productName}" → "${matchedProduct.title}"`,
           )
         }
       } else {
         // Логируем все не найденные товары для анализа
         console.log(
-          `[SYNC-STOCK] Товар не найден: "${productName}" (нормализовано: "${normalizedName}")`,
+          `[SYNC-STOCK] Товар не найден (требуется 100% совпадение): "${productName}" (нормализовано: "${normalizedName}")`,
         )
-        
-        // Пробуем найти похожие товары для подсказки
-        const suggestions: string[] = []
-        for (const product of allProducts.slice(0, 5)) {
-          const normalizedProductTitle = normalizeProductName(product.title)
-          const similarity = calculateSimilarity(normalizedName, normalizedProductTitle)
-          if (similarity > 0.3) {
-            suggestions.push(`${product.title} (${Math.round(similarity * 100)}%)`)
-          }
-        }
-        if (suggestions.length > 0) {
-          console.log(`[SYNC-STOCK] Возможные совпадения: ${suggestions.join(', ')}`)
-        }
       }
 
           if (matchedProduct) {
@@ -739,76 +660,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Устанавливаем остаток в 0 для товаров, которых нет в файле (только если опция включена)
-        let setToZeroCount = 0
+        // ВАЖНО: синхронизация обновляет ТОЛЬКО товары с 100% совпадением названий.
+        // Поэтому не выполняем массовую установку остатка в 0 для остальных товаров:
+        // все товары без точного совпадения (или отсутствующие в файле) остаются без изменений.
+        const setToZeroCount = 0
         const setToZeroProducts: string[] = []
-
-        if (syncOptions.setMissingToZero) {
-          sendProgress(controller, 85, 'Установка остатка в 0 для товаров, отсутствующих в файле...')
-
-          // Фильтруем товары, которых НЕТ в fileProducts
-          // fileProducts содержит ВСЕ товары, которые были найдены в файле (независимо от типа совпадения)
-          const productsToSetZero = allProducts.filter((product) => !fileProducts.has(product.id))
-          
-          console.log(`[SYNC-STOCK] Всего товаров в БД: ${allProducts.length}, найдено в файле: ${fileProducts.size}, будет установлено в 0: ${productsToSetZero.length}`)
-          
-        // Batch update для установки остатка в 0
-        const ZERO_BATCH_SIZE = 10 // Уменьшаем размер батча
-        const ZERO_BATCH_DELAY = 1000 // Увеличиваем задержку для международных соединений
-          
-          for (let i = 0; i < productsToSetZero.length; i += ZERO_BATCH_SIZE) {
-            const batch = productsToSetZero.slice(i, i + ZERO_BATCH_SIZE)
-
-            try {
-              // Используем транзакцию для batch update
-              await withRetry(async () => {
-                await prisma.$transaction(
-                  batch.map((product) =>
-                    prisma.product.update({
-                      where: { id: product.id },
-                      data: {
-                        stock: 0,
-                        isInStock: false,
-                        stockStatus: 'NONE',
-                      },
-                    })
-                  )
-                )
-              }, 5, 2000) // 5 попыток с задержкой 2 секунды (увеличено для международных соединений)
-
-              setToZeroCount += batch.length
-              batch.forEach((product) => setToZeroProducts.push(product.title))
-
-              // Отправляем прогресс
-              const progress = Math.min(95, 85 + Math.floor((i / productsToSetZero.length) * 10))
-              sendProgress(controller, progress, `Установлено в 0: ${Math.min(i + ZERO_BATCH_SIZE, productsToSetZero.length)} из ${productsToSetZero.length}...`)
-            } catch (error: any) {
-              console.error(`[SYNC-STOCK] Ошибка при установке остатка в 0 для батча ${i}-${i + ZERO_BATCH_SIZE}:`, error)
-              
-              // Если это ошибка подключения, пробуем переподключиться
-              if (error.code === 'P1017' || error.message?.includes('Server has closed the connection')) {
-                console.log('[SYNC-STOCK] Попытка переподключения к БД...')
-                try {
-                  await prisma.$disconnect()
-                  await new Promise((resolve) => setTimeout(resolve, 2000))
-                  // Prisma автоматически переподключится при следующем запросе
-                } catch (reconnectError) {
-                  console.error('[SYNC-STOCK] Ошибка при переподключении:', reconnectError)
-                }
-              }
-              
-              // Продолжаем обработку следующих батчей
-            }
-            
-            // Задержка между батчами
-            if (i + ZERO_BATCH_SIZE < productsToSetZero.length) {
-              await new Promise((resolve) => setTimeout(resolve, ZERO_BATCH_DELAY))
-            }
-          }
-        } else {
-          // Если опция отключена, просто пропускаем этот шаг
-          sendProgress(controller, 95, 'Пропуск установки в 0 (опция отключена)...')
-        }
+        sendProgress(controller, 95, 'Пропуск установки в 0 (обновляем только товары с 100% совпадением)...')
 
         const result = {
           totalInFile: updates.length,
