@@ -28,6 +28,8 @@
 .table {
   display: grid;
   gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 .row {
@@ -35,6 +37,7 @@
   grid-template-columns: 200px repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   align-items: start;
+  min-width: 640px;
 }
 
 .cellTitle {
@@ -88,12 +91,12 @@
 }
 
 @media (max-width: 767px) {
-  .row {
-    grid-template-columns: 1fr;
+  .wrapper {
+    padding: 16px;
   }
 
-  .cellTitle {
-    margin-bottom: 6px;
+  .row {
+    min-width: 520px;
   }
 }
 

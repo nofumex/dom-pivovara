@@ -11,6 +11,9 @@ import { BarChartIcon } from '@/components/atoms/Icons/BarChartIcon'
 import { HeartIcon } from '@/components/atoms/Icons/HeartIcon'
 import { CartIcon } from '@/components/atoms/Icons/CartIcon'
 import { UserIcon } from '@/components/atoms/Icons/UserIcon'
+import { useCartStore } from '@/store/cart-store'
+import { useFavoritesStore } from '@/store/favorites-store'
+import { useComparisonStore } from '@/store/comparison-store'
 import styles from './Header.module.scss'
 
 // Интерфейс для категории
@@ -43,12 +46,18 @@ export function Header() {
   const [categories, setCategories] = useState<Category[]>([])
   const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0, width: 0 })
   const [phoneNumbers, setPhoneNumbers] = useState<{ contactPhone?: string; contactPhone2?: string }>({})
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchWrapperRef = useRef<HTMLDivElement>(null)
   const autocompleteRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Берём прямо массивы/счётчики из стора, чтобы гарантированно получать актуальные значения
+  const cartCount = useCartStore((state) => state.getTotalItems())
+  const favoritesCount = useFavoritesStore((state) => state.productIds.length)
+  const comparisonCount = useComparisonStore((state) => state.productIds.length)
 
   // Функция для поиска товаров с debounce
   useEffect(() => {
@@ -84,6 +93,10 @@ export function Header() {
       }
     }
   }, [searchQuery])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Обновляем позицию выпадающего списка
   useEffect(() => {
@@ -191,6 +204,8 @@ export function Header() {
     setIsAutocompleteOpen(false)
     if (searchQuery.trim()) {
       router.push(`/search?query=${encodeURIComponent(searchQuery.trim())}`)
+      // Закрываем мобильное окно поиска после перехода на страницу результатов
+      setIsMobileSearchOpen(false)
     }
   }
 
@@ -205,6 +220,7 @@ export function Header() {
     setIsAutocompleteOpen(false)
     if (searchQuery.trim()) {
       router.push(`/search?query=${encodeURIComponent(searchQuery.trim())}`)
+      setIsMobileSearchOpen(false)
     }
   }
 
@@ -234,12 +250,21 @@ export function Header() {
           </Link>
           <Link href="/compare" aria-label="Сравнение" className={styles.mobileIcon}>
             <BarChartIcon />
+            {mounted && comparisonCount > 0 && (
+              <span className={styles.mobileBadge}>{comparisonCount}</span>
+            )}
           </Link>
           <Link href="/favorites" aria-label="Избранное" className={styles.mobileIcon}>
             <HeartIcon />
+            {mounted && favoritesCount > 0 && (
+              <span className={styles.mobileBadge}>{favoritesCount}</span>
+            )}
           </Link>
           <Link href="/cart" aria-label="Корзина" className={styles.mobileIcon}>
             <CartIcon />
+            {mounted && cartCount > 0 && (
+              <span className={styles.mobileBadge}>{cartCount}</span>
+            )}
           </Link>
         </div>
 

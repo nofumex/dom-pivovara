@@ -197,6 +197,12 @@ export default function LoginPage() {
           <Button type="submit" variant="primary" disabled={isSubmitting} className={styles.submitButton}>
             {isSubmitting ? 'Вход...' : 'Войти'}
           </Button>
+          <div className={styles.switchAuth}>
+            <span>Нет аккаунта? </span>
+            <Link href="/register" className={styles.switchAuthLink}>
+              Зарегистрироваться
+            </Link>
+          </div>
         </form>
       </div>
     </div>

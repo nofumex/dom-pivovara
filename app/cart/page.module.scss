@@ -289,9 +289,29 @@
 }
 
 @media (max-width: 768px) {
+  .cartSection {
+    padding: 16px;
+  }
+
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .itemImage {
+    width: 100%;
+    max-width: 260px;
+  }
+
   .itemDetails {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .quantityControl {
+    width: 100%;
+    max-width: 220px;
+    justify-content: space-between;
   }
 
   .itemTotal {
