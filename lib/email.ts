@@ -397,7 +397,8 @@ export async function sendNewOrderNotificationEmail(
   customerEmail: string,
   customerPhone: string,
   orderTotal: number,
-  deliveryAddress?: string
+  deliveryAddress?: string,
+  items?: Array<{ title: string; quantity: number; price: number }>
 ): Promise<boolean> {
   const settings = await getEmailSettings()
   if (!settings) {
@@ -411,6 +412,7 @@ export async function sendNewOrderNotificationEmail(
     customerPhone,
     orderTotal,
     deliveryAddress,
+    items: items as OrderItem[] | undefined,
   })
 
   // Формируем список получателей: основной email и дополнительный (если указан)

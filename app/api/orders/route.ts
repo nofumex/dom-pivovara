@@ -324,7 +324,8 @@ export async function POST(request: NextRequest) {
           validated.email,
           validated.phone,
           total,
-          deliveryAddress
+          deliveryAddress,
+          orderItemsForEmail
         )
       })(),
     ]).then((results) => {

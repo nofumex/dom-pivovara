@@ -293,7 +293,16 @@ export function buildAdminOrderEmail(params: {
   customerPhone: string
   orderTotal: number
   deliveryAddress?: string
+  items?: OrderItem[]
 }): { subject: string; html: string; text: string } {
+  const rows: TableRow[] = (params.items || []).map((item) => ({
+    cells: [
+      { value: safeHtml(item.title) },
+      { value: String(item.quantity), align: 'center' },
+      { value: `${new Intl.NumberFormat('ru-RU').format(item.price)} ₽`, align: 'right' },
+    ],
+  }))
+
   const { html, text } = renderLayout({
     subject: `Новый заказ №${params.orderNumber}`,
     preheader: 'Новая заявка на заказ, требуется обработка.',
@@ -307,6 +316,16 @@ export function buildAdminOrderEmail(params: {
       ${params.deliveryAddress ? `<p><strong>Адрес доставки:</strong> ${safeHtml(params.deliveryAddress)}</p>` : ''}
       <p style="margin-top:12px;font-weight:700;">Сумма заказа: ${new Intl.NumberFormat('ru-RU').format(params.orderTotal)} ₽</p>
     `,
+    table: rows.length > 0
+      ? {
+          columns: [
+            { label: 'Товар' },
+            { label: 'Кол-во', align: 'center', width: '90px' },
+            { label: 'Цена', align: 'right', width: '110px' },
+          ],
+          rows,
+        }
+      : undefined,
     highlights: [
       { title: 'Действие', description: 'Свяжитесь с клиентом и подтвердите заказ.' },
       { title: 'Доставка', description: params.deliveryAddress ? params.deliveryAddress : 'Адрес будет уточнён.' },
