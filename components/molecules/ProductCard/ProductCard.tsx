@@ -120,16 +120,14 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
     ? 'sale'
     : null
 
-  // Используем только реальные изображения с сервера, без интернет-плейсхолдеров
+  // Используем только реальные изображения, игнорируя технические плейсхолдеры
   const firstImage = Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : null
-  const hasValidImage = firstImage && 
-    !firstImage.includes('placeholder') && 
+  const hasValidImage =
+    typeof firstImage === 'string' &&
+    !firstImage.includes('placeholder') &&
     !firstImage.startsWith('/uploads/placeholder') &&
-    firstImage !== '' &&
-    firstImage.trim() !== '' &&
-    !firstImage.startsWith('http://') &&
-    !firstImage.startsWith('https://')
-  
+    firstImage.trim() !== ''
+
   const imageUrl = hasValidImage ? firstImage : null
 
   return (

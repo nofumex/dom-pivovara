@@ -3,8 +3,8 @@ import { prisma } from '@/lib/db'
 import { paginatedResponse, errorResponse } from '@/lib/response'
 import { ProductVisibility, StockStatus } from '@prisma/client'
 
-// Кешируем на 60 секунд для улучшения производительности
-export const revalidate = 60
+// Маршрут всегда динамический, так как зависит от query‑параметров
+export const dynamic = 'force-dynamic'
 
 // Рекурсивная функция для получения всех дочерних категорий
 async function getAllChildCategoryIds(categoryId: string): Promise<string[]> {

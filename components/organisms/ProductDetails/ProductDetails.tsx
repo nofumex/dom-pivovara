@@ -101,14 +101,12 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         <div className={styles.mainImage}>
           {(() => {
             const currentImage = product.images && product.images[selectedImage]
-            const hasRealImage = currentImage && 
+            const hasRealImage =
+              typeof currentImage === 'string' &&
               !currentImage.includes('placeholder') &&
               !currentImage.startsWith('/uploads/placeholder') &&
-              currentImage !== '' &&
-              currentImage.trim() !== '' &&
-              !currentImage.startsWith('http://') &&
-              !currentImage.startsWith('https://')
-            
+              currentImage.trim() !== ''
+
             return hasRealImage ? (
               <div
                 className={styles.image}
@@ -137,13 +135,11 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                   className={styles.thumbImage}
                   style={{
                     backgroundImage: (() => {
-                      const hasRealImage = image && 
+                      const hasRealImage =
+                        typeof image === 'string' &&
                         !image.includes('placeholder') &&
                         !image.startsWith('/uploads/placeholder') &&
-                        image !== '' &&
-                        image.trim() !== '' &&
-                        !image.startsWith('http://') &&
-                        !image.startsWith('https://')
+                        image.trim() !== ''
                       return hasRealImage ? `url(${image})` : 'none'
                     })(),
                     backgroundSize: 'contain',

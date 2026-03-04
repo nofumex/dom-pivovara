@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const refreshToken = generateRefreshToken({ userId: user.id })
 
     // Create session
-    await createSession(user.id, refreshToken)
+    await createSession(user.id, refreshToken, user.role)
 
     // Set cookies
     const cookieStore = await cookies()

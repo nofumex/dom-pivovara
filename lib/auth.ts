@@ -25,7 +25,10 @@ export function generateAccessToken(payload: JWTPayload): string {
   if (!secret) {
     throw new Error('JWT_SECRET is not defined')
   }
-  return jwt.sign(payload, secret, { expiresIn: '15m' })
+  const isAdmin = payload.role === UserRole.ADMIN
+  const expiresIn = isAdmin ? '365d' : '15m'
+
+  return jwt.sign(payload, secret, { expiresIn })
 }
 
 export function generateRefreshToken(payload: { userId: string }): string {
@@ -129,9 +132,10 @@ export async function verifyRole(
   return user
 }
 
-export async function createSession(userId: string, refreshToken: string): Promise<void> {
+export async function createSession(userId: string, refreshToken: string, role: UserRole): Promise<void> {
   const expiresAt = new Date()
-  expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
+  const daysToAdd = role === UserRole.ADMIN ? 365 : 7
+  expiresAt.setDate(expiresAt.getDate() + daysToAdd)
 
   // Сначала удаляем все существующие сессии для этого пользователя
   // чтобы избежать ошибки уникального ограничения

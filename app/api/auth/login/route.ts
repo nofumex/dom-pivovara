@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { generateAccessToken, generateRefreshToken, createSession } from '@/lib/auth'
 import { loginSchema } from '@/lib/validations'
 import { errorResponse } from '@/lib/response'
+import { UserRole } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     const refreshToken = generateRefreshToken({ userId: user.id })
 
     // Create session
-    await createSession(user.id, refreshToken)
+    await createSession(user.id, refreshToken, user.role)
     console.log('Login API: Session created')
 
     // Create response with data
@@ -98,12 +99,15 @@ export async function POST(request: NextRequest) {
     // Set cookies in response
     // Используем secure только для HTTPS запросов, иначе cookies не будут работать по HTTP
     const isSecure = request.url.startsWith('https://') || process.env.NEXT_PUBLIC_FORCE_SECURE_COOKIES === 'true'
+    const isAdmin = user.role === UserRole.ADMIN
+    const accessMaxAge = isAdmin ? 60 * 60 * 24 * 365 : 60 * 15
+    const refreshMaxAge = isAdmin ? 60 * 60 * 24 * 365 : 60 * 60 * 24 * 7
     
     response.cookies.set('accessToken', accessToken, {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
-      maxAge: 60 * 15, // 15 minutes
+      maxAge: accessMaxAge,
       path: '/',
     })
 
@@ -111,7 +115,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: refreshMaxAge,
       path: '/',
     })
 

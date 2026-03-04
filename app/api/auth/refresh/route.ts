@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { verifyRefreshToken, validateSession, generateAccessToken, generateRefreshToken, createSession, deleteSession } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { UserRole } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await createSession(user.id, newRefreshToken)
+      await createSession(user.id, newRefreshToken, user.role)
     } catch (error) {
       console.error('Error creating new session:', error)
       // Если ошибка уникального ограничения, пробуем найти существующую сессию
@@ -81,7 +82,12 @@ export async function POST(request: NextRequest) {
           where: { id: existingSession.id },
           data: {
             refreshToken: newRefreshToken,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            expiresAt: new Date(
+              Date.now() +
+                (user.role === UserRole.ADMIN
+                  ? 365 * 24 * 60 * 60 * 1000
+                  : 7 * 24 * 60 * 60 * 1000),
+            ),
           },
         })
       } else {
@@ -100,12 +106,15 @@ export async function POST(request: NextRequest) {
     // Устанавливаем новые cookies в response
     // Используем secure только для HTTPS запросов, иначе cookies не будут работать по HTTP
     const isSecure = request.url.startsWith('https://') || process.env.NEXT_PUBLIC_FORCE_SECURE_COOKIES === 'true'
+    const isAdmin = user.role === UserRole.ADMIN
+    const accessMaxAge = isAdmin ? 60 * 60 * 24 * 365 : 60 * 15
+    const refreshMaxAge = isAdmin ? 60 * 60 * 24 * 365 : 60 * 60 * 24 * 7
     
     response.cookies.set('accessToken', newAccessToken, {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
-      maxAge: 60 * 15, // 15 minutes
+      maxAge: accessMaxAge,
       path: '/',
     })
 
@@ -113,7 +122,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: isSecure,
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: refreshMaxAge,
       path: '/',
     })
 
